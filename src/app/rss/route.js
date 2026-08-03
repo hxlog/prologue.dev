@@ -1,7 +1,7 @@
 import { createFeed } from "../../lib/feed/build-feed";
 import { finalizeRss } from "../../lib/feed/finalize";
 
-const CACHE_CONTROL = "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400";
+const CACHE_CONTROL = "no-store, no-cache, must-revalidate";
 
 export async function GET() {
   const feed = createFeed();
