@@ -8,7 +8,7 @@ export async function GET() {
 
   return new Response(finalizeRss(feed.rss2().trim()), {
     headers: {
-      "Content-Type": "application/rss+xml; charset=utf-8",
+      "Content-Type": "application/xml; charset=utf-8",
       "Cache-Control": CACHE_CONTROL,
     },
   });

@@ -8,7 +8,7 @@ export async function GET() {
 
   return new Response(finalizeJson(feed.json1()), {
     headers: {
-      "Content-Type": "application/feed+json; charset=utf-8",
+      "Content-Type": "application/xml; charset=utf-8",
       "Cache-Control": CACHE_CONTROL,
     },
   });
