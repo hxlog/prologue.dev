@@ -7,7 +7,7 @@ export async function GET() {
 
   return new Response(feed.atom1().trim(), {
     headers: {
-      "Content-Type": "application/xml; charset=utf-8",
+      "Content-Type": "application/atom+xml; charset=utf-8",
       "Cache-Control": CACHE_CONTROL,
     },
   });
