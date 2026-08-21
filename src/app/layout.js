@@ -4,8 +4,7 @@ import { Providers } from "../components/providers";
 import Navbar from "../components/navbar";
 import Footer from "../components/footer";
 import siteMetadata from "../../data/sitemetadata";
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
+import UmamiAnalytics from "../components/umami-analytics";
 
 const ImageLightbox = dynamic(() => import("../components/ImageLightbox"));
 
@@ -54,8 +53,7 @@ export default function RootLayout({ children }) {
           </div>
           <ImageLightbox />
         </Providers>
-        <Analytics />
-        <SpeedInsights />
+        <UmamiAnalytics />
       </body>
     </html>
   );
