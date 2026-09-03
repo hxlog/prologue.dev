@@ -45,6 +45,7 @@ export function OptimizedHTMLRenderer({ htmlContent }) {
               width={1920}
               height={1080}
               title={titleMatch ? titleMatch[1] : ""}
+              sizes="(min-width: 1280px) 896px, 100vw"
               className={`drop-shadow-xs rounded-sm ${classMatch ? classMatch[1] : ""}`.trim()}
               style={{ height: "auto", width: "100%" }}
             />

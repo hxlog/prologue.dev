@@ -1,5 +1,6 @@
 import "./globals.css";
 import dynamic from "next/dynamic";
+import { Noto_Sans_SC, Noto_Serif_SC, JetBrains_Mono } from "next/font/google";
 import { Providers } from "../components/providers";
 import Navbar from "../components/navbar";
 import Footer from "../components/footer";
@@ -7,6 +8,31 @@ import siteMetadata from "../../data/sitemetadata";
 import UmamiAnalytics from "../components/umami-analytics";
 
 const ImageLightbox = dynamic(() => import("../components/ImageLightbox"));
+
+/**
+ * Typography stack (next/font best practice: self-hosted, zero layout shift,
+ * unicode-range subsetting keeps CJK payloads small):
+ * - Noto Sans SC  → UI + headings + body (--font-sans)
+ * - Noto Serif SC → editorial accents: excerpts, quotes (--font-serif)
+ * - JetBrains Mono → code, terminal widget, copy fields (--font-mono)
+ */
+const notoSansSC = Noto_Sans_SC({
+  subsets: ["latin"],
+  variable: "--font-noto-sans-sc",
+  display: "swap",
+});
+
+const notoSerifSC = Noto_Serif_SC({
+  subsets: ["latin"],
+  variable: "--font-noto-serif-sc",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains-mono",
+  display: "swap",
+});
 
 export const metadata = {
   metadataBase: new URL(siteMetadata.siteUrl),
@@ -43,8 +69,12 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang={siteMetadata.language} suppressHydrationWarning>
-      <body className="mx-auto bg-white dark:bg-black selection:bg-[#d7ffff] dark:selection:bg-[#006482a2]">
+    <html
+      lang={siteMetadata.language}
+      suppressHydrationWarning
+      className={`${notoSansSC.variable} ${notoSerifSC.variable} ${jetbrainsMono.variable}`}
+    >
+      <body className="mx-auto bg-background text-foreground antialiased">
         <Providers>
           <Navbar />
           <div className="max-w-7xl mx-auto px-6">

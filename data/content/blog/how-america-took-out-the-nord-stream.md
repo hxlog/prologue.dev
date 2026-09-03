@@ -1,5 +1,6 @@
 ---
 title: 译：美国是如何干掉北溪管道的？
+tags: ["Translations", "Politics"]
 publishDate: 2023-02-15
 description: 《纽约时报》称这是一个 "谜"，但美国执行了一项秘密的海上行动，并一直保密，直到现在。
 ---

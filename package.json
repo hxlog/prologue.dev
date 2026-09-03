@@ -2,11 +2,11 @@
   "name": "Prologue Blog",
   "version": "1.0.0",
   "scripts": {
-    "dev": "concurrently -k -n content,next -c blue,green \"contentlayer2 dev\" \"next dev --turbopack\"",
-    "build": "contentlayer2 build && next build --turbopack",
+    "dev": "contentlayer2 build && node scripts/build-search-index.mjs && concurrently -k -n content,next -c blue,green \"contentlayer2 dev\" \"next dev --turbopack\"",
+    "build": "contentlayer2 build && node scripts/build-search-index.mjs && next build --turbopack",
     "start": "next start",
     "lint": "eslint .",
-    "build:content": "contentlayer2 build",
+    "build:content": "contentlayer2 build && node scripts/build-search-index.mjs",
     "publish:dry": "node scripts/publish-template.mjs",
     "publish": "node scripts/publish-template.mjs --publish"
   },
@@ -23,7 +23,6 @@
     "hastscript": "^9.0.1",
     "js-yaml": "^5.2.1",
     "mermaid": "^11.16.0",
-    "moment": "^2.30.1",
     "next": "^16.0.8",
     "next-contentlayer2": "^0.5.3",
     "next-themes": "^0.4.3",

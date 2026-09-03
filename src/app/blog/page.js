@@ -1,34 +1,31 @@
-import { allPosts } from "contentlayer/generated"
+import { allPosts } from "contentlayer/generated";
 import { compareDesc } from "date-fns";
-import PostsLayout from "./bloglistlayout"
-import siteMetadata from "../../../data/sitemetadata"
-import { tagCounts, sortedTags } from "../../lib/tag-counts"
-import PageTransition from "../../components/page-transition"
+import PostsLayout from "./bloglistlayout";
+import siteMetadata from "../../../data/sitemetadata";
+import { tagCounts, sortedTags } from "../../lib/tag-counts";
 
-export default function Blog() 
-{
-  const posts = allPosts.sort((a, b) => {
-    return compareDesc(new Date(a.publishDate), new Date(b.publishDate))
-  })
-
-  const pagination = {
-    currentPage: 1,
-    totalPages: Math.ceil(posts.length / 10),
-  }
-  const initialDisplayPosts = posts.slice(0, 10)
+export default function Blog() {
+  // Copy before sorting — allPosts is shared module state.
+  const posts = [...allPosts].sort((a, b) =>
+    compareDesc(new Date(a.publishDate), new Date(b.publishDate))
+  );
 
   return (
-    <PageTransition>
-      <PostsLayout posts={posts} pagination={pagination} initialDisplayPosts={initialDisplayPosts} tagCounts={tagCounts} sortedTags={sortedTags} />
-    </PageTransition>
-  )
+    <PostsLayout
+      posts={posts}
+      tagCounts={tagCounts}
+      sortedTags={sortedTags}
+      title="归档"
+      subtitle={`共 ${posts.filter((p) => p.draft !== true).length} 篇文章`}
+    />
+  );
 }
 
 export const metadata = {
-  title: `Blog - ${siteMetadata.publishName}`,
+  title: `归档 - ${siteMetadata.publishName}`,
   description: "All posts here! 所有文章在这里！",
   openGraph: {
-    title: `Blog - ${siteMetadata.publishName}`,
+    title: `归档 - ${siteMetadata.publishName}`,
     description: "All posts here! 所有文章在这里！",
     url: `${siteMetadata.siteUrl}/blog`,
     images: [siteMetadata.cover],
@@ -37,7 +34,7 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: `Blog - ${siteMetadata.publishName}`,
+    title: `归档 - ${siteMetadata.publishName}`,
     description: "All posts here! 所有文章在这里！",
     images: [siteMetadata.cover],
   },

@@ -1,7 +1,7 @@
 ---
 title: 新穷人的抉择与消费主义挑战
 featured: true
-tags: ["Sociology"]
+tags: ["Capitalism", "Sociology"]
 publishDate: 2024-05-26
 lastmod: 2024-06-07
 description: 消费主义将个人的消费能力与社会地位挂钩，导致过度消费和人生空虚。现代社会由“生产者社会”转变为“消费者社会”，千禧一代是真正意义的消费着，作者提倡重构对物品的理解，摆脱每况愈下的消费文化。

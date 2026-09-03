@@ -1,6 +1,6 @@
 ---
 title: 媒介本体论和现代化自反性
-tags: ["Sociology"]
+tags: ["Sociology", "Philosophy"]
 publishDate: 2022-06-27
 lastmod: 2022-08-20
 description: 在资本主义晚期，现代人对复制品情有独钟，媒介的自反性通过通过认识论、符号文化等揭示，背后的是现代化自反性的背景，后现代的解构主义强调怀疑和否定，后现代是现代化的最后问题。

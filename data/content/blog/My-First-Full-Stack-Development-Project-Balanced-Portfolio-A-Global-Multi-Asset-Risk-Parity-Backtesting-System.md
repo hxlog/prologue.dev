@@ -1,6 +1,6 @@
 ---
 title: 我全栈开发的第一个产品：Balanced Portfolio 多资产风险平价全天候策略回测系统
-tags: ["Finance"]
+tags: ["Finance", "Quant", "Technology"]
 publishDate: 2026-07-11
 featured: true
 description: 关于笔者第一次全栈开发金融产品，将风险平价策略回测系统、股指期货数据看板、场外衍生品定价模块做成开箱即用、可交互、可视化的Web端产品。

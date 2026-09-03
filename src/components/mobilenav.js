@@ -25,7 +25,7 @@ const MobileNav = () => {
             viewBox="0 0 24 24"
             strokeWidth={1.5}
             stroke="currentColor"
-            className="w-6 h-6 text-zinc-500 dark:text-zinc-200"
+            className="w-6 h-6 text-muted transition-colors duration-200 hover:text-accent"
           >
             <path
               strokeLinecap="round"
@@ -44,13 +44,16 @@ const MobileNav = () => {
         leaveFrom="transform opacity-100 scale-100"
         leaveTo="transform opacity-0 scale-95"
       >
-        <MenuItems className="absolute rounded-md bg-white/90 dark:bg-black/90 backdrop-blur-sm shadow-lg z-50 w-20 px-2">
-          <div className="text-zinc-500 hover:text-zinc-800 dark:text-zinc-300 text-sm divide-y divide-zinc-50 dark:divide-zinc-700">
+        <MenuItems className="absolute right-0 z-50 mt-2 w-32 rounded-xl border border-border bg-surface p-2 shadow-pop">
+          <div className="text-sm text-muted">
             {headerNavLinks.map((link) => {
               return (
-                <div key={link.title} className="py-2">
+                <div key={link.title} className="py-0.5">
                   <MenuItem>
-                    <Link href={link.href} className="">
+                    <Link
+                      href={link.href}
+                      className="block rounded-lg px-3 py-2 transition-colors duration-150 hover:bg-surface-2 hover:text-accent"
+                    >
                       {link.title}
                     </Link>
                   </MenuItem>

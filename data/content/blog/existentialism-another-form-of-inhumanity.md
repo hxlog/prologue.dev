@@ -1,7 +1,7 @@
 ---
 title: 存在主义，另一种形式的不人道
 featured: true
-tags: []
+tags: ["Philosophy", "Capitalism"]
 publishDate: 2026-08-30
 description: 意义是基于现实活动的产物，需要先行动、经历体验、回忆和思考作为基础。
 ---

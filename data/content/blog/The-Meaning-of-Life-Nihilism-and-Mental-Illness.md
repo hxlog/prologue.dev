@@ -1,5 +1,6 @@
 ---
 title: 生命的意义：虚无主义与精神疾病
+tags: ["Philosophy", "Sociology"]
 featured: true
 publishDate: 2024-06-16
 lastmod: 2024-07-21

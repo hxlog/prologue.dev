@@ -1,5 +1,6 @@
 ---
 title: 译：英国灭亡的怪事
+tags: ["Translations", "Politics", "Economics"]
 publishDate: 2022-12-18
 description: 一个由错误成员控制的家庭。乔治·奥威尔这样描述英国人。
 ---

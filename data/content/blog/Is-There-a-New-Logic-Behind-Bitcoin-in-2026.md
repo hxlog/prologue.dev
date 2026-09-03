@@ -1,6 +1,6 @@
 ---
 title: 2026年的比特币有了新的逻辑？
-tags: ['Crypto']
+tags: ["Crypto", "Finance", "Economics"]
 featured: true
 publishDate: 2026-08-03
 description: 本文回顾比特币和黄金的基本属性，并从比特币的矿工关机币价、减半周期、美元流动性传导、Strategy风险等方面解构比特币的定价逻辑。作者认为是共识资产因新的叙事、共识、投机与交易创造的新的集体价值。

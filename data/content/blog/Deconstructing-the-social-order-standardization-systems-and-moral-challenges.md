@@ -1,5 +1,6 @@
 ---
 title: 解构社会秩序：标准化、系统与道德挑战
+tags: ["Sociology", "Politics", "Philosophy"]
 publishDate: 2024-01-09
 description: 斯科特的《六论自发性》揭示了无政府主义在现代社会的自发性现象。文章探讨标准化、殖民、道德、教育等议题，揭示社会秩序的自我解构。
 image: /static/photos/photo_2024-01-09.jpg

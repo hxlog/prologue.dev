@@ -1,6 +1,6 @@
 ---
 title: 初心：博客不是过时的媒介
-tags: []
+tags: ["Technology", "Sociology", "Capitalism"]
 publishDate: 2022-06-09
 lastmod: 2022-11-20
 description: 尽管语言腐败不是新鲜事，但它仍然主导了社会生活。

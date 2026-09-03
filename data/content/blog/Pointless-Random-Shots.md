@@ -1,5 +1,6 @@
 ---
 title: 无意义的随手拍和后期
+tags: ["Meta", "Technology"]
 publishDate: 2023-6-19
 lastmod: 2023-8-20
 description: 无意义的废片和后期。

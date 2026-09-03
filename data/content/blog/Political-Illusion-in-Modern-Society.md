@@ -1,6 +1,6 @@
 ---
 title: 现代社会的政治幻觉
-tags: ["Sociology"]
+tags: ["Politics", "Sociology"]
 publishDate: 2023-12-02
 description: 从美式民主看现代政治的衰败，风险社会即现代问题，但政治一定不是解决方案。
 ---

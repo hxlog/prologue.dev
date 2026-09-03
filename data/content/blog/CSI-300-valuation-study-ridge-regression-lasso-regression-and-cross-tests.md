@@ -1,7 +1,6 @@
 ---
 title: 沪深300估值研究：岭回归、拉索回归和交叉检验
-tags:
-  - Economics
+tags: ["Quant", "Finance", "Economics"]
 publishDate: 2023-11-16
 lastmod: 2024-03-06
 description: 通过对沪深300的PE TTM数据和中国经济数据回归分析，揭示对于长期主义指数投资的有效性，经济基本面分析仍然有效，规模以上工业利润率、GDP平减指数、Shibor利率是值得关注的经济指标

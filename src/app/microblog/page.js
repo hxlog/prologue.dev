@@ -1,8 +1,8 @@
 import fs from "fs";
 import path from "path";
 import { load } from "js-yaml";
-import moment from "moment";
 import PageTransition from "../../components/page-transition";
+import { formatDate } from "../../lib/date";
 
 export async function generateMetadata() {
   return {
@@ -11,24 +11,28 @@ export async function generateMetadata() {
   };
 }
 
-export default async function LinksPage() {
+export default async function MicroblogPage() {
   const filePath = path.join(process.cwd(), "data", "microblog.yaml");
-  const links = fs.readFileSync(filePath, "utf8");
-  const microblogs = load(links);
+  const fileContent = fs.readFileSync(filePath, "utf8");
+  const microblogs = load(fileContent);
 
   return (
-    <PageTransition className="max-w-3xl mx-auto py-4">
-      <h1 className="text-2xl font-bold pb-8 text-center">微博 Microblog</h1>
+    <PageTransition className="mx-auto max-w-3xl py-8">
+      <p className="eyebrow">Microblog</p>
+      <h1 className="mt-2 pb-8 text-3xl font-semibold tracking-tight text-foreground">
+        微博
+      </h1>
       {microblogs
         .sort((a, b) => new Date(b.date) - new Date(a.date))
         .map((microblog, index) => (
-          <div key={`${microblog.date}-${index}`}>
-            <div className="py-3 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xs hover:shadow-md dark:shadow-zinc-700 transition px-6 my-4">
-              <time className="prose-sm text-zinc-500 dark:text-zinc-400">
-                {moment(microblog.date).format("LL")}
-              </time>
-              <p className="py-1 leading-7">{microblog.content}</p>
-            </div>
+          <div
+            key={`${microblog.date}-${index}`}
+            className="card my-4 px-6 py-4 transition-shadow duration-200 hover:shadow-card-hover"
+          >
+            <time className="text-xs text-faint">
+              {formatDate(microblog.date)}
+            </time>
+            <p className="mt-1.5 leading-7 text-foreground">{microblog.content}</p>
           </div>
         ))}
     </PageTransition>

@@ -1,6 +1,6 @@
 ---
 title: 消失的青年失业率：时间序列预测青年失业率
-tags: ["Economics"]
+tags: ["Economics", "Quant"]
 publishDate: 2022-08-21
 image: /static/images/Unemployment-Rate-Forecasting.png
 description: 用python和prophet库进行复杂的时间序列预测和交叉验证。

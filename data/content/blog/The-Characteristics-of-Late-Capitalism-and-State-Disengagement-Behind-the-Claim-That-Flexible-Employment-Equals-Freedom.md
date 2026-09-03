@@ -1,8 +1,7 @@
 ---
 title: “灵活就业即自由”言论背后的晚期资本主义特征与国家去责任化
 featured: true
-tags:
-  - Sociology
+tags: ["Capitalism", "Sociology", "Economics"]
 publishDate: 2026-08-22
 lastmod: 2026-08-22
 description: 公民个体承担生命周期的所有成本，包括教育、生育、养老、医疗等。国家不再通过财政与再分配来保障个人，而是通过塑造竞争性主体来治理风险。

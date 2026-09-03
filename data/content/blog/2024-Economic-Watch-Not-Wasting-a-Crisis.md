@@ -1,7 +1,6 @@
 ---
 title: 2024年经济观察：不浪费一场危机
-tags:
-  - Economics
+tags: ["Economics", "Finance"]
 publishDate: 2024-10-02
 description: 经济学本用于研究稀缺资源的配置，着手于最大化效用，而如今产能过剩，有效需求不足却引发了经济危机。
 ---

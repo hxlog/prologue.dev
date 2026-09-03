@@ -1,6 +1,6 @@
 ---
 title: 选民的“觉醒”
-tags: []
+tags: ["Politics", "Capitalism", "Gender"]
 publishDate: 2023-07-27
 description: 取消文化是觉醒资本主义的逻辑。
 ---

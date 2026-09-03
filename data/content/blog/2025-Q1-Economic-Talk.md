@@ -1,7 +1,6 @@
 ---
 title: 2025 Q1经济杂谈
-tags:
-  - Economics
+tags: ["Economics", "Politics", "AI"]
 publishDate: 2025-04-12
 description: 已知的已知也可以是黑天鹅
 lastmod: 2025-04-13

@@ -1,6 +1,6 @@
 ---
 title: 基本有害的描述性统计：A股投资收益的矛盾
-tags: ["Finance"]
+tags: ["Finance", "Quant"]
 publishDate: 2022-09-13
 description: 探讨A股市场的复杂性，揭示了波动与收益之间的不成比例关系，同时强调了长期主义和基本面分析在投资中的关键作用。
 ---

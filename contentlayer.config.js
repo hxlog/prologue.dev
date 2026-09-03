@@ -147,6 +147,12 @@ export default makeSource({
             light: "material-theme-lighter",
             dark: "material-theme-darker",
           },
+          // Emit only --shiki-light/--shiki-dark CSS variables per token
+          // (no inline default color). The active color is chosen by CSS in
+          // globals.css (.shiki uses var(--shiki-light), html.dark uses
+          // var(--shiki-dark)). This avoids shipping two full color values per
+          // token, shrinking code-heavy posts' HTML substantially.
+          defaultColor: false,
         },
       ],
     ],
