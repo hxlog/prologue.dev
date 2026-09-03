@@ -65,7 +65,7 @@ export default function Home() {
           <h1 className="mt-4 text-3xl font-semibold leading-tight tracking-tight text-foreground sm:text-4xl">
             {siteMetadata.headerTitle}
           </h1>
-          <p className="mt-4 font-serif text-lg leading-8 text-muted">
+          <p className="mt-4 font-serif text-lg leading-8 text-foreground/70">
             {siteMetadata.description}
           </p>
         </section>

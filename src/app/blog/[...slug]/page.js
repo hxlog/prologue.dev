@@ -134,7 +134,7 @@ export default async function PostPage(props) {
           </h1>
 
           {post.description && (
-            <p className="mt-3 font-serif text-base leading-7 text-muted">
+            <p className="mt-3 font-serif text-base leading-7 text-foreground/70">
               {post.description}
             </p>
           )}
@@ -162,8 +162,6 @@ export default async function PostPage(props) {
             <p className="text-sm text-faint">{post.imageDesc}</p>
           ) : null}
 
-          <hr className="my-6" />
-
           <OptimizedHTMLRenderer htmlContent={post.body.html} />
 
           {post.lastmod ? (
@@ -180,8 +178,6 @@ export default async function PostPage(props) {
               CC BY-NC-SA 4.0
             </p>
           </Link>
-
-          <hr className="my-6" />
 
           <div className="not-prose">
             <RelatedPosts

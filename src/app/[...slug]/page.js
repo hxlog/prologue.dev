@@ -81,7 +81,7 @@ export default async function PagePage(props) {
             {page.title}
           </h1>
           {page.description && (
-            <p className="mt-2 font-serif text-base leading-7 text-muted">
+            <p className="mt-2 font-serif text-base leading-7 text-foreground/70">
               {page.description}
             </p>
           )}

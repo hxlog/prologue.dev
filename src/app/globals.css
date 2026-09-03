@@ -436,6 +436,12 @@ html.theme-vt::view-transition-new(root) {
   max-width: 72ch;
   line-height: 1.85;
 }
+/* Wider measure on desktop where the reading column has room. */
+@media (min-width: 1024px) {
+  .prose {
+    max-width: 78ch;
+  }
+}
 .prose :where(h2):not(.not-prose *):not(:where(h1 + h2)) {
   border-top: 1px solid var(--border);
   padding-top: 2.25rem;
@@ -512,15 +518,16 @@ html.dark .shiki span {
 }
 
 /* ---------------------------------------------------------------------------
- * yet-another-react-lightbox — flat modern skin
+ * yet-another-react-lightbox — unified dark-glass skin (both themes).
+ * Photos read best on a dark scrim; the chrome (buttons, caption) reuses the
+ * site's glass language: blurred translucent surfaces, hairline borders,
+ * token colors and the cyan accent on hover.
  * ------------------------------------------------------------------------- */
 .yarl__container {
-  background: rgba(243, 243, 243, 0.44) !important;
+  background: rgba(9, 9, 11, 0.78) !important;
   box-shadow: none !important;
-  backdrop-filter: blur(14px);
-}
-html.dark .yarl__container {
-  background: rgba(0, 0, 0, 0.62) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .yarl__slide_image {
@@ -531,17 +538,19 @@ html.dark .yarl__container {
   object-fit: contain !important;
   margin-bottom: 0 !important;
   border-radius: 0.75rem !important;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.24) !important;
+  box-shadow:
+    0 0 0 1px rgba(244, 244, 245, 0.12),
+    0 24px 70px -12px rgba(0, 0, 0, 0.6) !important;
   background: transparent !important;
   will-change: transform;
   transition:
-    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 180ms var(--ease-out-expo),
     box-shadow 0.2s ease;
 }
 
 .yarl__slide_wrapper {
   will-change: transform;
-  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 200ms var(--ease-out-expo);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -558,6 +567,7 @@ html.dark .yarl__container {
   }
 }
 
+/* Caption: floating dark-glass panel, same radius/border language as modals */
 .yarl__slide_footer {
   position: absolute !important;
   display: block !important;
@@ -566,24 +576,19 @@ html.dark .yarl__container {
   bottom: 3rem !important;
   width: min(92vw, 860px);
   margin: 0 !important;
-  padding: 0.75rem 1rem;
-  color: #0f172a !important;
+  padding: 0.75rem 1.25rem;
   text-align: center;
   border-radius: 0.75rem;
-  background: rgba(244, 244, 244, 0.92) !important;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
-  backdrop-filter: blur(8px);
-}
-
-html.dark .yarl__slide_footer {
-  color: #f3f4f6 !important;
-  background: rgba(17, 24, 39, 0.86) !important;
-  border: 1px solid rgba(243, 244, 246, 0.14);
+  background: rgba(17, 17, 19, 0.72) !important;
+  border: 1px solid rgba(244, 244, 245, 0.14);
+  box-shadow: 0 18px 44px -12px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .yarl__caption_text {
   margin: 0;
+  color: #e4e4e7;
   font-size: 0.95rem;
   line-height: 1.6;
   font-weight: 500;
@@ -597,7 +602,7 @@ html.dark .yarl__slide_footer {
   }
   .yarl__slide_footer {
     width: min(88vw, 860px);
-    padding: 0.8rem 1.15rem;
+    padding: 0.8rem 1.4rem;
   }
   .yarl__caption_text {
     font-size: 1rem;
@@ -611,30 +616,43 @@ html.dark .yarl__slide_footer {
   .yarl__slide_footer {
     width: min(72vw, 920px);
     bottom: 1.4rem;
-    opacity: 0.618;
+    opacity: 0.85;
+    transition: opacity 0.2s ease;
+  }
+  .yarl__slide_footer:hover {
+    opacity: 1;
   }
   .yarl__caption_text {
     font-size: 1.05rem;
   }
 }
 
+/* Chrome buttons: glass pills with hairline borders; cyan on hover */
 .yarl__toolbar,
 .yarl__button {
   background: transparent !important;
   box-shadow: none !important;
 }
 .yarl__button {
-  color: #e5e7eb !important;
-  background: rgba(0, 0, 0, 0.22) !important;
+  color: #e4e4e7 !important;
+  background: rgba(24, 24, 27, 0.55) !important;
+  border: 1px solid rgba(244, 244, 245, 0.16);
   border-radius: 9999px !important;
-  transition: background 0.2s ease;
-  opacity: 0.236;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.15s ease;
 }
 .yarl__button:hover,
 .yarl__button:active,
 .yarl__button:focus {
-  background: rgba(0, 0, 0, 0.36) !important;
-  opacity: 0.236;
+  background: rgba(39, 39, 42, 0.75) !important;
+  color: var(--accent) !important;
+  border-color: rgba(34, 211, 238, 0.4);
+  transform: scale(1.05);
 }
 
 .yarl__navigation_next,
@@ -643,5 +661,4 @@ html.dark .yarl__slide_footer {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  opacity: 0.236;
 }

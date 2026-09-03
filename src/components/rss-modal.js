@@ -35,7 +35,7 @@ export default function RssModal() {
         onClick={() => setOpen(true)}
         aria-label="RSS 订阅"
         title="RSS 订阅"
-        className="rounded-full p-1.5 text-zinc-500 transition-all duration-200 hover:scale-105 hover:bg-accent-soft hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent dark:text-zinc-300"
+        className="flex h-9 w-9 items-center justify-center rounded-full text-muted transition-colors duration-200 hover:bg-surface-2 hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
       >
         <svg
           className="h-5 w-5 fill-current"

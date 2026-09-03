@@ -16,7 +16,7 @@ const MobileNav = () => {
     <Menu as="div" className="relative inline-block text-left sm:hidden">
       <div>
         <MenuButton
-          className="inline-flex justify-center px-2 text-sm font-medium"
+          className="flex h-9 w-9 items-center justify-center rounded-full text-muted transition-colors duration-200 hover:bg-surface-2 hover:text-accent sm:hidden"
           aria-label="Navigation"
         >
           <svg
@@ -25,7 +25,7 @@ const MobileNav = () => {
             viewBox="0 0 24 24"
             strokeWidth={1.5}
             stroke="currentColor"
-            className="w-6 h-6 text-muted transition-colors duration-200 hover:text-accent"
+            className="h-5 w-5"
           >
             <path
               strokeLinecap="round"

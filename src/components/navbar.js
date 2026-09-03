@@ -56,7 +56,9 @@ export default function Navbar() {
           </div>
         </nav>
 
-        <div className="flex items-center gap-1 leading-5">
+        {/* Icon toolbar: every button shares the same 36px box and 20px icon
+            so heights and baselines line up on one horizontal axis. */}
+        <div className="flex items-center gap-0.5 leading-5">
           <RssModal />
           <MobileNav />
           <ThemeSwitch />

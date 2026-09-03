@@ -55,7 +55,7 @@ export default function Card({
       </h3>
 
       {description ? (
-        <p className="mt-2 line-clamp-3 font-serif text-sm leading-6 text-muted">
+        <p className="mt-2 line-clamp-3 text-sm leading-6 text-foreground/70">
           {description}
         </p>
       ) : null}
