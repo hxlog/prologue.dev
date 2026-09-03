@@ -1,5 +1,6 @@
 ---
 title: 这个博客是如何搭建的
+tags: ["Technology", "Meta"]
 publishDate: 2023-12-09
 description: 记录作者搭建博客的过程和心得，建议博客应以内容为中心，结构化文本处理。
 ---

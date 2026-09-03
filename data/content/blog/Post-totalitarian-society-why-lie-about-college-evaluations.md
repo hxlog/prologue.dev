@@ -1,5 +1,6 @@
 ---
 title: 后极权社会：为何在大学评价上撒谎
+tags: ["Politics", "Education"]
 publishDate: 2023-09-08
 description: 文凭系统是后极权主义的权力组织，由谎言支撑的意识形态组成。
 ---

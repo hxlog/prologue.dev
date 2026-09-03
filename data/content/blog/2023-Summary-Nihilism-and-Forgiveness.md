@@ -1,5 +1,6 @@
 ---
 title: 2023总结：虚无和谅解
+tags: ["Meta", "Philosophy", "Sociology"]
 publishDate: 2023-12-23
 description: 在本年度，笔者经历了虚无的都市化生活，以及自我谅解的过程。
 ---

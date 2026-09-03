@@ -1,6 +1,6 @@
 ---
 title: 财政赤字货币化：对现代货币理论的批判
-tags: ["Economics"]
+tags: ["Economics", "Finance"]
 publishDate: 2022-11-22
 description: MMT的财政赤字货币化仅仅是缩短了生产结构并加强了时间偏好。
 ---

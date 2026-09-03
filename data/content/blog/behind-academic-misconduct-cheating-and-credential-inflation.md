@@ -1,7 +1,7 @@
 ---
 title: 学术不端的背后：作弊和学历通胀
 publishDate: 2022-11-14
-tags: ["Sociology"]
+tags: ["Education", "Inequality", "Sociology"]
 description: 每个人都在忍受一些不公平却得不到公正解决的事物。
 ---
 

@@ -1,7 +1,6 @@
 ---
 title: 后现代的状况：从福特主义到灵活积累
-tags:
-  - Sociology
+tags: ["Sociology", "Capitalism", "Economics"]
 publishDate: 2023-2-14
 description: 用社会学角度观测上世纪的资本主义经济发展。
 ---

@@ -3,7 +3,7 @@ title: AIGC与大语言模型的风险与挑战
 featured: true
 image: /static/images/AR-regressive-generative-architectures.jpg
 imageDesc: 自回归(Autoregressive)模型用以训练自然语言处理(NLP)模型，其核心思想是基于已有的序列(词或字符)来预测下一个元素。
-tags: ["AI"]
+tags: ["AI", "Quant"]
 publishDate: 2024-08-03
 description: 本文深入探讨了AI生成内容（AIGC）的技术原理及其局限性，尤其是其在模拟人类语言和行为方面的不足。通过分析自回归模型的局限性、机器学习中的过拟合与泛化问题、以及AIGC在隐私、鲁棒性和拟人化方面的挑战，文章揭示了AI在现阶段面临的主要风险。作者强调了AI技术的潜在伦理问题和社会影响，呼吁对AI应用保持警惕并加强监管。
 ---

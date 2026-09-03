@@ -1,22 +1,17 @@
-"use client";
-
-import { motion } from "framer-motion";
-
 /**
- * On-mount fade for body content. Intentionally opacity-only:
- * - `transform`, `filter`, `will-change: transform`, etc. all create a CSS
- *   containing block, which breaks `position: fixed` / `position: sticky` for
- *   descendants (e.g. the homepage's pinned search bar). Opacity does not.
+ * On-mount entrance for page content. Implemented as a pure CSS animation
+ * (`.page-enter` in globals.css) that runs at first paint — no JavaScript and
+ * no hydration gate. This keeps the LCP element visible from the moment the
+ * static HTML arrives instead of waiting for the framer-motion bundle to
+ * hydrate (the previous implementation server-rendered `opacity: 0` and only
+ * revealed content after hydration, which gated LCP/FCP on ~360KB of JS).
+ *
+ * Intentionally opacity-only (no transform/filter): those create a CSS
+ * containing block that would break `position: sticky` descendants such as
+ * the homepage's pinned search bar.
  */
 export default function PageTransition({ children, className }) {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className={className}
-    >
-      {children}
-    </motion.div>
+    <div className={`page-enter ${className || ""}`.trim()}>{children}</div>
   );
 }

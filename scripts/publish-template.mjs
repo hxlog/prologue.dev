@@ -122,6 +122,11 @@ function applyStarterTemplate(worktreeRoot) {
   rmSync(path.join(worktreeRoot, ".idea"), { recursive: true, force: true });
   rmSync(path.join(worktreeRoot, "README.template.md"), { force: true });
   rmSync(path.join(worktreeRoot, "scripts"), { recursive: true, force: true });
+  // The template's npm scripts need the search-index generator; ship it.
+  copyFile(
+    path.join(ROOT, "scripts", "build-search-index.mjs"),
+    path.join(worktreeRoot, "scripts", "build-search-index.mjs")
+  );
   rmSync(path.join(worktreeRoot, ".contentlayer"), { recursive: true, force: true });
   rmSync(path.join(worktreeRoot, ".github", "workflows", "publish-starter.yml"), { force: true });
   rmSync(path.join(worktreeRoot, ".github", "workflows", "publish-template.yml"), { force: true });

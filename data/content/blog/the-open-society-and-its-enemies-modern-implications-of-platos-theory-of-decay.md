@@ -1,7 +1,6 @@
 ---
 title: 开放社会及其敌人：柏拉图衰败论的现代意义
-tags:
-  - Sociology
+tags: ["Politics", "Sociology"]
 publishDate: 2022-11-14
 description: 波普尔的真伪逻辑不对称性，过去和未来的不对称，同时反身性的存在意味着社会学不存在必然的规律，这更是一种对真理的偏执倾向。
 ---

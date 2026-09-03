@@ -1,5 +1,6 @@
 ---
 title: Plotly数据可视化中的剪刀差：社融、CPI、PPI、M2、M1
+tags: ["Quant", "Economics"]
 publishDate: 2022-09-05
 description: 使用Plotly图形可视化，对社融-M2、CPI-PPI、M2-M1三个经济指标剪刀差进行总量分析。
 ---

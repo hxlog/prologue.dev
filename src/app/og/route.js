@@ -4,6 +4,12 @@ import siteMetadata from "../../../data/sitemetadata";
 
 export const runtime = "edge";
 
+// Bounded per-isolate font cache (fonts are subsetted per title via the
+// Google Fonts `text=` param, so the key includes the title). The CDN
+// Cache-Control below is the primary cache; this just avoids duplicate
+// fetches for repeated titles within one isolate.
+const fontCache = new Map();
+
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
 
@@ -11,8 +17,16 @@ export async function GET(request) {
   const title = hasTitle
     ? searchParams.get("title")?.slice(0, 100)
     : siteMetadata.publishName;
-  const notoSansScFont = await fetchFont(title, "Noto+Sans+SC");
-  return new ImageResponse(
+
+  const fontKey = `Noto+Sans+SC:${title}`;
+  let notoSansScFont = fontCache.get(fontKey);
+  if (!notoSansScFont) {
+    notoSansScFont = await fetchFont(title, "Noto+Sans+SC");
+    if (fontCache.size > 128) fontCache.clear();
+    fontCache.set(fontKey, notoSansScFont);
+  }
+
+  const response = new ImageResponse(
     (
       <div tw="flex w-full h-full flex-col bg-[#09090b] text-white p-[80px]">
         <div tw="flex flex-col w-full pt-[40px] px-8">
@@ -63,6 +77,14 @@ export async function GET(request) {
       ],
     }
   );
+
+  // OG images are immutable per title — let the CDN serve them so crawlers
+  // don't re-invoke this edge function (and its Google Fonts fetch) per hit.
+  response.headers.set(
+    "Cache-Control",
+    "public, s-maxage=604800, stale-while-revalidate=2592000"
+  );
+  return response;
 }
 
 async function fetchFont(text, font) {

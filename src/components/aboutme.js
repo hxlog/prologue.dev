@@ -3,51 +3,57 @@ import Image from "next/image";
 import { allPosts } from "contentlayer/generated";
 import siteMetadata from "../../data/sitemetadata";
 
-const POSTS_NUM = allPosts.length;
+const POSTS_NUM = allPosts.filter((p) => p.draft !== true).length;
 const TOTAL_WORDS = allPosts
   .reduce((sum, post) => sum + (post.readingTime?.words ?? 0), 0)
   .toLocaleString();
 
 export default function AboutMe() {
-  const postsNum = POSTS_NUM;
-  const totalWords = TOTAL_WORDS;
   return (
     <>
-      <h2 className="font-semibold prose-h2 pt-4">关于作者</h2>
+      <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted">
+        <span
+          className="inline-block h-3 w-1 rounded-full"
+          style={{ background: "var(--gradient-brand)" }}
+          aria-hidden="true"
+        />
+        关于作者
+      </h2>
       <Link href="/about">
         <Image
           src={siteMetadata.avatar}
           alt="Avatar"
           width="100"
           height="100"
-          fetchPriority="high"
-          className="rounded-full max-w-md mx-auto drop-shadow-sm mt-6 hover:shadow-sm hover:ring-2 hover:ring-zinc-100 dark:ring-zinc-300 transition transform duration-500"
+          className="mx-auto mt-6 max-w-md rounded-full drop-shadow-sm ring-2 ring-border transition-all duration-300 hover:scale-105 hover:ring-accent"
         />
       </Link>
-      <p className="prose-lg text-center pt-4">{siteMetadata.author}</p>
+      <p className="pt-4 text-center text-lg font-medium text-foreground">
+        {siteMetadata.author}
+      </p>
 
-      <div className="grid grid-cols-2 divide-x dark:divide-zinc-700 py-4 mx-auto">
-        <div className="grid grid-rows-2  text-center px-2">
+      <div className="mx-auto grid grid-cols-2 divide-x divide-border py-4">
+        <div className="grid grid-rows-2 px-2 text-center">
           <Link
             href="/blog"
-            className="hover:underline hover:underline-offset-2"
+            className="font-semibold text-foreground transition-colors duration-200 hover:text-accent"
           >
-            {postsNum}
+            {POSTS_NUM}
           </Link>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400 pt-1">Posts</p>
+          <p className="pt-1 text-sm text-faint">文章</p>
         </div>
 
-        <div className="grid grid-rows-2  text-center px-2">
-          {totalWords}
-          <p className="text-sm text-zinc-600 dark:text-zinc-400 pt-1">Words</p>
+        <div className="grid grid-rows-2 px-2 text-center">
+          <span className="font-semibold text-foreground">{TOTAL_WORDS}</span>
+          <p className="pt-1 text-sm text-faint">字数</p>
         </div>
       </div>
-      <p className="py-4 mb-2 text-center mx-auto text-zinc-700 dark:text-zinc-300 leading-7">
+      <p className="mx-auto mb-2 py-2 text-center leading-7 text-muted">
         {siteMetadata.authorDesc}
       </p>
       <Link href="/about" passHref>
-        <p className="text-right text-sm pt-2 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:underline transition duration-400">
-          About More →
+        <p className="pt-2 text-right text-sm text-muted transition-colors duration-300 hover:text-accent hover:underline">
+          了解更多 →
         </p>
       </Link>
     </>

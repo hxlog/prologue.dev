@@ -1,8 +1,7 @@
 ---
 title: 经济评论不是想当然
 featured: true
-tags:
-  - Economics
+tags: ["Economics", "Quant", "Finance"]
 publishDate: 2024-12-14
 lastmod: 2024-12-25
 description: 宏观经济分析是非常复杂的，是无法用简单几个指标就能解释清楚的，不可知的就不要强行解释，通过表面物价数据观测经济无异于盲人摸象，对经济数据的评论并不是想当然。

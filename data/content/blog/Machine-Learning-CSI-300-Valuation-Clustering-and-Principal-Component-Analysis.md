@@ -1,6 +1,6 @@
 ---
 title: 机器学习丨沪深300估值聚类和主成分分析
-tags: []
+tags: ["Quant", "Finance"]
 image: /static/images/Rplot_000300_prcomp.jpeg
 imageDesc: 主成分分析图
 publishDate: 2024-01-06

@@ -1,6 +1,6 @@
 ---
 title: 记向Z-Library捐款：教育垄断和知识自由
-tags: []
+tags: ["Education", "Inequality", "Politics"]
 publishDate: 2022-09-17
 description: 本文探讨了知识自由的挑战，从教育垄断到文明记忆的脆弱性，以及纸质书和电子书的消费观念，强调了对知识的平等获取的重要性
 ---

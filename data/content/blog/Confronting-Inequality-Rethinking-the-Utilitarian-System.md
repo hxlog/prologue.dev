@@ -1,7 +1,7 @@
 ---
 title: 不平等的样貌：对唯才是用制度的反思
 featured: true
-tags: ["Sociology"]
+tags: ["Inequality", "Sociology", "Economics"]
 publishDate: 2022-08-26
 description: 探讨新加坡的制度性财富不平等与教育分流现象，呼吁审视竞争对机会不均的影响，同时提倡关注最不幸者的利益。
 ---

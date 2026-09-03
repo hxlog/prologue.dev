@@ -15,22 +15,38 @@ const ThemeSwitch = () => {
     return () => clearTimeout(t);
   }, []);
 
+  // Circular reveal: wrap the theme swap in a View Transition anchored at the
+  // click point (falls back to an instant swap where unsupported).
+  const toggleTheme = (event) => {
+    const next =
+      theme === "dark" || resolvedTheme === "dark" ? "light" : "dark";
+
+    const root = document.documentElement;
+    if (typeof document.startViewTransition !== "function") {
+      setTheme(next);
+      return;
+    }
+
+    root.style.setProperty("--vt-x", `${event.clientX}px`);
+    root.style.setProperty("--vt-y", `${event.clientY}px`);
+    root.classList.add("theme-vt");
+    document.startViewTransition(() => setTheme(next)).finished.finally(() => {
+      root.classList.remove("theme-vt");
+    });
+  };
+
   return (
     <button
       aria-label="Toggle Dark Mode"
       type="button"
-      className="ml-1 mr-2 h-8 w-8 rounded-sm p-1 sm:ml-4"
-      onClick={() =>
-        setTheme(
-          theme === "dark" || resolvedTheme === "dark" ? "light" : "dark"
-        )
-      }
+      className="ml-1 mr-2 h-8 w-8 rounded-full p-1 transition-colors duration-200 hover:bg-surface-2 sm:ml-2"
+      onClick={toggleTheme}
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 20 20"
         fill="currentColor"
-        className="text-zinc-500 dark:text-zinc-200 hover:text-zinc-900 dark:hover:text-zinc-50 transition-all transform duration-400"
+        className="text-muted transition-all duration-300 hover:scale-110 hover:text-accent"
       >
         {mounted && (theme === "dark" || resolvedTheme === "dark") ? (
           <path

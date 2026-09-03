@@ -1,47 +1,63 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import headerNavLinks from "../../data/headerNavLinks";
 import ThemeSwitch from "./themeswitch";
 import MobileNav from "./mobilenav";
+import RssModal from "./rss-modal";
 import Link from "next/link";
 import siteMetadata from "../../data/sitemetadata";
 import { usePathname } from "next/navigation";
 
 export default function Navbar() {
   const pathname = usePathname();
+  const [scrolled, setScrolled] = useState(false);
+
+  // Scroll-elevate shadow (danarnoux-style): header gains depth after scroll.
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
     <header
-      className={`top-0 py-2 sticky z-10 bg-white dark:bg-black backdrop-blur-sm bg-opacity-[88.6%] border-b border-zinc-50 dark:border-zinc-800 px-4`}
+      className={`glass-header sticky top-0 z-40 border-b px-4 py-2 transition-shadow duration-300 ${
+        scrolled ? "shadow-[0_14px_34px_-18px_var(--shadow-tint)]" : ""
+      }`}
     >
-      <div className="max-w-7xl mx-auto items-center flex justify-between">
-        <div>
-          <Link href="/" aria-label={siteMetadata.publishName}>
-            <div className="flex items-center justify-between">
-              <div className="text-xl whitespace-nowrap font-semibold rounded-lg sm:block text-zinc-800 hover:bg-zinc-50 dark:hover:bg-slate-900 dark:text-zinc-200 select-none tracking-tight transition px-3 py-1 duration-400">
-                {siteMetadata.publishName}
-              </div>
-            </div>
-          </Link>
-        </div>
-        <nav className="flex items-center text-base leading-6">
-          <div className="hidden sm:block" tabIndex="0">
-            {headerNavLinks.map((link) => (
-              <Link
-                key={link.title}
-                href={link.href}
-                className={`rounded-lg px-3 py-2 font-normal  hover:bg-zinc-50 hover:text-cyan-500 dark:hover:bg-slate-900 transition-all transform duration-400 select-none ${
-                  pathname == link.href
-                    ? "text-cyan-500 font-semibold"
-                    : "text-zinc-500 dark:text-zinc-300"
-                }`}
-              >
-                {link.title}
-              </Link>
-            ))}
+      <div className="mx-auto flex max-w-7xl items-center justify-between">
+        <Link href="/" aria-label={siteMetadata.publishName}>
+          <span className="select-none rounded-lg px-3 py-1 text-xl font-semibold tracking-tight text-foreground transition-colors duration-200 hover:text-accent">
+            {siteMetadata.publishName}
+          </span>
+        </Link>
+
+        <nav className="flex items-center leading-6">
+          <div className="hidden sm:block">
+            {headerNavLinks.map((link) => {
+              const active = pathname === link.href;
+              return (
+                <Link
+                  key={link.title}
+                  href={link.href}
+                  aria-current={active ? "page" : undefined}
+                  className={`select-none rounded-lg px-3 py-2 text-sm transition-all duration-200 ${
+                    active
+                      ? "bg-accent-soft font-semibold text-accent"
+                      : "text-muted hover:bg-surface-2 hover:text-accent"
+                  }`}
+                >
+                  {link.title}
+                </Link>
+              );
+            })}
           </div>
         </nav>
-        <div className="flex items-center text-base leading-5">
+
+        <div className="flex items-center gap-1 leading-5">
+          <RssModal />
           <MobileNav />
           <ThemeSwitch />
         </div>

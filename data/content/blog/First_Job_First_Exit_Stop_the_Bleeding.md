@@ -1,6 +1,6 @@
 ---
 title: 人生第一次辞职：止损
-tags: ["Finance"]
+tags: ["Finance", "Capitalism", "Philosophy"]
 publishDate: 2026-3-7 12:00
 featured: true
 description: 因职场极度无聊与国企制度僵化问题，执行人生第一笔“止损”——辞职，离开二级市场

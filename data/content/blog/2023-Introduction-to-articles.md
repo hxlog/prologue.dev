@@ -1,5 +1,6 @@
 ---
 title: 2023：文章导读
+tags: ["Meta", "Education", "Politics"]
 publishDate: 2023-12-30
 description: 2023年，年度文章导读
 image: /static/photos/photo_2023-12-30.jpg

@@ -1,7 +1,7 @@
 ---
 title: 贫困的本质：不完全的脱贫指南
 featured: true
-tags: ["Economics"]
+tags: ["Economics", "Inequality", "Sociology"]
 publishDate: 2024-03-05
 description: 2019年诺贝尔经济学奖《贫困的本质》揭示了了穷人的非理性行为体系，解决贫困需关注信息不对称、社会保障缺失、市场消失、政府政策错误和贫困思维等五个方面，中国扶贫更注重现代化生产、供给侧改革，通过政府主导投资和转移支付助力穷人做出更明智选择，贫困问题也引发对中产阶级的倒退风险和行为经济学的反思。
 image: /static/images/the-poverty-trap.jpg

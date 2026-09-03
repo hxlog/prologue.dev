@@ -1,5 +1,6 @@
 ---
 title: 存在主义：离有意义的职业有多遥远
+tags: ["Philosophy", "Sociology", "Capitalism"]
 featured: true
 publishDate: 2024-01-29
 description: 存在先于本质，存在主义是一种严肃的乐观主义。对于个人，职业本无意义，是人主动选择行动创造出意义，追求自我实现是获得意义的方式，而现代化下的理性主义导致主体丧失主体性，从而难以获得职业的意义。

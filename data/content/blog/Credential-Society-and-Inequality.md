@@ -1,7 +1,6 @@
 ---
 title: 文凭社会和不平等
-tags:
-  - Sociology
+tags: ["Education", "Inequality", "Sociology"]
 publishDate: 2023-06-27
 lastmod: 2023-07-26
 description: 人家三代人人的努力，凭什么输给你的十年寒窗苦读？

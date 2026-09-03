@@ -2,45 +2,141 @@
 
 @config '../../tailwind.config.js';
 
-@theme {
-  --font-sans:
-    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei",
-    "Noto Sans SC", "Noto Sans CJK SC",
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
-    "Noto Sans", Arial, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+/* ---------------------------------------------------------------------------
+ * Design tokens — Prologue 序章
+ * Primary accent: cyan · Secondary accent: violet (anime-inspired analogous
+ * cool pairing). Base: zinc grayscale. Every semantic token flips in .dark.
+ * ------------------------------------------------------------------------- */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-secondary: var(--secondary);
+  --color-secondary-strong: var(--secondary-strong);
+  --color-secondary-soft: var(--secondary-soft);
+
+  --font-sans: var(--font-noto-sans-sc), "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei UI", "Microsoft YaHei", -apple-system,
+    BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-serif: var(--font-noto-serif-sc), "Songti SC", "SimSun", Georgia,
+    "Times New Roman", serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular,
+    Menlo, Consolas, "Liberation Mono", monospace;
+
+  --radius-card: 0.75rem;
+  --radius-pill: 9999px;
+
+  --shadow-card: 0 0 0 1px var(--border), 0 1px 2px var(--shadow-tint);
+  --shadow-card-hover: 0 0 0 1px var(--border-strong),
+    0 10px 24px -8px var(--shadow-tint);
+  --shadow-pop: 0 18px 44px -12px var(--shadow-tint);
+
+  --ease-out-expo: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 160ms;
+  --duration-base: 240ms;
+  --duration-slow: 480ms;
 }
 
-/*
-  The default border color has changed to `currentColor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
+/* Light palette */
+:root {
+  --background: #fafafa; /* zinc-50 */
+  --foreground: #18181b; /* zinc-900 */
+  --surface: #ffffff;
+  --surface-2: #f4f4f5; /* zinc-100 */
+  --surface-3: #e4e4e7; /* zinc-200 */
+  --muted: #71717a; /* zinc-500 */
+  --faint: #a1a1aa; /* zinc-400 */
+  --border: rgba(24, 24, 27, 0.08);
+  --border-strong: rgba(24, 24, 27, 0.16);
+  --shadow-tint: rgba(15, 23, 42, 0.12);
 
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
-*/
+  --accent: #0891b2; /* cyan-600 — links/active, AAA on white */
+  --accent-strong: #0e7490; /* cyan-700 — hover */
+  --accent-soft: rgba(6, 182, 212, 0.1);
+
+  --secondary: #8b5cf6; /* violet-500 — featured/emphasis */
+  --secondary-strong: #7c3aed; /* violet-600 */
+  --secondary-soft: rgba(139, 92, 246, 0.1);
+
+  --gradient-brand: linear-gradient(120deg, #06b6d4, #8b5cf6);
+
+  --nav-height: 3.5rem;
+  color-scheme: light;
+}
+
+/* Dark palette */
+.dark {
+  --background: #09090b; /* zinc-950 */
+  --foreground: #f4f4f5; /* zinc-100 */
+  --surface: #111113;
+  --surface-2: #1b1b1f;
+  --surface-3: #27272a; /* zinc-800 */
+  --muted: #a1a1aa; /* zinc-400 */
+  --faint: #71717a; /* zinc-500 */
+  --border: rgba(244, 244, 245, 0.09);
+  --border-strong: rgba(244, 244, 245, 0.18);
+  --shadow-tint: rgba(0, 0, 0, 0.55);
+
+  --accent: #22d3ee; /* cyan-400 — brighter for dark contrast */
+  --accent-strong: #67e8f9; /* cyan-300 — hover */
+  --accent-soft: rgba(34, 211, 238, 0.13);
+
+  --secondary: #a78bfa; /* violet-400 */
+  --secondary-strong: #c4b5fd; /* violet-300 */
+  --secondary-soft: rgba(167, 139, 250, 0.14);
+
+  --gradient-brand: linear-gradient(120deg, #22d3ee, #a78bfa);
+
+  color-scheme: dark;
+}
+
 @layer base {
   *,
   ::after,
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentColor);
+    border-color: var(--border);
+  }
+
+  html {
+    word-break: break-word;
+    scroll-padding-top: calc(var(--nav-height) + 1rem);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+  }
+
+  ::selection {
+    background-color: var(--accent-soft);
+  }
+
+  /* Subtle themed scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--surface-3) transparent;
   }
 }
 
-:root {
-  --nav-height: 3.5rem;
-}
 @media (min-width: 640px) {
   :root {
     --nav-height: 4rem;
   }
-}
-
-html {
-  word-break: break-word;
-  scroll-padding-top: calc(var(--nav-height) + 1rem);
 }
 
 .prose :where(h1, h2, h3, h4, h5, h6) {
@@ -51,31 +147,361 @@ html {
   scroll-margin-top: calc(var(--nav-height) + 1.5rem);
 }
 
-.katex {
-  font:
-    normal 1.21em KaTeX_Main,
-    serif;
-  line-height: 1.2;
-  white-space: normal;
-  text-indent: 0;
+/* ---------------------------------------------------------------------------
+ * Component classes
+ * ------------------------------------------------------------------------- */
+@layer components {
+  /* Card: hairline ring + soft shadow; interactive variant lifts on hover */
+  .card {
+    background-color: var(--surface);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    transition:
+      box-shadow var(--duration-base) var(--ease-out-expo),
+      transform var(--duration-base) var(--ease-out-expo),
+      border-color var(--duration-base) var(--ease-out-expo);
+  }
+  .card-interactive:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card-hover);
+  }
+  .card-interactive:hover .card-title {
+    color: var(--accent);
+  }
+  .card-interactive:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* Cursor-following spotlight glow (JS sets --spot-x / --spot-y) */
+  .card-spotlight {
+    position: relative;
+    overflow: hidden;
+  }
+  .card-spotlight::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--duration-base) ease;
+    background: radial-gradient(
+      340px circle at var(--spot-x, 50%) var(--spot-y, 50%),
+      var(--accent-soft),
+      transparent 65%
+    );
+  }
+  .card-spotlight:hover::after {
+    opacity: 1;
+  }
+
+  /* Tag pill: ghost chip with alpha hairline */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    height: 1.4rem;
+    padding: 0 0.5rem;
+    border-radius: var(--radius-pill);
+    font-size: 11px;
+    line-height: 1.4rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--muted);
+    background-color: var(--surface-2);
+    box-shadow: inset 0 0 0 1px var(--border);
+    transition:
+      background-color var(--duration-fast) ease,
+      color var(--duration-fast) ease,
+      box-shadow var(--duration-fast) ease;
+  }
+  a.pill:hover,
+  button.pill:hover {
+    color: var(--accent);
+    background-color: var(--accent-soft);
+    box-shadow: inset 0 0 0 1px var(--accent);
+  }
+  .pill-more {
+    display: inline-flex;
+    align-items: center;
+    height: 1.4rem;
+    padding: 0 0.5rem;
+    border-radius: var(--radius-pill);
+    font-size: 11px;
+    line-height: 1.4rem;
+    font-weight: 500;
+    color: var(--faint);
+    border: 1px dashed var(--border-strong);
+    background: transparent;
+    cursor: pointer;
+    transition: color var(--duration-fast) ease, border-color var(--duration-fast) ease;
+  }
+  .pill-more:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  /* Eyebrow: small uppercase label with a gradient dash */
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .eyebrow::before {
+    content: "";
+    width: 2rem;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--gradient-brand);
+  }
+
+  /* Brand gradient text */
+  .text-gradient {
+    background: var(--gradient-brand);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Glass header */
+  .glass-header {
+    background-color: color-mix(in srgb, var(--background) 78%, transparent);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  /* Modal surface */
+  .modal-panel {
+    background-color: color-mix(in srgb, var(--surface) 94%, transparent);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 1.1rem;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-pop);
+  }
+
+  /* Copyable field (email/rss rows) */
+  .copy-field {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 0.6rem;
+    border: 1px solid var(--border);
+    background-color: var(--surface-2);
+    padding: 0.5rem 0.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    color: var(--foreground);
+    word-break: break-all;
+  }
+
+  /* Terminal widget */
+  .terminal {
+    border-radius: 1rem;
+    border: 1px solid var(--border);
+    background-color: var(--surface);
+    box-shadow: var(--shadow-card);
+    font-family: var(--font-mono);
+    overflow: hidden;
+  }
+  .terminal-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.625rem 0.875rem;
+    border-bottom: 1px solid var(--border);
+    background-color: var(--surface-2);
+  }
+  .terminal-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 9999px;
+  }
+  .terminal-cursor {
+    display: inline-block;
+    width: 0.5rem;
+    height: 1rem;
+    background: var(--accent);
+    animation: blink 1.3s steps(2, start) infinite;
+  }
 }
 
-.prose a {
-  @apply transition-all;
+/* ---------------------------------------------------------------------------
+ * Reading progress bar (pure CSS, scroll-driven where supported)
+ * ------------------------------------------------------------------------- */
+.reading-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2.5px;
+  z-index: 60;
+  background: var(--gradient-brand);
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+}
+@supports (animation-timeline: scroll()) {
+  .reading-progress {
+    animation: reading-progress-grow linear both;
+    animation-timeline: scroll(root);
+  }
+}
+@keyframes reading-progress-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 
-span::selection {
-  background-color: #00a8dc42;
+/* ---------------------------------------------------------------------------
+ * Theme toggle — circular View-Transition reveal (danarnoux-style).
+ * themeswitch.js sets --vt-x/--vt-y to the click point and wraps the theme
+ * swap in document.startViewTransition when available.
+ * ------------------------------------------------------------------------- */
+html.theme-vt::view-transition-old(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+html.theme-vt::view-transition-new(root) {
+  z-index: 1;
+  animation: theme-reveal 0.55s var(--ease-out-expo) both;
+}
+@keyframes theme-reveal {
+  from {
+    clip-path: circle(0 at var(--vt-x, 50%) var(--vt-y, 50%));
+  }
+  to {
+    clip-path: circle(150% at var(--vt-x, 50%) var(--vt-y, 50%));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html.theme-vt::view-transition-new(root) {
+    animation: none;
+    clip-path: none;
+  }
 }
 
-.prose :where(blockquote) {
+/* ---------------------------------------------------------------------------
+ * Entrance choreography — CSS only, no JS gate, respects reduced motion.
+ * Content is ALWAYS visible by default; animations run immediately on paint.
+ * ------------------------------------------------------------------------- */
+@keyframes fade-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes page-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .page-enter {
+    animation: page-fade 0.45s var(--ease-out-expo) both;
+  }
+  .reveal {
+    animation: fade-rise 0.5s var(--ease-out-expo) both;
+  }
+  .reveal-1 { animation-delay: 60ms; }
+  .reveal-2 { animation-delay: 120ms; }
+  .reveal-3 { animation-delay: 180ms; }
+  .reveal-4 { animation-delay: 240ms; }
+}
+
+/* ---------------------------------------------------------------------------
+ * Prose rhythm — less academic, more readable. CJK-friendly.
+ * ------------------------------------------------------------------------- */
+.prose {
+  --tw-prose-body: var(--foreground);
+  max-width: 72ch;
+  line-height: 1.85;
+}
+.prose :where(h2):not(.not-prose *):not(:where(h1 + h2)) {
+  border-top: 1px solid var(--border);
+  padding-top: 2.25rem;
+  margin-top: 3rem;
+}
+.prose :where(blockquote):not(.not-prose *) {
   font-style: normal;
+  border-left: 3px solid var(--accent);
+  background-color: var(--accent-soft);
+  border-radius: 0 0.5rem 0.5rem 0;
+  padding: 0.5rem 1rem;
+}
+.prose :where(a):not(.not-prose *) {
+  color: var(--accent);
+  text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  text-underline-offset: 3px;
+  transition: color var(--duration-fast) ease, text-decoration-color var(--duration-fast) ease;
+}
+.prose :where(a):not(.not-prose *):hover {
+  color: var(--accent-strong);
+  text-decoration-color: var(--accent-strong);
+}
+.prose :where(code):not(pre code):not(.not-prose *) {
+  color: var(--secondary);
+  background-color: var(--secondary-soft);
+  border-radius: 0.375rem;
+  padding: 0.125rem 0.375rem;
+  font-weight: 500;
+}
+.prose :where(pre) {
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
 }
 
 figcaption {
   text-align: center;
 }
 
+.katex {
+  font: normal 1.21em KaTeX_Main, serif;
+  line-height: 1.2;
+  white-space: normal;
+  text-indent: 0;
+}
+
+/* 强制 KaTeX display 公式换行 */
+.katex-display {
+  white-space: normal !important;
+}
+.katex-display > .katex {
+  white-space: normal !important;
+}
+.katex-display > .katex > .katex-html {
+  white-space: normal !important;
+  display: inline !important;
+}
+
+/* Shiki dual theme — colors come from CSS vars (defaultColor: false) */
+.shiki,
+.shiki span {
+  color: var(--shiki-light);
+  background-color: var(--shiki-light-bg);
+  font-style: var(--shiki-font-style);
+  font-weight: var(--shiki-font-weight);
+  text-decoration: var(--shiki-text-decoration);
+}
 html.dark .shiki,
 html.dark .shiki span {
   color: var(--shiki-dark) !important;
@@ -85,9 +511,10 @@ html.dark .shiki span {
   text-decoration: var(--shiki-dark-text-decoration) !important;
 }
 
-/* Modern flat style for yet-another-react-lightbox */
+/* ---------------------------------------------------------------------------
+ * yet-another-react-lightbox — flat modern skin
+ * ------------------------------------------------------------------------- */
 .yarl__container {
-  /* Keep the existing glassy backdrop feel, only make it denser for readability */
   background: rgba(243, 243, 243, 0.44) !important;
   box-shadow: none !important;
   backdrop-filter: blur(14px);
@@ -112,7 +539,6 @@ html.dark .yarl__container {
     box-shadow 0.2s ease;
 }
 
-/* Zoom plugin applies scale transform on wrapper, not on image. */
 .yarl__slide_wrapper {
   will-change: transform;
   transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
@@ -122,6 +548,13 @@ html.dark .yarl__container {
   .yarl__slide_image,
   .yarl__slide_wrapper {
     transition: none !important;
+  }
+  .page-enter,
+  .reveal {
+    animation: none !important;
+  }
+  .reading-progress {
+    animation: none !important;
   }
 }
 
@@ -204,22 +637,11 @@ html.dark .yarl__slide_footer {
   opacity: 0.236;
 }
 
-.yarl__navigation_next, .yarl__navigation_prev {
-  padding: var(--yarl__navigation_button_padding, 5px 5px) !important; 
+.yarl__navigation_next,
+.yarl__navigation_prev {
+  padding: var(--yarl__navigation_button_padding, 5px 5px) !important;
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
   opacity: 0.236;
-}
-
-/* 1. 强制外层容器和主体换行 */
-.katex-display {
-  white-space: normal !important;
-}
-.katex-display > .katex {
-  white-space: normal !important;
-}
-.katex-display > .katex > .katex-html {
-  white-space: normal !important;
-  display: inline !important; /* 允许内部元素折行 */
 }

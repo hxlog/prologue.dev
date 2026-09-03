@@ -1,383 +1,243 @@
 "use client";
 
-import { useState, useRef, useEffect, useLayoutEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/react";
-import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
-import moment from "moment";
+import { AnimatePresence, motion } from "framer-motion";
+import Card from "./card";
+import { usePostSearch } from "../lib/use-post-search";
+import { tagLabel } from "../../data/tagLabels";
 
-const CASCADE_PER_ROW = 0.12;
-const CASCADE_INTRA = 0.025;
-const CASCADE_DURATION = 0.55;
-const CASCADE_EASE = [0.22, 1, 0.36, 1];
+const PAGE_SIZE = 8;
 
-function cascadeDelay(newOffset) {
-  const row = Math.floor(newOffset / 2);
-  const intra = (newOffset % 2) * CASCADE_INTRA;
-  return row * CASCADE_PER_ROW + intra;
-}
-
-function cascadeTotalMs(count) {
-  if (count <= 0) return 0;
-  const lastRow = Math.max(0, Math.ceil(count / 2) - 1);
-  return (lastRow * CASCADE_PER_ROW + CASCADE_DURATION) * 1000;
-}
-
-export default function HomePage({ articles, mostCommonTag }) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(8);
-  const [firstNewIndex, setFirstNewIndex] = useState(8);
+/**
+ * Home article browser: Featured grid + Latest/tag/Search tabs.
+ *
+ * LCP notes: the first PAGE_SIZE cards render STATICALLY (no entrance
+ * animation, no opacity gate) so they paint with the server HTML; only cards
+ * added via "load more" or search results animate in. Search runs over the
+ * shared build-time Fuse index (src/lib/use-post-search.js).
+ */
+export default function Articles({ articles, mostCommonTag }) {
   const [tabIndex, setTabIndex] = useState(0);
-
-  const tabRefs = useRef([]);
-  const [tabWidths, setTabWidths] = useState([]);
-  const [tabPosition, setTabPosition] = useState(0);
-
-  const firstNewCardRef = useRef(null);
-  const searchWrapRef = useRef(null);
-
-  useEffect(() => {
-    if (tabIndex !== 2) {
-      const t = setTimeout(() => {
-        setSearchQuery("");
-        setDebouncedQuery("");
-        setIsSearching(false);
-      }, 0);
-      return () => clearTimeout(t);
-    }
-  }, [tabIndex]);
-
-  useEffect(() => {
-    if (tabRefs.current.length > 0) {
-      const raf = requestAnimationFrame(() => {
-        const widths = tabRefs.current.map((el) => el.offsetWidth);
-        setTabWidths(widths);
-        setTabPosition(tabRefs.current[tabIndex]?.offsetLeft || 0);
-      });
-      return () => cancelAnimationFrame(raf);
-    }
-  }, [tabIndex]);
-
-  useEffect(() => {
-    if (tabIndex !== 2 || !searchWrapRef.current) return;
-    const raf = requestAnimationFrame(() => {
-      const node = searchWrapRef.current;
-      if (!node) return;
-      const rect = node.getBoundingClientRect();
-      const navRem = parseFloat(
-        getComputedStyle(document.documentElement).getPropertyValue(
-          "--nav-height"
-        )
-      );
-      const navPx = Number.isFinite(navRem) ? navRem * 16 : 64;
-      window.scrollTo({
-        top: rect.top + window.pageYOffset - navPx - 8,
-        behavior: "smooth",
-      });
-    });
-    return () => cancelAnimationFrame(raf);
-  }, [tabIndex]);
-
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedQuery(searchQuery), 120);
-    return () => clearTimeout(t);
-  }, [searchQuery]);
-
-  const searchResults = useMemo(() => {
-    const query = debouncedQuery.trim();
-    if (!query) return [];
-    const lower = query.toLowerCase();
-    return articles.filter((article) => {
-      if (article.draft) return false;
-      return (
-        article.title.toLowerCase().includes(lower) ||
-        article.description.toLowerCase().includes(lower) ||
-        article.slug.toLowerCase().includes(lower) ||
-        (article.tags || []).some((tag) => tag.toLowerCase().includes(lower))
-      );
-    });
-  }, [debouncedQuery, articles]);
+  const [query, setQuery] = useState("");
+  const [debounced, setDebounced] = useState("");
+  const [results, setResults] = useState([]);
+  const [loadedFor, setLoadedFor] = useState("");
+  const [visible, setVisible] = useState(PAGE_SIZE);
+  const { search } = usePostSearch();
 
   const featuredArticles = useMemo(
-    () => articles.filter((article) => article.featured && !article.draft),
+    () => articles.filter((a) => a.featured && !a.draft),
     [articles]
   );
 
-  useLayoutEffect(() => {
-    const newCount = visibleCount - firstNewIndex;
-    if (newCount <= 0) return;
-    const node = firstNewCardRef.current;
-    if (!node) return;
-    const totalMs = cascadeTotalMs(newCount);
-    const timer = setTimeout(() => {
-      const top =
-        node.getBoundingClientRect().top +
-        window.pageYOffset -
-        window.innerHeight * 0.386;
-      window.scrollTo({ top, behavior: "smooth" });
-    }, totalMs);
-    return () => clearTimeout(timer);
-  }, [visibleCount, firstNewIndex]);
+  const latestArticles = useMemo(() => {
+    const featuredSlugs = new Set(featuredArticles.map((a) => a.slug));
+    return articles.filter((a) => !a.draft && !featuredSlugs.has(a.slug));
+  }, [articles, featuredArticles]);
 
-  const filteredArticles = (filter) => {
-    const featuredSlugs = featuredArticles.map((article) => article.slug);
-
-    let baseArticles;
-    if (filter === "search") {
-      baseArticles = debouncedQuery.trim() ? searchResults : [];
-    } else if (filter === "latest") {
-      baseArticles = articles.filter(
-        (article) => !featuredSlugs.includes(article.slug)
-      );
-    } else if (filter === "tag") {
-      baseArticles = articles.filter(
-        (article) =>
-          article.tags.includes(mostCommonTag) &&
-          !featuredSlugs.includes(article.slug)
-      );
-    } else {
-      baseArticles = articles;
-    }
-    return baseArticles.slice(0, visibleCount);
-  };
-
-  const renderArticleCard = (article, index, mode) => {
-    const isStatic = mode === "static";
-    const isNew = mode === "loadmore" && index >= firstNewIndex;
-    const isSearchResult = mode === "search";
-    const isFirstNew = isNew && index === firstNewIndex;
-
-    let initial = false;
-    let transition = { duration: 0.18, ease: "easeOut" };
-
-    if (isStatic) {
-      initial = false;
-      transition = { duration: 0 };
-    } else if (isNew) {
-      const offset = index - firstNewIndex;
-      initial = { opacity: 0, y: 16 };
-      transition = {
-        duration: CASCADE_DURATION,
-        delay: cascadeDelay(offset),
-        ease: CASCADE_EASE,
-      };
-    } else if (isSearchResult) {
-      initial = { opacity: 0, y: 12 };
-      transition = {
-        duration: CASCADE_DURATION,
-        delay: cascadeDelay(index),
-        ease: CASCADE_EASE,
-      };
-    }
-
-    return (
-      <motion.div
-        key={article.slug}
-        ref={isFirstNew ? firstNewCardRef : undefined}
-        initial={initial}
-        animate={{ opacity: 1, y: 0 }}
-        transition={transition}
-        className="py-4 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xs hover:shadow-md dark:shadow-zinc-700 transition px-6"
-      >
-        <Link href={article.slug}>
-          <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 py-1">
-            {article.title}
-          </h2>
-          <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-2 leading-7">
-            {article.description.length > 100
-              ? article.description.substring(0, 100) + "..."
-              : article.description}
-          </p>
-        </Link>
-        <div className="py-2 mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          <time>{moment(article.publishDate).format("LL")}</time>
-          <span className="pl-2">
-            {article.tags.map((tag) => (
-              <Link
-                key={tag}
-                className="py-4 hover:text-zinc-800 dark:hover:text-zinc-200"
-                href={`/tags/${tag}`}
-              >
-                <span className="hover:bg-zinc-100 rounded-md px-1 py-1 transition duration-500 dark:hover:bg-zinc-800">
-                  {tag}
-                </span>
-              </Link>
-            ))}
-          </span>
-        </div>
-      </motion.div>
-    );
-  };
-
-  const renderArticles = (filter) => {
-    const list = filteredArticles(filter).filter(
-      (post) => post.draft === false
-    );
-    return list.map((article, index) =>
-      renderArticleCard(article, index, "loadmore")
-    );
-  };
-
-  const renderFeaturedArticles = () =>
-    featuredArticles.map((article, index) =>
-      renderArticleCard(article, index, "static")
-    );
-
-  const renderSearchArticles = (list) =>
-    list.map((article, index) => renderArticleCard(article, index, "search"));
-
-  const loadMore = () => {
-    setFirstNewIndex(visibleCount);
-    setVisibleCount((prev) => prev + 8);
-  };
-
-  const loadMoreButton = (filter) =>
-    filteredArticles(filter).length >= visibleCount && (
-      <div className="flex justify-center mt-6">
-        <button
-          onClick={loadMore}
-          className="px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 dark:bg-zinc-950 rounded-md hover:bg-zinc-50 dark:hover:bg-zinc-900 transition"
-        >
-          加载更多  
-        </button>
-      </div>
-    );
-
-  const tabButtonClass = ({ selected }) =>
-    `relative z-10 px-2 py-2 text-sm font-medium rounded-md ${
-      selected
-        ? "text-zinc-900 dark:text-white"
-        : "text-zinc-500 dark:text-zinc-300 hover:text-zinc-700 dark:hover:text-zinc-100"
-    }`;
-
-  const hasQuery = debouncedQuery.trim().length > 0;
-  const searchList = filteredArticles("search").filter(
-    (post) => post.draft === false
+  const tagArticles = useMemo(
+    () =>
+      latestArticles.filter(
+        (a) => (a.tags || []).includes(mostCommonTag)
+      ),
+    [latestArticles, mostCommonTag]
   );
 
-  return (
-    <div className="w-full max-w-4xl">
-      {/* Featured Section - Standalone */}
-      <div className="mb-8">
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50 mb-4 border-b dark:border-zinc-800 border-zinc-200 pb-2">
-          Featured
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {renderFeaturedArticles()}
-        </div>
-      </div>
+  // Reset search + paging when switching tabs.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setVisible(PAGE_SIZE);
+      if (tabIndex !== 2) {
+        setQuery("");
+        setDebounced("");
+      }
+    }, 0);
+    return () => clearTimeout(t);
+  }, [tabIndex]);
 
-      {/* Main TabGroup for Latest, Tag, and Search */}
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(query.trim()), 150);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  const isSearching = debounced.length >= 2;
+  const searching = isSearching && loadedFor !== debounced;
+
+  useEffect(() => {
+    if (!isSearching) return;
+    let cancelled = false;
+    search(debounced).then((items) => {
+      if (!cancelled) {
+        setResults(items);
+        setLoadedFor(debounced);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [debounced, isSearching, search]);
+
+  const loadMore = () => setVisible((prev) => prev + PAGE_SIZE);
+
+  const cardGrid = (list, animate = false) => (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      {animate ? (
+        <AnimatePresence initial={false}>
+          {list.map((article) => (
+            <motion.div
+              key={article.slug}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <Card {...cardProps(article)} />
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      ) : (
+        list.map((article) => <Card key={article.slug} {...cardProps(article)} />)
+      )}
+    </div>
+  );
+
+  const loadMoreButton = (total) =>
+    total > visible ? (
+      <div className="mt-8 flex justify-center">
+        <button
+          type="button"
+          onClick={loadMore}
+          className="rounded-full border border-border bg-surface px-6 py-2 text-sm font-medium text-muted transition-all duration-200 hover:-translate-y-px hover:border-accent hover:text-accent hover:shadow-card-hover"
+        >
+          加载更多
+        </button>
+      </div>
+    ) : null;
+
+  const searchList = results.slice(0, visible);
+
+  return (
+    <div className="w-full">
+      {/* Featured */}
+      {featuredArticles.length > 0 && (
+        <section className="mb-10">
+          <div className="mb-4 flex items-baseline justify-between border-b border-border pb-2">
+            <h2 className="text-xl font-semibold tracking-tight text-foreground">
+              精选
+            </h2>
+            <span className="text-xs text-faint">Featured</span>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {featuredArticles.map((article) => (
+              <Card key={article.slug} {...cardProps(article)} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Tabs */}
       <TabGroup selectedIndex={tabIndex} onChange={setTabIndex}>
-        <div>
-          <TabList className="flex border-b dark:border-zinc-800 border-zinc-200 pb-2 justify-between sticky top-0">
-            {["Latest", mostCommonTag, "Search"].map((label, index) => (
+        <TabList className="flex justify-between border-b border-border pb-2">
+          {["最新", mostCommonTag ? tagLabel(mostCommonTag) : "推荐", "搜索"].map(
+            (label, index) => (
               <Tab
                 key={index}
                 as="button"
-                ref={(el) => (tabRefs.current[index] = el)}
-                className={tabButtonClass}
-                onClick={label === "Search" ? () => setIsSearching(true) : null}
+                className={({ selected }) =>
+                  `relative z-10 rounded-md px-3 py-2 text-sm transition-colors duration-200 ${
+                    selected
+                      ? "bg-accent-soft font-semibold text-accent"
+                      : "text-muted hover:bg-surface-2 hover:text-foreground"
+                  }`
+                }
               >
                 {label}
               </Tab>
-            ))}
-            <div
-              className="absolute bottom-0 h-1 bg-zinc-400 dark:bg-zinc-600 transition-all duration-300"
-              style={{
-                width: tabWidths[tabIndex] ? tabWidths[tabIndex] : "auto",
-                transform: `translateX(${tabPosition}px)`,
-              }}
-            ></div>
-          </TabList>
-        </div>
+            )
+          )}
+        </TabList>
+
         <TabPanels className="mt-6">
-          {["latest", "tag"].map((filter, index) => (
-            <TabPanel key={index} className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {renderArticles(filter)}
-              </div>
-              {loadMoreButton(filter)}
-            </TabPanel>
-          ))}
-          <TabPanel className="space-y-4 min-h-screen">
-            {isSearching && (
-              <div
-                ref={searchWrapRef}
-                className="sticky z-30 -mx-2 px-2 py-2 bg-white dark:bg-black"
-                style={{ top: "calc(var(--nav-height) + 0.5rem)" }}
-              >
-                <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="Search articles..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded-md shadow-xs focus:outline-hidden focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-500 transition"
-                  />
-                  <svg
-                    className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400 dark:text-zinc-500 pointer-events-none"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
-                </div>
-              </div>
+          {/* Latest */}
+          <TabPanel className="space-y-6">
+            {cardGrid(latestArticles.slice(0, visible))}
+            {loadMoreButton(latestArticles.length)}
+          </TabPanel>
+
+          {/* mostCommonTag */}
+          <TabPanel className="space-y-6">
+            {tagArticles.length > 0 ? (
+              <>
+                {cardGrid(tagArticles.slice(0, visible))}
+                {loadMoreButton(tagArticles.length)}
+              </>
+            ) : (
+              <p className="py-8 text-center text-sm text-faint">暂无文章</p>
             )}
-            <div className="min-h-[60vh] relative">
-              <AnimatePresence mode="wait" initial={false}>
-                {hasQuery && searchList.length > 0 && (
-                  <motion.div
-                    key={"results:" + debouncedQuery + ":" + searchList.length}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    transition={{ duration: 0.22, ease: "easeOut" }}
-                    className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-                  >
-                    {renderSearchArticles(searchList)}
-                  </motion.div>
-                )}
-                {hasQuery && searchList.length === 0 && (
-                  <motion.p
-                    key={"empty:" + debouncedQuery}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    transition={{ duration: 0.22, ease: "easeOut" }}
-                    className="text-sm text-zinc-500 dark:text-zinc-400 py-6 text-center"
-                  >
-                    No results for &ldquo;{debouncedQuery}&rdquo;
-                  </motion.p>
-                )}
-                {!hasQuery && (
-                  <motion.p
-                    key="hint"
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    transition={{ duration: 0.22, ease: "easeOut" }}
-                    className="text-sm text-zinc-400 dark:text-zinc-500 py-6 text-center"
-                  >
-                    Start typing to search articles.
-                  </motion.p>
-                )}
-              </AnimatePresence>
+          </TabPanel>
+
+          {/* Search */}
+          <TabPanel className="min-h-[50vh] space-y-4">
+            <div className="relative">
+              <input
+                type="text"
+                aria-label="搜索文章"
+                placeholder="搜索文章、标签…"
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setVisible(PAGE_SIZE);
+                }}
+                className="block w-full rounded-xl border border-border bg-surface px-4 py-2.5 pr-10 text-sm text-foreground shadow-card transition-all duration-200 placeholder:text-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+              />
+              <svg
+                className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
             </div>
-            {hasQuery && loadMoreButton("search")}
+
+            {isSearching && searching ? (
+              <p className="py-8 text-center text-sm text-faint">搜索中…</p>
+            ) : isSearching && searchList.length > 0 ? (
+              <>
+                {cardGrid(searchList, true)}
+                {loadMoreButton(results.length)}
+              </>
+            ) : isSearching ? (
+              <p className="py-8 text-center text-sm text-muted">
+                没有找到与「{debounced}」相关的文章
+              </p>
+            ) : (
+              <p className="py-8 text-center text-sm text-faint">
+                输入关键词，全文搜索标题、简介与标签
+              </p>
+            )}
           </TabPanel>
         </TabPanels>
       </TabGroup>
     </div>
   );
+}
+
+function cardProps(article) {
+  return {
+    slug: article.slug,
+    title: article.title,
+    description: article.description,
+    publishDate: article.publishDate || article.date,
+    tags: article.tags,
+    readingTime: article.readingTime,
+    featured: article.featured,
+  };
 }

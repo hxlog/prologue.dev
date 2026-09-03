@@ -79,17 +79,17 @@ export default function TableofContent({ headings }) {
               : "";
 
         const baseColor = isActive
-          ? "text-zinc-900 dark:text-zinc-50 font-semibold"
+          ? "text-foreground font-semibold"
           : isAncestor
-            ? "text-zinc-800 dark:text-zinc-100 font-semibold"
-            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-100 font-normal";
+            ? "text-foreground font-semibold"
+            : "text-muted hover:text-foreground font-normal";
 
         return (
           <div key={heading.id + heading.text} className="relative">
             {isActive && (
               <motion.span
                 layoutId="toc-pill"
-                className="absolute inset-0 -z-10 rounded-md bg-zinc-100 dark:bg-zinc-800"
+                className="absolute inset-0 -z-10 rounded-md bg-accent-soft"
                 transition={{
                   type: "spring",
                   stiffness: 350,

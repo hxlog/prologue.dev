@@ -74,12 +74,14 @@ export default async function PagePage(props) {
   }
 
   return (
-    <><div className="relative xl:grid xl:grid-cols-8 gap-8 mx-auto max-w-5xl">
+    <><div className="relative mx-auto max-w-5xl gap-8 xl:grid xl:grid-cols-8">
       <PageTransition className="col-span-6">
-        <article className="py-4 prose mx-auto dark:prose-invert max-w-2xl">
-          <h1 className="mb-2 py-4 leading-relaxed">{page.title}</h1>
+        <article className="prose dark:prose-invert mx-auto max-w-2xl py-8">
+          <h1 className="mb-2 py-4 text-3xl font-semibold leading-tight tracking-tight text-foreground">
+            {page.title}
+          </h1>
           {page.description && (
-            <p className="mt-4 text-slate-700 dark:text-slate-200">
+            <p className="mt-2 font-serif text-base leading-7 text-muted">
               {page.description}
             </p>
           )}
@@ -92,10 +94,10 @@ export default async function PagePage(props) {
         </article>
       </PageTransition>
       <div
-        className="col-span-2 mx-auto sticky hidden xl:block pt-12"
+        className="col-span-2 mx-auto sticky hidden pt-12 xl:block"
         style={{ top: "calc(var(--nav-height) + 0.5rem)" }}
       >
-        <p className="text-zinc-600 dark:text-zinc-300 py-4">On this page</p>
+        <p className="py-4 text-sm font-medium text-muted">目录</p>
         <TableofContent headings={page.headings} />
       </div>
     </div><ScrollTopAndComment /></>

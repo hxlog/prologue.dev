@@ -2,8 +2,7 @@
 title: Autogynephilia 自我女性恋：跨性别的幽灵
 image: /static/images/Estradiol.png
 publishDate: 2022-12-26
-tags:
-  - Sociology
+tags: ["Gender", "Sociology"]
 description: 非男性恋的MtF，对自己成为女性的想法或形象有性取向。
 lastmod: 2024-01-20
 ---

@@ -1,4 +1,15 @@
-/** @type {import('tailwindcss').Config} */
+/**
+ * Tailwind v3-style config loaded by Tailwind CSS v4 via `@config` in
+ * src/app/globals.css. Only the pieces the v4 CSS-first layer can't express
+ * live here: the class-based dark-mode strategy (next-themes) and the
+ * @tailwindcss/typography plugin for the `.prose` article body.
+ *
+ * The actual prose rhythm, accent link colors, and inline-code treatment are
+ * overridden in src/app/globals.css (CJK-friendly 1.85 line-height, cyan
+ * links, violet inline code), so no typography theme extension is needed here.
+ *
+ * @type {import('tailwindcss').Config}
+ */
 module.exports = {
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
@@ -6,33 +17,5 @@ module.exports = {
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   darkMode: ["class"],
-  theme: {
-    extend: {
-      typography: (theme) => ({
-        DEFAULT: {
-          css: {
-            lineHeight: "2.24rem",
-            a: {
-              textDecoration: "underline",
-              "font-weight": "400",
-              "&:hover": {
-                textDecoration: "underline",
-              },
-            },
-            code: {
-              color: theme("colors.pink.500"),
-              paddingLeft: "4px",
-              paddingRight: "4px",
-            },
-          },
-        },
-        invert: {
-          css: {
-
-          },
-        },
-      }),
-    },
-  },
   plugins: [require("@tailwindcss/typography")],
 };

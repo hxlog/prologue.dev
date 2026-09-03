@@ -13,6 +13,9 @@
 # contentlayer
 /.contentlayer
 
+# generated search index (rebuilt on every build; must not ship to the template snapshot)
+/public/search-index.json
+
 # publish worktree
 /.tmp/
 

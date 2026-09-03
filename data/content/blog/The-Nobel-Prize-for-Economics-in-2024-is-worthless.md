@@ -1,7 +1,7 @@
 ---
 title: 2024年的诺贝尔经济学奖是不值一提的
 featured: true
-tags: ["Economics"]
+tags: ["Economics", "Politics", "Inequality"]
 publishDate: 2024-12-1
 lastmod: 2024-12-2
 description: 在诺贝尔经济学奖至今为止的56次颁发中，今年或许是最令人失望的一届。

@@ -5,9 +5,7 @@ export default function robots() {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: [
-        '/tags/',
-      ],
+      disallow: ['/_next/', '/og'],
     },
     sitemap: `${siteMetadata.siteUrl}/sitemap.xml`,
   };

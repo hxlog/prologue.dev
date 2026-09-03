@@ -1,7 +1,7 @@
 ---
 title: 现代性、自我认同和反身性
 featured: true
-tags: ["Sociology"]
+tags: ["Sociology", "Philosophy"]
 publishDate: 2022-11-13
 description: 现代性伴随着焦虑，在风险体系中经历反身性，形成新的自我认同和发展。
 ---

@@ -1,5 +1,6 @@
 ---
 title: 2025年终总结
+tags: ["Meta", "Finance", "AI"]
 publishDate: 2025-12-29
 featured: true
 image: /static/photos/IMG_20251007_140841.jpg

@@ -1,7 +1,6 @@
 ---
 title: 重温叙事经济学和非理性繁荣
-tags:
-  - Economics
+tags: ["Economics", "Finance", "Crypto"]
 publishDate: 2023-4-12
 description: 叙事经济学和非理性繁荣阐述了现实中的经济学，叙事造就了非理性的繁荣。每个人都想在危机来临之前全身而退，但人总是侥幸却不敢承认自己做不到的事实。
 ---

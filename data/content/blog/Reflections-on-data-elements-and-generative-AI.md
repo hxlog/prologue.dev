@@ -1,5 +1,6 @@
 ---
 title: 对数据要素和生成式AI的思考
+tags: ["AI", "Economics", "Sociology"]
 publishDate: 2024-01-21
 lastmod: 2024-01-28
 description: 中国的“数据要素”政策是市场寻租的体现，生成式AI造成了搜索引擎污染以及语言的标准化。

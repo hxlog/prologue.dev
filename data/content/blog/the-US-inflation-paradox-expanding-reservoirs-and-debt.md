@@ -1,6 +1,6 @@
 ---
 title: 美国的通胀悖论：扩大的蓄水池和债务
-tags: ["Economics"]
+tags: ["Economics", "Quant", "Finance"]
 publishDate: 2022-09-03
 description: 用R语言工具变量回归分析得到，80年代后美国通胀和货币供应量并不呈正相关，通胀和不断累积的债务相关，用凯恩斯AD-AS模型解释通胀。
 ---
