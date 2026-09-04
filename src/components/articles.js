@@ -17,7 +17,7 @@ const PAGE_SIZE = 8;
  * added via "load more" or search results animate in. Search runs over the
  * shared build-time Fuse index (src/lib/use-post-search.js).
  */
-export default function Articles({ articles, mostCommonTag }) {
+export default function Articles({ articles, topTags = [] }) {
   const [tabIndex, setTabIndex] = useState(0);
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
@@ -36,25 +36,31 @@ export default function Articles({ articles, mostCommonTag }) {
     return articles.filter((a) => !a.draft && !featuredSlugs.has(a.slug));
   }, [articles, featuredArticles]);
 
-  const tagArticles = useMemo(
+  const tagArticlesByTag = useMemo(
     () =>
-      latestArticles.filter(
-        (a) => (a.tags || []).includes(mostCommonTag)
+      topTags.map((tag) =>
+        latestArticles.filter((a) => (a.tags || []).includes(tag))
       ),
-    [latestArticles, mostCommonTag]
+    [latestArticles, topTags]
   );
+
+  // Tab order: 最新, …top tags (responsive), 搜索.
+  const searchTabIndex = 1 + topTags.length;
+  // Tag #2 appears from tablet (md), tag #3 from desktop (lg) — the tab row
+  // adapts to device width without JS resize handling.
+  const tagTabVisibility = ["", "hidden md:inline-block", "hidden lg:inline-block"];
 
   // Reset search + paging when switching tabs.
   useEffect(() => {
     const t = setTimeout(() => {
       setVisible(PAGE_SIZE);
-      if (tabIndex !== 2) {
+      if (tabIndex !== searchTabIndex) {
         setQuery("");
         setDebounced("");
       }
     }, 0);
     return () => clearTimeout(t);
-  }, [tabIndex]);
+  }, [tabIndex, searchTabIndex]);
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(query.trim()), 150);
@@ -137,24 +143,29 @@ export default function Articles({ articles, mostCommonTag }) {
 
       {/* Tabs */}
       <TabGroup selectedIndex={tabIndex} onChange={setTabIndex}>
-        <TabList className="flex justify-between border-b border-border pb-2">
-          {["最新", mostCommonTag ? tagLabel(mostCommonTag) : "推荐", "搜索"].map(
-            (label, index) => (
-              <Tab
-                key={index}
-                as="button"
-                className={({ selected }) =>
-                  `relative z-10 rounded-md px-3 py-2 text-sm transition-colors duration-200 ${
-                    selected
-                      ? "bg-accent-soft font-semibold text-accent"
-                      : "text-muted hover:bg-surface-2 hover:text-foreground"
-                  }`
-                }
-              >
-                {label}
-              </Tab>
-            )
-          )}
+        <TabList className="flex justify-between gap-2 border-b border-border pb-2">
+          {[
+            { label: "最新", vis: "" },
+            ...topTags.map((tag, i) => ({
+              label: tagLabel(tag),
+              vis: tagTabVisibility[i] || "",
+            })),
+            { label: "搜索", vis: "" },
+          ].map((tab, index) => (
+            <Tab
+              key={index}
+              as="button"
+              className={({ selected }) =>
+                `${tab.vis} relative z-10 rounded-md px-3 py-2 text-sm transition-colors duration-200 ${
+                  selected
+                    ? "bg-accent-soft font-semibold text-accent"
+                    : "text-muted hover:bg-surface-2 hover:text-foreground"
+                }`
+              }
+            >
+              {tab.label}
+            </Tab>
+          ))}
         </TabList>
 
         <TabPanels className="mt-6">
@@ -164,17 +175,19 @@ export default function Articles({ articles, mostCommonTag }) {
             {loadMoreButton(latestArticles.length)}
           </TabPanel>
 
-          {/* mostCommonTag */}
-          <TabPanel className="space-y-6">
-            {tagArticles.length > 0 ? (
-              <>
-                {cardGrid(tagArticles.slice(0, visible))}
-                {loadMoreButton(tagArticles.length)}
-              </>
-            ) : (
-              <p className="py-8 text-center text-sm text-faint">暂无文章</p>
-            )}
-          </TabPanel>
+          {/* Top tags (responsive) */}
+          {topTags.map((tag, i) => (
+            <TabPanel key={tag} className="space-y-6">
+              {tagArticlesByTag[i].length > 0 ? (
+                <>
+                  {cardGrid(tagArticlesByTag[i].slice(0, visible))}
+                  {loadMoreButton(tagArticlesByTag[i].length)}
+                </>
+              ) : (
+                <p className="py-8 text-center text-sm text-faint">暂无文章</p>
+              )}
+            </TabPanel>
+          ))}
 
           {/* Search */}
           <TabPanel className="min-h-[50vh] space-y-4">

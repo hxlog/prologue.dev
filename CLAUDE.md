@@ -33,6 +33,8 @@ Both share `computedFields` (`slug`, `urlslug`, `slugAsParams`, `readingTime`, `
 
 Site-wide settings (title, author, `siteUrl`, Giscus `repoid`/`categoryid`, Umami config) are in `data/sitemetadata.js`. Nav links in `data/headerNavLinks.js`, microblog posts in `data/microblog.yaml`, friend links in `data/links.yaml`.
 
+Microblog entries (`data/microblog.yaml`) support Weibo-style rich content, normalized by `src/lib/microblog.js`: `content` may contain multiple paragraphs (blank-line separated, YAML `|` block), `images` is an optional list of `{src, desc}` (plain-string shorthand allowed). Images render in a responsive square-crop grid, carry `lightbox-image` so the global lightbox swipes them, and `desc` surfaces as the lightbox caption (`<figcaption>`). Old `{date, content}` entries remain valid.
+
 Post frontmatter: `title`, `description`, `publishDate` (required); `lastmod`, `image`, `imageDesc`, `draft`, `featured`, `tags`, `categories` (optional). Set `draft: true` to exclude a post from feeds/sitemap and make its route 404.
 
 ## Markdown pipeline & Mermaid
@@ -79,7 +81,7 @@ Tags: canonical slugs are English (15-tag taxonomy), Chinese display labels live
 - `/blog/[...slug]` — a post. Matches via `post.slugAsParams` against `allPosts`; includes related posts (`lib/related.js`: tag overlap + recency, excludes prev/next) and a CSS scroll-driven reading-progress bar.
 - `/[...slug]` — MDX pages (e.g. `/about`). Matches via `allPages`.
 - `/tags/[...slug]` — tag pages, **statically prerendered** via `generateStaticParams` from `lib/tag-counts.js`; same cards/search/load-more as `/blog`.
-- `/microblog`, `/links` — microblog, friend links.
+- `/microblog`, `/links` — microblog, friend links. `/microblog/rss` is a standalone RSS 2.0 feed for the microblog (full text + images via `content:encoded`, first image as enclosure).
 - `/og` — dynamic Open Graph image (Edge runtime, per-title Noto Sans SC subset, CDN-cached).
 - `sitemap.js`, `robots.js`, and the feed routes handle SEO/discovery; tag pages are listed in both.
 

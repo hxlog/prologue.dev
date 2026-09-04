@@ -1,15 +1,13 @@
-import fs from "fs";
-import path from "path";
-import { load } from "js-yaml";
 import Link from "next/link";
-import { formatDate } from "../lib/date";
+import MicroblogCard from "./microblog-card";
+import { getMicroblog } from "../lib/microblog";
 
+/**
+ * Home-sidebar microblog block: the three latest entries as compact cards
+ * (matching the site card language), with thumbnails when images exist.
+ */
 export default function MicroblogSnippet() {
-  const filePath = path.join(process.cwd(), "data", "microblog.yaml");
-  const fileContent = fs.readFileSync(filePath, "utf8");
-  const microblogs = load(fileContent)
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
-    .slice(0, 4);
+  const entries = getMicroblog().slice(0, 3);
 
   return (
     <div className="mx-auto mt-8 max-w-2xl">
@@ -21,12 +19,11 @@ export default function MicroblogSnippet() {
         />
         微博
       </h2>
-      {microblogs.map((microblog, index) => (
-        <div key={`${microblog.date}-${index}`} className="my-4 last:mb-0">
-          <time className="text-xs text-faint">{formatDate(microblog.date)}</time>
-          <p className="mt-1.5 text-sm leading-6 text-muted">{microblog.content}</p>
-        </div>
-      ))}
+      <div className="mt-3 space-y-3">
+        {entries.map((entry) => (
+          <MicroblogCard key={entry.id} entry={entry} compact />
+        ))}
+      </div>
       <Link href="/microblog" passHref>
         <p className="pt-2 text-right text-sm text-muted transition-colors duration-300 hover:text-accent hover:underline">
           阅读更多 →

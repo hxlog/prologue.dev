@@ -11,6 +11,7 @@ const FEEDS = [
   { key: "rss", label: "RSS 2.0", desc: "全文输出", url: `${SITE}/rss`, copied: "已复制 RSS 2.0 全文输出地址" },
   { key: "atom", label: "Atom", desc: "全文输出", url: `${SITE}/atomfeed`, copied: "已复制 Atom 全文输出地址" },
   { key: "json", label: "JSON Feed", desc: "全文输出", url: `${SITE}/jsonfeed`, copied: "已复制 JSON Feed 全文输出地址" },
+  { key: "microblog", label: "微博", desc: "图文输出", url: `${SITE}/microblog/rss`, copied: "已复制微博图文 RSS 地址" },
 ];
 
 /**
@@ -53,9 +54,9 @@ export default function RssModal() {
 
       <Modal open={open} onClose={() => setOpen(false)} title="订阅更新">
         <p className="text-sm leading-6 text-muted">
-          三种订阅格式均为
+          文章订阅均为
           <span className="font-medium text-accent">全文输出</span>
-          。点击右侧链接即可复制订阅地址，粘贴到你的 RSS 阅读器。
+          ，微博行为图文 RSS。点击右侧链接即可复制订阅地址，粘贴到你的 RSS 阅读器。
         </p>
 
         <ul className="mt-4 space-y-2.5">

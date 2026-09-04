@@ -9,6 +9,7 @@ import Articles from "../components/articles";
 import MicroblogSnippet from "../components/microblog-snippet";
 import TerminalQuotes from "../components/terminal-quotes";
 import PageTransition from "../components/page-transition";
+import { sortedTags } from "../lib/tag-counts";
 
 function getMicroblogQuotes() {
   try {
@@ -43,17 +44,8 @@ export default function Home() {
       readingTime: post.readingTime?.text,
     }));
 
-  const tagCount = posts.reduce((acc, article) => {
-    (article.tags || []).forEach((tag) => {
-      acc[tag] = (acc[tag] || 0) + 1;
-    });
-    return acc;
-  }, {});
-
-  const mostCommonTag = Object.keys(tagCount).reduce(
-    (best, tag) => (best === null || tagCount[tag] > tagCount[best] ? tag : best),
-    null
-  );
+  // Top-3 tags by post count (sortedTags desc); fewer if the taxonomy is small.
+  const topTags = sortedTags.slice(0, 3);
 
   const quotes = getMicroblogQuotes();
 
@@ -73,7 +65,7 @@ export default function Home() {
 
       <div className="max-w-7xl pt-8 lg:grid lg:grid-cols-9 lg:gap-8">
         <PageTransition className="col-span-7 max-w-4xl pt-6">
-          <Articles articles={posts} mostCommonTag={mostCommonTag} />
+          <Articles articles={posts} topTags={topTags} />
         </PageTransition>
 
         <div className="col-span-2 mx-auto max-w-lg">

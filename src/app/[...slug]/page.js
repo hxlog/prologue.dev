@@ -85,7 +85,6 @@ export default async function PagePage(props) {
               {page.description}
             </p>
           )}
-          <hr className="py-2 pt-2" />
           <MDXComponent code={page.body.code} />
           <hr />
           <Suspense fallback={<div className="h-32" aria-hidden />}>
