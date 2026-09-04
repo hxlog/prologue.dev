@@ -27,13 +27,15 @@ async function getPostFromParams(params) {
 // Non-mutating: allPosts is shared module state and must not be sorted in place.
 function getAdjacentPosts(post) {
   const sortedPosts = [...allPosts].sort(
-    (a, b) => new Date(a.publishDate) - new Date(b.publishDate)
+    (a, b) => new Date(a.publishDate) - new Date(b.publishDate),
   );
 
   const currentIndex = sortedPosts.findIndex((p) => p === post);
   const previousPost = currentIndex > 0 ? sortedPosts[currentIndex - 1] : null;
   const nextPost =
-    currentIndex < sortedPosts.length - 1 ? sortedPosts[currentIndex + 1] : null;
+    currentIndex < sortedPosts.length - 1
+      ? sortedPosts[currentIndex + 1]
+      : null;
 
   const result = {};
   if (previousPost) {
@@ -61,7 +63,9 @@ export async function generateMetadata(props) {
       description: post.description,
       type: "article",
       images: [
-        post.image == "" ? { url: `/og?title=${post.title}` } : { url: post.image },
+        post.image == ""
+          ? { url: `/og?title=${post.title}` }
+          : { url: post.image },
       ],
     },
     twitter: {
@@ -122,7 +126,9 @@ export default async function PostPage(props) {
       <div className="page-enter relative mx-auto max-w-7xl gap-8 xl:grid xl:grid-cols-10">
         <article className="prose dark:prose-invert col-span-8 mx-auto max-w-7xl py-8">
           <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
-            <time dateTime={post.publishDate}>{formatDate(post.publishDate)}</time>
+            <time dateTime={post.publishDate}>
+              {formatDate(post.publishDate)}
+            </time>
             <span aria-hidden="true">·</span>
             <span>{post.readingTime.words} 字</span>
             <span aria-hidden="true">·</span>
@@ -179,6 +185,19 @@ export default async function PostPage(props) {
             </p>
           </Link>
 
+                    <p className="not-prose py-2 text-right">
+            <Link
+              href={`https://github.com/${siteMetadata.github}/${siteMetadata.siteRepo}/blob/master/data/content${post.urlslug}.md`}
+              target="_blank"
+              className="text-sm text-faint transition-colors duration-300 hover:text-accent"
+            >
+              在 GitHub 上查看
+            </Link>
+          </p>
+          
+          <Suspense fallback={<div className="h-32" aria-hidden />}>
+            <Comments />
+          </Suspense>
           <div className="not-prose">
             <RelatedPosts
               post={post}
@@ -193,7 +212,9 @@ export default async function PostPage(props) {
           <div className="not-prose mt-10 justify-between gap-8 py-4 sm:flex">
             {adjacentPosts.previousPostSlug ? (
               <div className="mb-4 sm:mb-0">
-                <p className="text-xs uppercase tracking-wide text-faint">上一篇</p>
+                <p className="text-xs uppercase tracking-wide text-faint">
+                  上一篇
+                </p>
                 <Link
                   href={`/blog/${adjacentPosts.previousPostSlug}`}
                   className="mt-1 block text-sm text-muted transition-colors duration-200 hover:text-accent"
@@ -206,7 +227,9 @@ export default async function PostPage(props) {
             )}
             {adjacentPosts.nextPostSlug ? (
               <div className="sm:text-right">
-                <p className="text-xs uppercase tracking-wide text-faint">下一篇</p>
+                <p className="text-xs uppercase tracking-wide text-faint">
+                  下一篇
+                </p>
                 <Link
                   href={`/blog/${adjacentPosts.nextPostSlug}`}
                   className="mt-1 block text-sm text-muted transition-colors duration-200 hover:text-accent"
@@ -217,19 +240,7 @@ export default async function PostPage(props) {
             ) : null}
           </div>
 
-          <p className="not-prose py-2 text-right">
-            <Link
-              href={`https://github.com/${siteMetadata.github}/${siteMetadata.siteRepo}/blob/master/data/content${post.urlslug}.md`}
-              target="_blank"
-              className="text-sm text-faint transition-colors duration-300 hover:text-accent"
-            >
-              在 GitHub 上查看
-            </Link>
-          </p>
 
-          <Suspense fallback={<div className="h-32" aria-hidden />}>
-            <Comments />
-          </Suspense>
         </article>
 
         <div className="col-span-2 mx-auto">

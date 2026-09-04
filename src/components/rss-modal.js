@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Modal from "./modal";
 import siteMetadata from "../../data/sitemetadata";
 import { useCopy } from "../lib/use-copy";
@@ -8,9 +8,9 @@ import { useCopy } from "../lib/use-copy";
 const SITE = String(siteMetadata.siteUrl || "").replace(/\/+$/, "");
 
 const FEEDS = [
-  { key: "rss", label: "RSS 2.0", desc: "全文输出", url: `${SITE}/rss`, copied: "已复制 RSS 2.0 全文输出地址" },
-  { key: "atom", label: "Atom", desc: "全文输出", url: `${SITE}/atomfeed`, copied: "已复制 Atom 全文输出地址" },
-  { key: "json", label: "JSON Feed", desc: "全文输出", url: `${SITE}/jsonfeed`, copied: "已复制 JSON Feed 全文输出地址" },
+  { key: "rss", label: "博文 RSS 2.0", desc: "全文输出", url: `${SITE}/rss`, copied: "已复制 RSS 2.0 全文输出地址" },
+  { key: "atom", label: "博文 Atom", desc: "全文输出", url: `${SITE}/atomfeed`, copied: "已复制 Atom 全文输出地址" },
+  { key: "json", label: "博文 JSON Feed", desc: "全文输出", url: `${SITE}/jsonfeed`, copied: "已复制 JSON Feed 全文输出地址" },
   { key: "microblog", label: "微博", desc: "图文输出", url: `${SITE}/microblog/rss`, copied: "已复制微博图文 RSS 地址" },
 ];
 
@@ -23,6 +23,19 @@ export default function RssModal() {
   const [open, setOpen] = useState(false);
   const [copiedKey, setCopiedKey] = useState(null);
   const { state, copy } = useCopy();
+
+  useEffect(() => {
+    const openFromAbout = (event) => {
+      const link = event.target.closest?.('a[href="/rss"]');
+      if (!link) return;
+
+      event.preventDefault();
+      setOpen(true);
+    };
+
+    document.addEventListener("click", openFromAbout);
+    return () => document.removeEventListener("click", openFromAbout);
+  }, []);
 
   const copyFeed = (feed) => {
     copy(feed.url);
@@ -56,7 +69,7 @@ export default function RssModal() {
         <p className="text-sm leading-6 text-muted">
           文章订阅均为
           <span className="font-medium text-accent">全文输出</span>
-          ，微博行为图文 RSS。点击右侧链接即可复制订阅地址，粘贴到你的 RSS 阅读器。
+          ，微博RSS包括日常含图文的随想，更新频率较高。点击右侧链接即可复制订阅地址，粘贴到你的 RSS 阅读器。
         </p>
 
         <ul className="mt-4 space-y-2.5">

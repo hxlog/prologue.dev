@@ -35,14 +35,14 @@ export default function Card({
             <span>{readingTime}</span>
           </>
         ) : null}
-        {featured ? (
+        {/* {featured ? (
           <span
             className="ml-auto rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
             style={{ background: "var(--gradient-brand)" }}
           >
             精选
           </span>
-        ) : null}
+        ) : null} */}
       </div>
 
       <h3 className="card-title mt-2.5 text-lg font-semibold leading-7 tracking-tight text-foreground transition-colors duration-200">

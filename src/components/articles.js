@@ -129,9 +129,10 @@ export default function Articles({ articles, topTags = [] }) {
         <section className="mb-10">
           <div className="mb-4 flex items-baseline justify-between border-b border-border pb-2">
             <h2 className="text-xl font-semibold tracking-tight text-foreground">
-              精选
+              Featured
             </h2>
-            <span className="text-xs text-faint">Featured</span>
+            <span className="text-xs text-faint"> </span>
+            {/* 置空 */}
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {featuredArticles.map((article) => (

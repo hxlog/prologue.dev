@@ -2,7 +2,6 @@
 title: 2025年终总结
 tags: ["Meta", "Finance", "AI"]
 publishDate: 2025-12-29
-featured: true
 image: /static/photos/IMG_20251007_140841.jpg
 imageDesc: 2025年10月7日摄于于东江边
 description: 哪怕过着丰富的物质生活，内心里却不认为当下的生活是值得过的
