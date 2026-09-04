@@ -15,7 +15,7 @@ const siteMetadata = {
   favicon: "/static/favicons/favicon.ico",
   avatar: "/static/favicons/avatar.png",
   cover: "/static/favicons/cover.png",
-  email: "author@prologue.dev",
+  email: "xingyuliu@outlook.sg",
   github: "hxlog",
   umami: {
     scriptUrl: "https://umami.morean.cn/script.js",
