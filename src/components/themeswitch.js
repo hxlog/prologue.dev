@@ -5,7 +5,7 @@ import { useTheme } from "next-themes";
 
 const ThemeSwitch = () => {
   const [mounted, setMounted] = useState(false);
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { setTheme, resolvedTheme } = useTheme();
 
   // When mounted on client, now we can show the UI.
   // Defer the setState call so it is not called synchronously inside the effect
@@ -18,8 +18,7 @@ const ThemeSwitch = () => {
   // Circular reveal: wrap the theme swap in a View Transition anchored at the
   // click point (falls back to an instant swap where unsupported).
   const toggleTheme = (event) => {
-    const next =
-      theme === "dark" || resolvedTheme === "dark" ? "light" : "dark";
+    const next = resolvedTheme === "dark" ? "light" : "dark";
 
     const root = document.documentElement;
     if (typeof document.startViewTransition !== "function") {
@@ -48,7 +47,7 @@ const ThemeSwitch = () => {
         fill="currentColor"
         className="h-5 w-5 transition-all duration-300 hover:scale-110"
       >
-        {mounted && (theme === "dark" || resolvedTheme === "dark") ? (
+        {mounted && (resolvedTheme === "dark") ? (
           <path
             fillRule="evenodd"
             d="M8 10.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM8 12a4 4 0 100-8 4 4 0 000 8zM8 0a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0V.75A.75.75 0 018 0zm0 13a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 018 13zM2.343 2.343a.75.75 0 011.061 0l1.06 1.061a.75.75 0 01-1.06 1.06l-1.06-1.06a.75.75 0 010-1.06zm9.193 9.193a.75.75 0 011.06 0l1.061 1.06a.75.75 0 01-1.06 1.061l-1.061-1.06a.75.75 0 010-1.061zM16 8a.75.75 0 01-.75.75h-1.5a.75.75 0 010-1.5h1.5A.75.75 0 0116 8zM3 8a.75.75 0 01-.75.75H.75a.75.75 0 010-1.5h1.5A.75.75 0 013 8zm10.657-5.657a.75.75 0 010 1.061l-1.061 1.06a.75.75 0 11-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm-9.193 9.193a.75.75 0 010 1.06l-1.06 1.061a.75.75 0 11-1.061-1.06l1.06-1.061a.75.75 0 011.061 0z"
