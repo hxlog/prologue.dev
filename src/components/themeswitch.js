@@ -29,9 +29,15 @@ const ThemeSwitch = () => {
     root.style.setProperty("--vt-x", `${event.clientX}px`);
     root.style.setProperty("--vt-y", `${event.clientY}px`);
     root.classList.add("theme-vt");
-    document.startViewTransition(() => setTheme(next)).finished.finally(() => {
-      root.classList.remove("theme-vt");
-    });
+    document
+      .startViewTransition(() => {
+        root.classList.toggle("dark", next === "dark");
+        root.classList.toggle("light", next === "light");
+        setTheme(next);
+      })
+      .finished.finally(() => {
+        root.classList.remove("theme-vt");
+      });
   };
 
   return (
