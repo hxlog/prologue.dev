@@ -30,4 +30,7 @@
   description: "没有月光照耀的日子，一切也都清晰得不见云雾"
   blog_url: "https://melusinn.net/"
   avatar: "/static/avatars/melusinn.net.png"
-  
+- name: "Z.L Vansiit's blog"
+  description: "技术博客 | 生活随笔 | 唠嗑扯淡"
+  blog_url: "https://vansiit.cc/"
+  avatar: "https://vansiit.cc/img/logo.svg"

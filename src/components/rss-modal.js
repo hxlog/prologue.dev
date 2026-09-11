@@ -8,10 +8,11 @@ import { useCopy } from "../lib/use-copy";
 const SITE = String(siteMetadata.siteUrl || "").replace(/\/+$/, "");
 
 const FEEDS = [
-  { key: "rss", label: "博文 RSS 2.0", desc: "全文输出", url: `${SITE}/rss`, copied: "已复制 RSS 2.0 全文输出地址" },
-  { key: "atom", label: "博文 Atom", desc: "全文输出", url: `${SITE}/atomfeed`, copied: "已复制 Atom 全文输出地址" },
-  { key: "json", label: "博文 JSON Feed", desc: "全文输出", url: `${SITE}/jsonfeed`, copied: "已复制 JSON Feed 全文输出地址" },
-  { key: "microblog", label: "微博", desc: "图文输出", url: `${SITE}/microblog/rss`, copied: "已复制微博图文 RSS 地址" },
+  { key: "wechat", label: "微信公众号", desc: "槐序的序章", url: `槐序的序章`, copied: "已复制微信公众号名称" },
+  { key: "rss", label: "博文", desc: "RSS 2.0", url: `${SITE}/rss`, copied: "已复制 RSS 2.0 全文输出地址" },
+  { key: "atom", label: "博文", desc: "Atom Feed", url: `${SITE}/atomfeed`, copied: "已复制 Atom 全文输出地址" },
+  { key: "json", label: "博文", desc: "JSON Feed", url: `${SITE}/jsonfeed`, copied: "已复制 JSON Feed 全文输出地址" },
+  { key: "microblog", label: "微博图文", desc: "RSS 2.0", url: `${SITE}/microblog/rss`, copied: "已复制微博图文 RSS 地址" },
 ];
 
 /**
