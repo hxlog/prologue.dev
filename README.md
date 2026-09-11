@@ -1,10 +1,10 @@
 # Prologue Blog
 
-Next.js 16 + Tailwindcss v4 + Contentlayer2 + Markdown/MDX Blog
+Next.js 16 + React 19 + Tailwindcss V4 + Contentlayer2 + Markdown/MDX Blog
 
 A content-first blog starter built with Next.js 16, Contentlayer2, and Markdown.
 
-**一个面向内容创作者与开发者的现代博客模板：支持 Markdown/MDX、公式、Mermaid、Feed、SEO、搜索与暗黑模式，并保持简单的配置驱动体验。**
+**Prologue Blog 是一个面向内容创作者与开发者的现代博客模板：支持 Markdown/MDX、公式、Mermaid、Feed、SEO、搜索与暗黑模式，并保持简单的配置驱动体验，适合希望快速搭建个人博客、知识库或内容型网站的开发者与创作者。**
 
 
 ## Features
@@ -22,7 +22,7 @@ A content-first blog starter built with Next.js 16, Contentlayer2, and Markdown.
 
 博客链接：https://prologue.dev
 
-## Previews
+## Preview
 
 ![首页与文章页](./public/static/images/ss_pc.png)
 
@@ -39,7 +39,7 @@ A content-first blog starter built with Next.js 16, Contentlayer2, and Markdown.
 
 ## Get Started
 
-想直接搭自己的博客？请使用独立Demo模板仓库（最小版本，不含作者历史文章）：
+想直接搭建自己的博客？可以直接 Fork 我的博客进行二次开发，也可以使用独立 Demo 模板仓库（最小版本，不含作者历史文章）：
 
 **[hxlog/prologue-blog-template](https://github.com/hxlog/prologue-blog-template)**（GitHub Template）
 
@@ -56,9 +56,9 @@ You can easily customize the template site: all configurations are in `/data`, s
 
 你可以很容易自定义网站，所有配置文件都在 `/data` 目录，静态文件存放在 `/public`。
 
-博客文章和页面的Markdown静态文件分别存放在`/data/content/blog`和`/data/content/pages`。
+- 博客文章和页面的Markdown静态文件分别存放在`/data/content/blog`和`/data/content/pages`。
 
-博客的基本元数据、友链、微博、tag标签关联存放在`sitemetadata.js`, `links.yaml`, `microblog.yaml`, `taglabel.js`
+- 博客的基本元数据、友链、微博、tag标签关联存放在`sitemetadata.js`, `links.yaml`, `microblog.yaml`, `taglabel.js`
 
 
 ## Configuration
@@ -88,3 +88,5 @@ title: title
 description: description
 (required)
 ```
+
+推荐配合 Obsidian 在 /Data 打开 Vault 编辑，YAML 和 FrontMatter 会以结构化表格形式渲染，方便作为知识库进行交互。
