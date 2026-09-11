@@ -3,6 +3,7 @@ const { withContentlayer } = require("next-contentlayer2");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  output: "standalone",
   // Contentlayer injects a webpack config; empty turbopack silences Next 16's mismatch error.
   turbopack: {},
   images: {

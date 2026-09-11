@@ -1,6 +1,7 @@
 {
   "name": "Prologue Blog",
   "version": "1.0.0",
+  "license": "MIT",
   "scripts": {
     "dev": "contentlayer2 build && node scripts/build-search-index.mjs && concurrently -k -n content,next -c blue,green \"contentlayer2 dev\" \"next dev --turbopack\"",
     "build": "contentlayer2 build && node scripts/build-search-index.mjs && next build --turbopack",
