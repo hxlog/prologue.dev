@@ -2,8 +2,6 @@ import { ImageResponse } from "next/og";
 
 import siteMetadata from "../../../data/sitemetadata";
 
-export const runtime = "edge";
-
 // Bounded per-isolate font cache (fonts are subsetted per title via the
 // Google Fonts `text=` param, so the key includes the title). The CDN
 // Cache-Control below is the primary cache; this just avoids duplicate

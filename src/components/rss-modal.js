@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import Modal from "./modal";
 import siteMetadata from "../../data/sitemetadata";
 import { useCopy } from "../lib/use-copy";
+import { wechatofficialaccount } from "../../data/sitemetadata";
 
 const SITE = String(siteMetadata.siteUrl || "").replace(/\/+$/, "");
 
 const FEEDS = [
-  { key: "wechat", label: "微信公众号", desc: "槐序的序章", url: `槐序的序章`, copied: "已复制微信公众号名称" },
+  { key: "wechat", label: "博文", desc: `微信公众号`, url: wechatofficialaccount, copied: "已复制微信公众号名称" },
   { key: "rss", label: "博文", desc: "RSS 2.0", url: `${SITE}/rss`, copied: "已复制 RSS 2.0 全文输出地址" },
   { key: "atom", label: "博文", desc: "Atom Feed", url: `${SITE}/atomfeed`, copied: "已复制 Atom 全文输出地址" },
   { key: "json", label: "博文", desc: "JSON Feed", url: `${SITE}/jsonfeed`, copied: "已复制 JSON Feed 全文输出地址" },

@@ -17,12 +17,17 @@ const siteMetadata = {
   cover: "/static/favicons/cover.png",
   email: "xingyuliu@outlook.sg",
   github: "hxlog",
+
+
+
+  // optional
   umami: {
     scriptUrl: "https://umami.morean.cn/script.js",
     recorderUrl: "https://umami.morean.cn/recorder.js",
     websiteId: "dddadd5a-f772-41c9-8942-9b54bad93e18",
     domains: "prologue.dev",
   },
+  wechatofficialaccount: "槐序的序章"
 };
 
 module.exports = siteMetadata;
