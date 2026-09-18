@@ -1,24 +1,10 @@
 # Prologue Blog
 
-Next.js 16 + React 19 + Tailwindcss V4 + Contentlayer2 + Markdown/MDX Blog
+Next.js 16 + React 19 + Tailwind CSS v4 + PostgreSQL
 
-A content-first blog starter built with Next.js 16, Contentlayer2, and Markdown.
+A content-first personal blog that serves its content from a self-hosted database, with a `/studio` admin area for writing, version history and collections.
 
-**Prologue Blog 是一个面向内容创作者与开发者的现代博客模板：支持 Markdown/MDX、公式、Mermaid、Feed、SEO、搜索与暗黑模式，并保持简单的配置驱动体验，适合希望快速搭建个人博客、知识库或内容型网站的开发者与创作者。**
-
-
-## Features
-
-- Content Focused, Contentlayer + MD/MDX
-- Adaptive dark mode
-- Full SEO, Opengraph + JSON-LD + RSS
-- Lightweight search engine, powered by Fuse.js
-
-- 专注于内容创作，支持 markdown/mdx
-- 自适应黑暗模式
-- 完整的 SEO 支持，支持 Opengraph、JSON-LD 和 RSS
-- 轻量级的搜索引擎，Fuse.js 实现全文搜索和模糊搜索
-- 支持 mermaid 渲染
+**Prologue 是一个面向内容创作者的博客与发布平台：支持 Markdown/MDX、公式、Mermaid、Feed、SEO、全站中文全文搜索与暗黑模式。**
 
 博客链接：https://prologue.dev
 
@@ -37,28 +23,53 @@ A content-first blog starter built with Next.js 16, Contentlayer2, and Markdown.
 手机端首页、个人页、友链页
 
 
-## Get Started
+## Features
 
-想直接搭建自己的博客？可以直接 Fork 我的博客进行二次开发，也可以使用独立 Demo 模板仓库（最小版本，不含作者历史文章）：
+- Content stored in PostgreSQL, with a full revision history per post and page
+- Markdown source editing with a preview rendered by the *same* function that publishes
+- Adaptive dark mode
+- Full SEO: OpenGraph, JSON-LD, RSS, Atom, JSON Feed
+- Site-wide full-text search that actually works for Chinese (see `db/README.md`)
+- Mermaid diagrams, KaTeX math, syntax highlighting
+- Collections — microblog, friend links, and any other structured list — defined in `/studio` with custom fields
 
-**[hxlog/prologue-blog-template](https://github.com/hxlog/prologue-blog-template)**（GitHub Template）
+- 内容存储在 PostgreSQL，每篇文章和页面都有完整的版本历史
+- 直接编辑 Markdown 源码，预览与发布使用**同一个**渲染函数
+- 自适应黑暗模式
+- 完整的 SEO 支持：OpenGraph、JSON-LD、RSS、Atom、JSON Feed
+- 全站中文全文搜索
+- 支持 mermaid 渲染、KaTeX 公式、代码高亮
+- Collections：微博、友链等结构化内容可在 `/studio` 中自定义字段
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fhxlog%2Fprologue-blog-template)
+## Architecture
+
+| area | where |
+|---|---|
+| markdown pipeline | `src/lib/markdown/render.js` — the single renderer used by publishing, preview and import |
+| database access | `src/lib/db/index.js` (pool), `src/lib/content/*` (queries) |
+| schema & migrations | `db/migrations/*.sql`, applied by `scripts/db/migrate.mjs` |
+| feeds | `src/lib/feed/*` |
+| admin | `src/app/studio/*` |
+
+Content lives in `posts` / `post_revisions` and `pages` / `page_revisions`. Publishing a post moves `posts.published_revision_id` to a new revision; nothing is ever overwritten, so every edit is restorable and diffable.
+
+The markdown files under `data/content` are the **import source**, not the runtime source. Editing one has no effect until `scripts/db/import-posts.mjs` runs.
+
+## Commands
 
 ```bash
-git clone https://github.com/hxlog/prologue-blog-template.git my-blog
-cd my-blog
-npm install
-npm run dev
+npm run dev            # next dev --turbopack
+npm run build          # next build --turbopack
+npm run start          # serve production build
+npm run lint           # eslint
+
+node --env-file=.env.local scripts/db/migrate.mjs --status
+node --env-file=.env.local scripts/db/import-posts.mjs
+node --env-file=.env.local scripts/db/import-pages.mjs
+node --env-file=.env.local scripts/db/import-collections.mjs
 ```
 
-You can easily customize the template site: all configurations are in `/data`, static files are in `/public`.
-
-你可以很容易自定义网站，所有配置文件都在 `/data` 目录，静态文件存放在 `/public`。
-
-- 博客文章和页面的Markdown静态文件分别存放在`/data/content/blog`和`/data/content/pages`。
-
-- 博客的基本元数据、友链、微博、tag标签关联存放在`sitemetadata.js`, `links.yaml`, `microblog.yaml`, `taglabel.js`
+Copy `.env.example` to `.env.local` and fill it in first. See `db/README.md` for the database's roles, connection paths and pooling constraints, and `CLAUDE.md` for the parts of this codebase that are easy to get wrong.
 
 
 ## Configuration
@@ -89,4 +100,4 @@ description: description
 (required)
 ```
 
-推荐配合 Obsidian 在 /Data 打开 Vault 编辑，YAML 和 FrontMatter 会以结构化表格形式渲染，方便作为知识库进行交互。
+推荐配合 Obsidian 在 `data/` 打开 Vault 编辑，YAML 和 FrontMatter 会以结构化表格形式渲染，方便作为知识库进行交互。导入脚本读取的就是这些文件。

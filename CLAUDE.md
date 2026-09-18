@@ -4,96 +4,122 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-A content-first personal blog (Chinese, `prologue.dev`) built on **Next.js 16 App Router + Turbopack, React 19, Tailwind CSS v4, and Contentlayer2**. It doubles as the **source of truth for a public starter template** — see the "Template publishing" section, which is the least obvious part of this codebase.
+A content-first personal blog (Chinese, `prologue.dev`) built on **Next.js 16 App Router + Turbopack, React 19, Tailwind CSS v4**, serving its content out of **PostgreSQL**. It is being grown into a self-hosted publishing platform with a `/studio` admin area.
+
+Two things about this repo are unusual and worth knowing before you touch anything:
+
+- **Content is in the database, not in files.** `data/content/**` still exists and is still the import source, but the running site reads `posts` / `post_revisions` / `pages` / `collections` from Postgres. A change to a markdown file has no effect until it is imported.
+- **The markdown renderer is a single shared function** (`src/lib/markdown/render.js`). Publishing and preview both call it, which is what makes "the editor previews exactly what will be published" true by construction rather than by maintenance.
 
 ## Commands
 
 ```bash
-npm run dev            # contentlayer2 dev + next dev --turbopack (runs both, watch mode)
-npm run build          # contentlayer2 build && next build --turbopack
+npm run dev            # next dev --turbopack
+npm run build          # next build --turbopack
 npm run start          # serve production build
-npm run build:content  # regenerate .contentlayer only
 npm run lint           # eslint (flat config in eslint.config.mjs)
-npm run publish:dry    # build the template snapshot locally (no push)
-npm run publish        # force-push template to hxlog/prologue-blog-template
 ```
 
-There is **no test suite**. CI (`.github/workflows/ci.yml`) runs `lint` + `build` only. Verify changes by building and running the site.
+There is **no test suite**. CI (`.github/workflows/ci.yml`) runs `lint` + `build` only. Correctness is established by the scripts under `scripts/db/`, which compare against the live site and the database — see "Verification" below. Run those before claiming a content-path change is safe.
 
-Contentlayer2 must run before Next — never call `next build`/`next dev` in a way that skips the content generation step; `npm run dev`/`build` already orchestrate this.
+Database scripts need the direct (unpooled) connection and do not read `.env.local` automatically:
+
+```bash
+node --env-file=.env.local scripts/db/migrate.mjs [--status|--dry-run|--baseline]
+node --env-file=.env.local scripts/db/import-posts.mjs [--dry] [--reset]
+node --env-file=.env.local scripts/db/import-pages.mjs [--dry] [--reset]
+node --env-file=.env.local scripts/db/import-collections.mjs [--dry] [--reset]
+```
+
+## Verification
+
+There is no unit-test suite, so these scripts are the safety net. They are not decoration — each one caught a real defect that a build could not.
+
+| script | what it proves |
+|---|---|
+| `full-sweep.mjs` | every page the live site serves renders byte-identical visible text. Needs a local server on `:3211`. |
+| `compare-feeds.mjs` | all four feeds match production apart from `lastBuildDate`. |
+| `check-figure-classes.mjs` | every rendered `<img>` carries a well-formed lightbox class list. |
+| `smoke.mjs` | every route responds; CJK search returns hits; microblog guids unchanged. |
+| `dump-posts.mjs` | the full reader-visible projection of every post, as text, for diffing before/after a change. |
+| `verify-feed-dates.mjs` | stored instants render the same day they do in production. |
+
+## Database
+
+One database, `prologue`, on a shared self-hosted PostgreSQL 18 cluster. Two neighbouring databases are **never touched**: `postgres` (another project's `bp_*` tables) and `umami`.
+
+See **`db/README.md`** for roles, per-role timeouts, the PgBouncer constraints, and the CJK tokenizer. Read it before writing a query that uses a session-level feature — transaction pooling breaks several of them silently.
+
+Migrations are numbered `.sql` files applied by `scripts/db/migrate.mjs`, each in its own transaction, against the **direct** connection. They are applied by a separate job, **not** during `next build`: Vercel reuses the same `DATABASE_URL` for production and preview, so a build-time migration would let a pull request mutate the production schema.
+
+`src/lib/db/index.js` holds the pool (`query` / `queryOne` / `queryMany` / `withTransaction`). The pool is small on purpose — the cluster's `max_connections` is shared.
+
+### Schema shape
+
+- **`posts` + `post_revisions`** — a post is a row plus an immutable revision history. `posts.draft_revision_id` / `published_revision_id` point at the current ones. Publishing moves a pointer; it never mutates a revision.
+- **`pages` + `page_revisions`** — same, for MDX pages. For a page, the `html` column holds **compiled MDX bytecode**, not markup: the renderable artifact for an MDX document is a component.
+- **`posts` carries a list projection** (`title`, `description`, `headings`, `reading_time`, `content_hash`) maintained by triggers in migration 0005, so the busiest pages never join.
+- **`collections` + `collection_entries`** — the YAML replacement (microblog, links, and future portfolio/film-log). Read in `src/lib/content/collections.js`.
+- **`search_index`** — CJK full-text search. See `db/README.md` for why `pg_trgm` and `ts_headline` do not work here.
 
 ## Content model
 
-All site content and config live under `/data` (static assets in `/public`). Contentlayer (`contentlayer.config.js`) reads `contentDirPath: ./data/content` and emits two document types into `.contentlayer/generated`, imported everywhere as `contentlayer/generated` (a path alias in `jsconfig.json`):
+Reading source of truth: `data/content/blog/**/*.md` (posts), `data/content/pages/*.md` (pages), `data/*.yaml` (collections, imported by `scripts/db/import-collections.mjs`).
 
-- **`Post`** — `data/content/blog/**/*.md`, `contentType: "markdown"`. Rendered to HTML, exposed as `post.body.html`.
-- **`Page`** — `data/content/pages/**/*.md`, `contentType: "mdx"` (note: `.md` extension but treated as MDX). Rendered to MDX bytecode, exposed as `page.body.code`.
+Post frontmatter: `title`, `description`, `publishDate` (required); `lastmod`, `image`, `imageDesc`, `draft`, `featured`, `tags` (optional). The whole corpus uses only these eight keys.
 
-Both share `computedFields` (`slug`, `urlslug`, `slugAsParams`, `readingTime`, `headings`). `slug`/`slugAsParams` are **lowercased**; route matching relies on this.
+`src/lib/content/frontmatter.js` is the one frontmatter parser. It **does not resolve dates** — deliberately. `2025-02-15` is a valid YAML timestamp and would become a `Date` in the reader's zone, while `2025-2-15` is not and would stay a string, so two alike-looking dates would arrive as two different kinds of value. Everything goes through `parseContentDate` (`src/lib/content/dates.js`), which normalises every accepted form to an explicit UTC instant. That function is why 6 of 63 posts no longer render a different day locally than in production.
 
-Site-wide settings (title, author, `siteUrl`, Giscus `repoid`/`categoryid`, Umami config) are in `data/sitemetadata.js`. Nav links in `data/headerNavLinks.js`, microblog posts in `data/microblog.yaml`, friend links in `data/links.yaml`.
-
-Microblog entries (`data/microblog.yaml`) support Weibo-style rich content, normalized by `src/lib/microblog.js`: `content` may contain multiple paragraphs (blank-line separated, YAML `|` block), `images` is an optional list of `{src, desc}` (plain-string shorthand allowed). Images render in a responsive square-crop grid, carry `lightbox-image` so the global lightbox swipes them, and `desc` surfaces as the lightbox caption (`<figcaption>`). Old `{date, content}` entries remain valid.
-
-Post frontmatter: `title`, `description`, `publishDate` (required); `lastmod`, `image`, `imageDesc`, `draft`, `featured`, `tags`, `categories` (optional). Set `draft: true` to exclude a post from feeds/sitemap and make its route 404.
+Slugs: `slug`/`slugAsParams` are **lowercased** and route matching relies on it. `posts.source_path` preserves the real filename, because the "view on GitHub" link is built from it and GitHub is case-sensitive. Never lowercase it.
 
 ## Markdown pipeline & Mermaid
 
-The markdown pipeline is configured in `contentlayer.config.js` (remark: gfm, math, gemoji; rehype: katex, slug, custom `rehype-figure`, custom `rehype-mermaid-pre`, stringify, shiki). Custom rehype plugins live in `src/components/`.
+The pipeline is `src/lib/markdown/render.js` (remark: frontmatter, gfm, math, gemoji; rehype: katex, slug, custom `rehype-figure`, custom `rehype-mermaid-pre`, stringify, shiki). Custom rehype plugins live in `src/components/`.
 
-`rehype-mermaid-pre` converts ```mermaid code fences into `<pre class="mermaid">` blocks. Mermaid is then rendered **two different ways** depending on the consumer — keep both in sync if you touch either:
+`RENDERER_VERSION` in that file must be bumped whenever the pipeline or any remark/rehype/shiki dependency changes in a way that can alter output. Rows with a lower stored version are stale and need re-rendering. This is load-bearing: upgrading `@shikijs/langs` alone was measured to change token colours in 2 of 63 posts with no config change at all.
 
-- **On the web**: `OptimizedHTMLRenderer` (`src/components/optimized-html-renderer.js`) parses `post.body.html`, routing `<img>` to `next/image` and `<pre class="mermaid">` to the client-side `MermaidBlock` (dynamic-imports `mermaid`, theme-aware); everything else goes through `dangerouslySetInnerHTML`.
-- **In feeds**: `src/lib/feed/mermaid.js` + `mermaid-shared.mjs` rewrites the same `<pre>` blocks into hosted `mermaid.ink` PNG `<img>` URLs (pako deflate + base64url encoding), since RSS readers strip inline SVG.
+`rehype-mermaid-pre` converts ```mermaid fences into `<pre class="mermaid">`. Mermaid is then rendered **two different ways** — keep both in sync:
+
+- **On the web**: `OptimizedHTMLRenderer` (`src/components/optimized-html-renderer.js`) parses the stored HTML, routing `<img>` to `next/image` and `<pre class="mermaid">` to the client-side `MermaidBlock`; everything else goes through `dangerouslySetInnerHTML`.
+- **In feeds**: `src/lib/feed/mermaid.js` + `mermaid-shared.mjs` rewrite the same blocks into hosted `mermaid.ink` PNG URLs, since RSS readers strip inline SVG.
 
 ## Feeds (RSS / Atom / JSON)
 
-Routes: `src/app/rss`, `src/app/atomfeed`, `src/app/jsonfeed`. All three call `createFeed()` in `src/lib/feed/build-feed.js`, which builds a single `Feed` instance; each route only picks the serializer (`rss2`/`atom1`/`json1`). Per-item HTML is produced by `buildFeedContent()` in `src/lib/feed/content.js`, which strips KaTeX presentation layers (keeps MathML), promotes block math, absolutizes URLs, and normalizes images. Format-specific fixes the `feed` library can't express (inject `<dc:creator>`, JSON Feed per-item `image`) live in `src/lib/feed/finalize.js`. URL helpers in `src/lib/feed/urls.js` derive absolute URLs from `siteMetadata.siteUrl`.
+Routes: `src/app/rss`, `src/app/atomfeed`, `src/app/jsonfeed`. All three call `createFeed()` in `src/lib/feed/build-feed.js`; each route only picks the serializer. Per-item HTML comes from `buildFeedContent()` in `src/lib/feed/content.js`. Format-specific fixes the `feed` library can't express live in `src/lib/feed/finalize.js`. URL helpers in `src/lib/feed/urls.js`.
 
-Feeds are edge-cached (`s-maxage=600, stale-while-revalidate=86400`): content only changes on deploy, so a 10-min staleness window is safe and keeps readers off the function path.
+Feeds are edge-cached (`s-maxage=600, stale-while-revalidate=86400`).
 
-## Template publishing (important)
-
-This repo is mirrored to a public template (`hxlog/prologue-blog-template`) **without the author's posts, maintainer-only files, or personal assets**. On every push to `master`, `.github/workflows/publish-template.yml` runs `npm run publish`, which executes `scripts/publish-template.mjs`. That script:
-
-1. Creates a detached git worktree of `HEAD`.
-2. `applyStarterTemplate()` deletes maintainer-only paths (`template/`, `docs/`, `.idea/`, `scripts/`, the publish workflows), wipes `data/content/*` and `public/static`, then copies the starter overrides from `template/` and `README.template.md`.
-3. Force-pushes the snapshot to the template repo (auth via `TEMPLATE_REPO_TOKEN` secret, falling back to `gh auth token`).
-
-**Implications when editing:**
-- The `template/` directory and `README.template.md` are the starter's overrides — they are *not* used by this site but *are* what template users receive. Edit them when you intend to change the template's default content/assets.
-- Anything new added for the template must be placed under `template/` (or whitelisted in `applyStarterTemplate`), or it won't ship.
-- `publish-template.mjs` references `src/lib/feed/mermaid-manifest.json` and a `docs/` dir that don't currently exist — these are harmless leftovers, not bugs to "fix" by creating the files.
-- Locally, use `npm run publish:dry` to preview the snapshot (written under `.tmp/`, which is gitignored); only `npm run publish` pushes.
+**Feed HTML is assembled by string surgery** — a stack of regex passes (strip KaTeX presentation, promote block math, absolutise URLs, rebuild `<img>`) rather than a DOM traversal. This is the most fragile code in the repo and the reason `compare-feeds.mjs` exists. Anything that changes the shape of stored post HTML can break a feed without breaking a page.
 
 ## Design system
 
-Semantic tokens live in `src/app/globals.css` under `@theme inline` (`background/foreground/surface/surface-2/surface-3/muted/faint/border/border-strong/accent/accent-strong/accent-soft/secondary/secondary-soft`, radii, shadows, motion), mapped to CSS variables that flip under `.dark`. **Primary accent = cyan, secondary = violet** (analogous cool pair); interactive states use `accent`, emphasis/badges use the cyan→violet `--gradient-brand`. The v3-style `tailwind.config.js` (loaded via `@config`) holds only `darkMode: ["class"]` + the typography plugin. Fonts are self-hosted via `next/font/google` in `layout.js` (Noto Sans SC / Noto Serif SC / JetBrains Mono).
+Semantic tokens live in `src/app/globals.css` under `@theme inline` (`background/foreground/surface/surface-2/surface-3/muted/faint/border/border-strong/accent/accent-strong/accent-soft/secondary/secondary-soft`, radii, shadows, motion), mapped to CSS variables that flip under `.dark`. **Primary accent = cyan, secondary = violet**; interactive states use `accent`, emphasis/badges use the `--gradient-brand`. The v3-style `tailwind.config.js` (loaded via `@config`) holds only `darkMode: ["class"]` + the typography plugin. Fonts are self-hosted via `next/font/google` in `layout.js`.
 
-Shared UI primitives: `card.js` (hairline ring + hover lift; used by home, `/blog`, `/tags/*`, related posts), `tag-chips.js` (responsive +N collapse, expand-in-place), `modal.js` (+ `rss-modal.js` / `email-modal.js`, both copy-to-clipboard with manual-copy fallback), `search-grid.js` (shared search + load-more list). Custom `.prose` overrides in globals.css must keep their `:not(.not-prose *)` guards or they leak into card UI.
+Shared UI primitives: `card.js`, `tag-chips.js`, `modal.js` (+ `rss-modal.js` / `email-modal.js`), `search-grid.js`. Custom `.prose` overrides in globals.css must keep their `:not(.not-prose *)` guards or they leak into card UI. `/studio` uses these same tokens — it is the blog's admin, not a separate app with its own look.
 
-Tags: canonical slugs are English (15-tag taxonomy), Chinese display labels live in `data/tagLabels.js`. Tag URLs are `/tags/<EnglishSlug>`; `/tags/Web3` permanently redirects to `/tags/Crypto` (`next.config.js` redirects).
+Tags: canonical slugs are English (15-tag taxonomy), Chinese display labels live in `data/tagLabels.js`. Tag URLs are `/tags/<EnglishSlug>`; `/tags/Web3` permanently redirects to `/tags/Crypto`.
 
 ## Routing overview
 
-- `/` — home (`src/app/page.js`): featured grid + Latest/tag/Search tabs (client-side `Articles`, load-more in batches of 8) + about/terminal/microblog sidebar.
-- `/blog` — archive with tag sidebar, site-wide Fuse.js search and load-more (numbered pagination removed; `/blog/page/*` redirects to `/blog`).
-- `/blog/[...slug]` — a post. Matches via `post.slugAsParams` against `allPosts`; includes related posts (`lib/related.js`: tag overlap + recency, excludes prev/next) and a CSS scroll-driven reading-progress bar.
-- `/[...slug]` — MDX pages (e.g. `/about`). Matches via `allPages`.
-- `/tags/[...slug]` — tag pages, **statically prerendered** via `generateStaticParams` from `lib/tag-counts.js`; same cards/search/load-more as `/blog`.
-- `/microblog`, `/links` — microblog, friend links. `/microblog/rss` is a standalone RSS 2.0 feed for the microblog (full text + images via `content:encoded`, first image as enclosure).
-- `/og` — dynamic Open Graph image (Edge runtime, per-title Noto Sans SC subset, CDN-cached).
-- `sitemap.js`, `robots.js`, and the feed routes handle SEO/discovery; tag pages are listed in both.
+- `/` — home: featured grid + Latest/tag/Search tabs (client-side `Articles`, load-more in batches of 8) + about/terminal/microblog sidebar.
+- `/blog` — archive with tag sidebar, site-wide search and load-more (`/blog/page/*` redirects to `/blog`).
+- `/blog/[...slug]` — a post, with related posts (`src/lib/related.js`) and a CSS scroll-driven reading-progress bar.
+- `/[...slug]` — MDX pages (e.g. `/about`), matched via `allPages`.
+- `/tags/[...slug]` — tag pages, statically prerendered via `generateStaticParams`.
+- `/microblog`, `/links` — collections-backed pages. `/microblog/rss` is a standalone RSS 2.0 feed for the microblog.
+- `/api/search` — the search endpoint (see below).
+- `/og` — dynamic Open Graph image, per-title Noto Sans SC subset, CDN-cached.
+- `sitemap.js`, `robots.js`, and the feed routes handle SEO/discovery.
 
 ## Conventions & gotchas
 
 - JS (not TS) throughout; most imports are **relative**, even though `jsconfig.json` defines `@/*` → `./src/*` (the alias is currently unused).
-- `next.config.js` wraps config in `withContentlayer` (next-contentlayer2). The empty `turbopack: {}` is intentional — it silences a Next 16 warning about Contentlayer's injected webpack config; don't remove it.
-- Tailwind is **v4** (`@tailwindcss/postcss` + `@import "tailwindcss"` in `globals.css`) loading a minimal v3-style `tailwind.config.js` via `@config` (typography plugin + `darkMode: ["class"]`). All colors/radii/shadows/motion are tokens in `globals.css` `@theme inline`.
-- `/_next/image` responses carry `Content-Disposition: inline` natively via `images.contentDispositionType` in `next.config.js` (Next's optimizer defaults to `attachment`, which makes direct opens download). There is no middleware and no vercel.json; don't re-add override layers.
-- Analytics is self-hosted **Umami** (`src/components/umami-analytics.js`, config in `siteMetadata.umami`); it only loads in production. Comments are **Giscus** (`src/components/comments.js`).
-- Search is **one site-wide Fuse.js implementation** (`src/lib/use-post-search.js`) over a build-time slim index `public/search-index.json` (`scripts/build-search-index.mjs`, gitignored, regenerated by `npm run build`/`dev`; the publish script whitelists the generator for the template). The index includes Chinese tag labels so CJK queries hit English tags.
-- **Image lightbox is wired through CSS classes, not props**: `rehype-figure` tags every post image with `lightbox-image`, `OptimizedHTMLRenderer` preserves that class when swapping in `next/image`, and the globally mounted `ImageLightbox` (root layout) scans the DOM for `img.lightbox-image` and opens a `yet-another-react-lightbox`. Dropping the class anywhere breaks zoom.
-- Dates are formatted with `src/lib/date.js` (Intl, zh-CN long form; Beijing time when a clock time is involved) and sorted with `date-fns` (`compareDesc`). Never reintroduce moment.
-- Shiki emits only `--shiki-light`/`--shiki-dark` vars (`defaultColor: false` in `contentlayer.config.js`); the active color is applied by CSS in globals.css.
-- `.contentlayer`, `.next`, and `.tmp` are generated — never edit by hand.
+- Tailwind is **v4** (`@tailwindcss/postcss` + `@import "tailwindcss"` in `globals.css`) loading a minimal v3-style `tailwind.config.js` via `@config`.
+- `/_next/image` responses carry `Content-Disposition: inline` natively via `images.contentDispositionType`. There is no middleware and no `vercel.json`; don't re-add override layers.
+- Analytics is self-hosted **Umami**; it only loads in production, and view counts are read back **only inside `/studio`** — never rendered on the public site. Comments are **Giscus**, toggleable per post and per page.
+- Search runs in PostgreSQL (`src/lib/search.js` + `src/app/api/search/route.js`), with a client wrapper (`src/lib/use-post-search.js`) that adds an LRU and in-flight coalescing. The CJK guard in `search.js` must stay `/[一-鿿A-Za-z0-9_]/`: `\p{Script=Han}` without the `u` flag is not a Unicode property escape at all, and silently matched nothing.
+- **Image lightbox is wired through CSS classes, not props**: `rehype-figure` tags every post image with `lightbox-image`, `OptimizedHTMLRenderer` preserves that class when swapping in `next/image`, and the globally mounted `ImageLightbox` scans the DOM for `img.lightbox-image`. Class lists are **arrays** in HAST — never build them by string concatenation, which coerces through `Array#toString` and joins on commas. That bug shipped once (`class="rounded-lg,mx-auto,..."`, 163 of 179 images) and silently killed zoom.
+- Dates are formatted with `src/lib/date.js` (Intl, zh-CN long form, UTC-pinned) and sorted with `date-fns`. Never reintroduce moment.
+- Shiki emits only `--shiki-light`/`--shiki-dark` vars (`defaultColor: false`); the active color is applied by CSS.
+- `.next` and `.tmp` are generated — never edit by hand.
+- Line endings: content files are LF in the repo and CRLF on a Windows checkout (`core.autocrlf=true`). Every importer normalises to LF at the boundary, because a `\r` inside a `<p>` is invisible in a browser but is literal junk in a feed, a search snippet, or a copy-paste.
