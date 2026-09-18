@@ -38,6 +38,9 @@ const RESET = process.argv.includes("--reset");
 const { renderMarkdown, deriveSlugs, RENDERER_VERSION } = await import(
   pathToFileURL(path.join(ROOT, "src/lib/markdown/render.js")).href
 );
+const { contentDateISO } = await import(
+  pathToFileURL(path.join(ROOT, "src/lib/content/dates.js")).href
+);
 
 // tag slug -> Chinese label, the current data/tagLabels.js contract
 const TAG_LABELS = {
@@ -68,6 +71,32 @@ const TAG_ALIASES = { Web3: "Crypto" };
  */
 function contentHash(markdown) {
   return createHash("sha256").update(String(markdown ?? ""), "utf8").digest("hex");
+}
+
+/**
+ * Read a date field straight out of the frontmatter block, as the literal
+ * string the author typed.
+ *
+ * Contentlayer's parsed value is already a Date, and its instant depends on
+ * the time zone of whichever machine ran the build — which is why production
+ * and this checkout disagreed about six posts. The raw text has no such
+ * ambiguity.
+ *
+ * The search is confined to the frontmatter block. Scanning the whole file
+ * would also match prose: one post is a tutorial about building this blog and
+ * contains `lastmod:` in a code sample, which the first version of this
+ * function happily picked up and wrote into the database.
+ */
+function rawDate(doc, field) {
+  const src = fs.readFileSync(
+    path.join(ROOT, "data/content", doc._raw.sourceFilePath),
+    "utf8"
+  );
+  const block = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---/.exec(src);
+  const match = block
+    ? new RegExp(`^${field}:\\s*(.+?)\\s*$`, "m").exec(block[1])
+    : null;
+  return match ? match[1] : doc[field];
 }
 
 const index = JSON.parse(
@@ -136,7 +165,15 @@ try {
     const slugs = deriveSlugs(doc._raw.flattenedPath);
 
     const status = doc.draft === true ? "draft" : "published";
-    const publishedAt = status === "published" ? doc.publishDate : null;
+    // Normalise through parseContentDate. `doc.publishDate` here is the
+    // Contentlayer build's Date, which was itself produced by
+    // `new Date("2025-2-15")` in the BUILD machine's zone — the live site
+    // renders 2月15日 while this checkout renders 2月14日 for the same post.
+    // Re-reading the raw frontmatter and parsing it explicitly makes the
+    // stored instant, and therefore the rendered date and the feed pubDate,
+    // identical everywhere.
+    const publishedAt = status === "published" ? contentDateISO(rawDate(doc, "publishDate")) : null;
+    const lastmod = contentDateISO(rawDate(doc, "lastmod"));
 
     // The route matches on slugAsParams; posts.slug stores the same value so
     // the URL can never drift from what the router resolves.
@@ -160,7 +197,7 @@ try {
           doc.imageDesc || null,
           doc.imageDesc || null,
           publishedAt,
-          doc.lastmod || null,
+          lastmod,
         ]
       );
       updated++;
@@ -177,7 +214,7 @@ try {
           doc.imageDesc || null,
           doc.imageDesc || null,
           publishedAt,
-          doc.lastmod || null,
+          lastmod,
         ]
       );
       postId = rows[0].id;
@@ -268,7 +305,7 @@ try {
         `/blog/${slugs.slugAsParams}`,
         [...(doc.tags || []), ...labelTags],
         bodyText,
-        doc.publishDate,
+        contentDateISO(rawDate(doc, "publishDate")),
       ]
     );
   }

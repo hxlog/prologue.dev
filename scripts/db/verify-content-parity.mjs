@@ -17,12 +17,17 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { pathToFileURL } from "node:url";
 import pg from "pg";
 
 const CONTENTLAYER_ROOT = process.env.CONTENTLAYER_ROOT || process.cwd();
 const POSTS_JSON = path.join(
   CONTENTLAYER_ROOT,
   ".contentlayer/generated/Post/_index.json"
+);
+
+const { parseContentDate } = await import(
+  pathToFileURL(path.join(process.cwd(), "src/lib/content/dates.js")).href
 );
 
 function loadConnectionString() {
@@ -32,6 +37,28 @@ function loadConnectionString() {
     process.exit(1);
   }
   return url;
+}
+
+/**
+ * Dates are compared against the raw frontmatter, not against Contentlayer's
+ * parsed Date.
+ *
+ * Contentlayer's instant depends on the build machine's time zone — locally
+ * `2025-2-15` becomes 2025-02-14T16:00Z, on Vercel it becomes
+ * 2025-02-15T00:00Z — so comparing against it would assert the local machine's
+ * bug rather than the author's intent. The raw string is unambiguous, and the
+ * live feed (checked separately by verify-feed-dates.mjs) confirms which
+ * interpretation production actually renders.
+ */
+function rawFrontmatterDate(sourceFilePath, field) {
+  const src = readFileSync(
+    path.join(process.cwd(), "data/content", sourceFilePath),
+    "utf8"
+  );
+  const block = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---/.exec(src);
+  if (!block) return null;
+  const m = new RegExp(`^${field}:\\s*(.+?)\\s*$`, "m").exec(block[1]);
+  return m ? m[1] : null;
 }
 
 /** Same instant? Compares by time, tolerating the string/timestamp shape gap. */
@@ -139,8 +166,20 @@ async function main() {
     check("slug (route)", cl.slug, `/blog/${slug}`);
     check("slugAsParams", cl.slugAsParams, slug);
 
-    check("publishDate", cl.publishDate, row.published_at, sameInstant);
-    check("lastmod", cl.lastmod ?? null, row.lastmod ?? null, sameInstant);
+    // Compare via parseContentDate so the raw frontmatter string is read the
+    // same way the importer read it, rather than by the host's Date parser.
+    const rawPub = rawFrontmatterDate(cl._raw.sourceFilePath, "publishDate");
+    const rawMod = rawFrontmatterDate(cl._raw.sourceFilePath, "lastmod");
+    check(
+      "publishDate",
+      parseContentDate(rawPub)?.toISOString() ?? null,
+      row.published_at?.toISOString() ?? null
+    );
+    check(
+      "lastmod",
+      parseContentDate(rawMod)?.toISOString() ?? null,
+      row.lastmod?.toISOString() ?? null
+    );
 
     check("draft", cl.draft === true, row.status !== "published");
     check("featured", cl.featured === true, row.featured === true);
