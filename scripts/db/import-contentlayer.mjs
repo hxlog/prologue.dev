@@ -8,17 +8,32 @@
  * Idempotent: re-running replaces the post's revision 1 and re-links tags
  * rather than duplicating rows.
  *
+ * `--reset` first clears the content tables (posts, revisions, tags, search
+ * index). Use it when a change to the renderer or importer should replace the
+ * imported rows outright rather than stack a second revision on top: revision
+ * numbers are meant to be a real edit history, and 63 posts that each show one
+ * "re-import" revision before launch is noise, not history.
+ *
  * Usage (from the worktree root):
- *   node --env-file=.env.local scripts/db/import-contentlayer.mjs [--dry]
+ *   node --env-file=.env.local scripts/db/import-contentlayer.mjs [--dry] [--reset]
+ *
+ * CONTENTLAYER_ROOT overrides where `.contentlayer/` is read from. A fresh git
+ * worktree has no generated output of its own, while the main checkout does, so
+ * the importer reads content from here and generated metadata from there.
  */
 import fs from "node:fs";
 import path from "node:path";
+import { createHash } from "node:crypto";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import pg from "pg";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "..", "..");
+// Markdown is read from this checkout; `.contentlayer/` may only exist in
+// another one (a worktree does not inherit generated output).
+const CONTENTLAYER_ROOT = process.env.CONTENTLAYER_ROOT || ROOT;
 const DRY = process.argv.includes("--dry");
+const RESET = process.argv.includes("--reset");
 
 const { renderMarkdown, deriveSlugs, RENDERER_VERSION } = await import(
   pathToFileURL(path.join(ROOT, "src/lib/markdown/render.js")).href
@@ -46,8 +61,20 @@ const TAG_LABELS = {
 // next.config.js redirects /tags/Web3 -> /tags/Crypto; keep it as a DB alias
 const TAG_ALIASES = { Web3: "Crypto" };
 
+/**
+ * SHA-256 of the markdown source, matching how 0002 computed the backfill
+ * (`encode(sha256(convert_to(markdown,'UTF8')),'hex')`). Autosave uses this to
+ * skip a no-op write, so it must be byte-exact.
+ */
+function contentHash(markdown) {
+  return createHash("sha256").update(String(markdown ?? ""), "utf8").digest("hex");
+}
+
 const index = JSON.parse(
-  fs.readFileSync(path.join(ROOT, ".contentlayer/generated/Post/_index.json"), "utf8")
+  fs.readFileSync(
+    path.join(CONTENTLAYER_ROOT, ".contentlayer/generated/Post/_index.json"),
+    "utf8"
+  )
 );
 
 const client = new pg.Client({
@@ -60,6 +87,19 @@ await client.connect();
 
 try {
   await client.query("BEGIN");
+
+  if (RESET) {
+    // posts cascades to post_revisions and post_tags. tags/search_index are
+    // cleared explicitly. Nulling the pointers first avoids the FK cycle
+    // between posts and post_revisions being evaluated mid-delete.
+    await client.query(
+      `UPDATE posts SET draft_revision_id = NULL, published_revision_id = NULL`
+    );
+    await client.query(`DELETE FROM posts`);
+    await client.query(`DELETE FROM tags`);
+    await client.query(`DELETE FROM search_index`);
+    console.log("reset: posts, revisions, tags, search index cleared");
+  }
 
   // ---------------------------------------------------------------- tags
   const tagIds = new Map();
@@ -154,8 +194,8 @@ try {
     const { rows: insertedRev } = await client.query(
       `INSERT INTO post_revisions
          (post_id, revision_number, title, description, markdown, html, feed_html,
-          headings, reading_time, renderer_version, change_summary)
-       VALUES ($1,$2,$3,$4,$5,$6,NULL,$7,$8,$9,$10)
+          headings, reading_time, renderer_version, content_hash, change_summary)
+       VALUES ($1,$2,$3,$4,$5,$6,NULL,$7,$8,$9,$10,$11)
        RETURNING id`,
       [
         postId,
@@ -167,6 +207,7 @@ try {
         JSON.stringify(headings ?? []),
         readingTime ? JSON.stringify(readingTime) : null,
         RENDERER_VERSION,
+        contentHash(markdown),
         nextRev === 1 ? "initial import from Contentlayer" : "re-import",
       ]
     );
@@ -178,17 +219,19 @@ try {
       [postId, revisionId]
     );
 
-    // tags
+    // tags — `position` preserves the frontmatter array order, because the
+    // chip row renders only the first 2-3 and hides the rest behind "+N".
     await client.query(`DELETE FROM post_tags WHERE post_id = $1`, [postId]);
-    for (const t of doc.tags || []) {
+    for (const [position, t] of (doc.tags || []).entries()) {
       const tagId = tagIds.get(t);
       if (!tagId) {
         warnings.push(`${slugs.slugAsParams}: unknown tag ${t}`);
         continue;
       }
       await client.query(
-        `INSERT INTO post_tags (post_id, tag_id) VALUES ($1,$2) ON CONFLICT DO NOTHING`,
-        [postId, tagId]
+        `INSERT INTO post_tags (post_id, tag_id, position) VALUES ($1,$2,$3)
+         ON CONFLICT (post_id, tag_id) DO UPDATE SET position = EXCLUDED.position`,
+        [postId, tagId, position]
       );
     }
   }

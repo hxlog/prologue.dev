@@ -119,6 +119,26 @@ function createProcessor() {
 }
 
 /**
+ * Strip a leading YAML frontmatter block.
+ *
+ * Reading time must be computed over the BODY ONLY. Contentlayer derived it
+ * from `doc.body.raw`, which had frontmatter removed, while this pipeline is
+ * handed the whole file (remark-frontmatter removes the block later, during
+ * the unified pass, which is after reading time would be measured). Measuring
+ * the raw file inflates every count — 2023-introduction-to-articles reported
+ * 1226 words instead of 1192 — and the count is rendered on every post page.
+ *
+ * Only strips a block that starts at the very first line, matching
+ * remark-frontmatter: a `---` further down is a thematic break or a setext
+ * heading underline, not frontmatter.
+ */
+export function stripFrontmatter(markdown) {
+  const source = String(markdown ?? "");
+  const match = /^---[ \t]*\r?\n[\s\S]*?\r?\n---[ \t]*(?:\r?\n|$)/.exec(source);
+  return match ? source.slice(match[0].length) : source;
+}
+
+/**
  * The single renderer used by publishing, preview and the backfill script.
  *
  * Because preview and publish call this same function, the two can never
@@ -134,10 +154,16 @@ export async function renderMarkdown(markdown) {
   const file = await createProcessor().process(source);
   const html = String(file);
 
+  // Everything below the frontmatter is what Contentlayer's computedFields saw
+  // via `doc.body.raw`. Both the heading scan (see extractHeadings defect 1)
+  // and the word count depend on that having happened, so strip once, here, and
+  // pass the stripped body to both.
+  const body = stripFrontmatter(source);
+
   return {
     html,
-    headings: extractHeadings(source),
-    readingTime: readingTime(source, { wordsPerMinute: 1000 }),
+    headings: extractHeadings(body),
+    readingTime: readingTime(body, { wordsPerMinute: 1000 }),
   };
 }
 
@@ -149,7 +175,12 @@ export async function renderMarkdown(markdown) {
  * deliberately and tracked in db/README.md:
  *
  *   1. The regex requires a preceding newline, so a file whose FIRST line is a
- *      heading never yields that heading.
+ *      heading never yields that heading. This is why the input must be the
+ *      frontmatter-STRIPPED body: remark-frontmatter left `doc.body.raw`
+ *      without the `---` block, so a `## 前言` on the first line after it was
+ *      at offset 0 and was dropped. Feeding the whole file instead would
+ *      silently re-add those headings and change every TOC that starts with
+ *      one (measured: 1 of 63 posts).
  *   2. The level mapping is impossible to satisfy: the pattern demands 2-6
  *      `#`, so `#` can never match, and every level from 4 to 6 maps to
  *      "three" (`flag.length == 1 ? one : flag.length == 2 ? two : three`).
