@@ -1,14 +1,17 @@
 import Link from "next/link";
 import Image from "next/image";
-import { allPosts } from "contentlayer/generated";
 import siteMetadata from "../../data/sitemetadata";
+import { getPostStats } from "../lib/content/posts";
 
-const POSTS_NUM = allPosts.filter((p) => p.draft !== true).length;
-const TOTAL_WORDS = allPosts
-  .reduce((sum, post) => sum + (post.readingTime?.words ?? 0), 0)
-  .toLocaleString();
+/**
+ * The author sidebar. Async so the post/word totals come from the database
+ * rather than a module-scope computation over the whole Contentlayer array —
+ * the old version counted once at import time, so a publish would not move the
+ * numbers until the process restarted.
+ */
+export default async function AboutMe() {
+  const { posts, words } = await getPostStats();
 
-export default function AboutMe() {
   return (
     <>
       <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted">
@@ -38,13 +41,15 @@ export default function AboutMe() {
             href="/blog"
             className="font-semibold text-foreground transition-colors duration-200 hover:text-accent"
           >
-            {POSTS_NUM}
+            {posts}
           </Link>
           <p className="pt-1 text-sm text-faint">文章</p>
         </div>
 
         <div className="grid grid-rows-2 px-2 text-center">
-          <span className="font-semibold text-foreground">{TOTAL_WORDS}</span>
+          <span className="font-semibold text-foreground">
+            {words.toLocaleString()}
+          </span>
           <p className="pt-1 text-sm text-faint">字数</p>
         </div>
       </div>

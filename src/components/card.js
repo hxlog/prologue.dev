@@ -21,6 +21,7 @@ export default function Card({
   tags,
   readingTime,
   featured = false,
+  labels,
   className = "",
 }) {
   return (
@@ -62,7 +63,7 @@ export default function Card({
 
       {tags?.length ? (
         <div className="relative z-10 mt-auto pt-4">
-          <TagChips tags={tags} />
+          <TagChips tags={tags} labels={labels} />
         </div>
       ) : null}
     </article>

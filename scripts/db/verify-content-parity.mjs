@@ -119,6 +119,7 @@ async function main() {
       p.published_at,
       p.lastmod,
       p.categories,
+      p.source_path,
       r.title,
       r.description,
       r.headings,
@@ -158,13 +159,25 @@ async function main() {
       }
     };
 
-    check("title", cl.title, row.title);
-    check("description", cl.description ?? null, row.description ?? null);
+    // Text scalars are compared with carriage returns removed from the
+    // Contentlayer side. Contentlayer read the same CRLF files, so its strings
+    // carry a trailing `\r` that the importer deliberately strips (see
+    // normalizeEol in import-contentlayer.mjs) — production, whose checkout is
+    // LF, has none. Comparing raw would assert the local checkout's artefact.
+    const clean = (v) => (typeof v === "string" ? v.replace(/\r/g, "") : v);
+
+    check("title", clean(cl.title), row.title);
+    check("description", clean(cl.description ?? null), row.description ?? null);
 
     // The route-visible fields. A mismatch here is a URL change, which the
     // brief forbids outright.
     check("slug (route)", cl.slug, `/blog/${slug}`);
     check("slugAsParams", cl.slugAsParams, slug);
+
+    // `urlslug` is case-preserving and drives the per-post "view on GitHub"
+    // link. The route uses the lowercased `slug`; this one must NOT be
+    // lowercased or 44 of 63 posts link to a file that 404s.
+    check("urlslug (source path)", cl.urlslug, `/${row.source_path.replace(/\.md$/, "")}`);
 
     // Compare via parseContentDate so the raw frontmatter string is read the
     // same way the importer read it, rather than by the host's Date parser.
@@ -184,8 +197,8 @@ async function main() {
     check("draft", cl.draft === true, row.status !== "published");
     check("featured", cl.featured === true, row.featured === true);
 
-    check("image", (cl.image ?? "") || "", row.cover_image ?? "");
-    check("imageDesc", (cl.imageDesc ?? "") || "", row.cover_image_desc ?? "");
+    check("image", clean((cl.image ?? "") || ""), row.cover_image ?? "");
+    check("imageDesc", clean((cl.imageDesc ?? "") || ""), row.cover_image_desc ?? "");
 
     // Order matters: the chip row shows the first 2-3 tags and collapses the
     // rest, so the frontmatter array order is what a reader sees.
@@ -196,17 +209,24 @@ async function main() {
     check("readingTime.minutes", cl.readingTime?.minutes, row.reading_time?.minutes);
     check("headings", cl.headings, row.headings, sameHeadings);
 
-    check("body.html length", cl.body?.html?.length, row.html?.length);
-    if (cl.body?.html !== row.html) {
+    // The stored HTML is compared with carriage returns removed from the
+    // Contentlayer side. Contentlayer rendered the same CRLF files, so its
+    // output carries `\r\n` wherever a source line break survived inside a
+    // block (a paragraph's manual line break, a mermaid fence); the stored HTML
+    // is LF-normalised, matching production. Beyond that the two must be
+    // byte-identical, so any real divergence still fails here.
+    const clHtml = (cl.body?.html ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+    const dbHtml = row.html ?? "";
+
+    check("body.html length", clHtml.length, dbHtml.length);
+    if (clHtml !== dbHtml) {
       // Locate the first divergence instead of dumping two 40 KB strings.
       let i = 0;
-      const a = cl.body?.html ?? "";
-      const b = row.html ?? "";
-      while (i < a.length && i < b.length && a[i] === b[i]) i++;
+      while (i < clHtml.length && i < dbHtml.length && clHtml[i] === dbHtml[i]) i++;
       failures.push(
         `[${slug}] body.html differs at offset ${i}\n` +
-          `      contentlayer: ${JSON.stringify(a.slice(Math.max(0, i - 40), i + 40))}\n` +
-          `      database:     ${JSON.stringify(b.slice(Math.max(0, i - 40), i + 40))}`
+          `      contentlayer: ${JSON.stringify(clHtml.slice(Math.max(0, i - 40), i + 40))}\n` +
+          `      database:     ${JSON.stringify(dbHtml.slice(Math.max(0, i - 40), i + 40))}`
       );
     }
   }

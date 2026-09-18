@@ -5,9 +5,9 @@ import { getRelatedPosts } from "../lib/related";
  * "相关推荐" — 4 related posts as cards (danarnoux-style 2×2 grid),
  * algorithmically chosen via tag overlap + recency (see src/lib/related.js),
  * excluding the previous/next posts which have their own nav block.
- * Server component: computed at build time from allPosts.
+ * Server component: computed from the full post list the page already fetched.
  */
-export default function RelatedPosts({ post, allPosts, excludeSlugs = [] }) {
+export default function RelatedPosts({ post, allPosts, excludeSlugs = [], labels }) {
   const related = getRelatedPosts(post, allPosts, {
     exclude: excludeSlugs,
     count: 4,
@@ -32,6 +32,7 @@ export default function RelatedPosts({ post, allPosts, excludeSlugs = [] }) {
             tags={relatedPost.tags}
             readingTime={relatedPost.readingTime?.text}
             featured={relatedPost.featured}
+            labels={labels}
           />
         ))}
       </div>

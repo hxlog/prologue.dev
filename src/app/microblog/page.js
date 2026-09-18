@@ -1,6 +1,6 @@
 import PageTransition from "../../components/page-transition";
 import MicroblogCard from "../../components/microblog-card";
-import { getMicroblog } from "../../lib/microblog";
+import { getMicroblog } from "../../lib/content/collections";
 
 export async function generateMetadata() {
   return {
@@ -10,7 +10,10 @@ export async function generateMetadata() {
 }
 
 export default async function MicroblogPage() {
-  const entries = getMicroblog();
+  // Reads the `microblog` collection, not data/microblog.yaml. The entries
+  // arrive in the same normalized shape (paragraphs[] + images[]) the cards
+  // already render, and keep their original anchors, so the page is unchanged.
+  const entries = await getMicroblog();
 
   return (
     <PageTransition className="mx-auto max-w-2xl py-8">

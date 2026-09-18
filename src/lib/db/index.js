@@ -93,12 +93,20 @@ if (process.env.NODE_ENV !== "production") {
  * connections to close, instead of having them cut mid-close at freeze.
  * Optional: it is @experimental and only supports pg (it throws on
  * postgres.js), and it must be attached exactly once per pool.
+ *
+ * The specifier is held in a variable rather than written inline so the
+ * bundler does not try to resolve it at build time. A literal
+ * `import("@vercel/functions")` is a static dependency to Turbopack, which
+ * then fails the build on a package that is intentionally not installed — the
+ * try/catch only helps at runtime, after the bundle already exists.
  */
+const VERCEL_FUNCTIONS = "@vercel/functions";
+
 let attached = false;
 if (!attached && !globalForDb.__prologuePoolAttached) {
   try {
     // Dynamic so a missing @vercel/functions (local dev, CI) is not fatal.
-    const mod = await import("@vercel/functions");
+    const mod = await import(/* webpackIgnore: true */ VERCEL_FUNCTIONS);
     if (typeof mod.attachDatabasePool === "function") {
       mod.attachDatabasePool(pool);
       globalForDb.__prologuePoolAttached = true;

@@ -36,7 +36,17 @@ export async function getTagCounts() {
   return counts;
 }
 
-/** Tag slugs ordered by count desc — the archive sidebar and the home tabs. */
+/**
+ * Tag slugs ordered by count desc — the archive sidebar and the home tabs.
+ *
+ * Ties break on `tags.sort_order`, not on the slug. The previous
+ * implementation built its list from `Object.keys(counts).sort(...)` over the
+ * Contentlayer array, so four tags tied on 8 posts and the tie was resolved by
+ * whichever post the array happened to reach first — an arbitrary order that
+ * was nonetheless visible in the sidebar on /blog and every tag page. Seeding
+ * `sort_order` to that exact order keeps the sidebar unchanged, and makes the
+ * order a stored value instead of an accident of iteration.
+ */
 export async function getSortedTags() {
   const rows = await queryMany(
     `SELECT t.slug
@@ -44,8 +54,8 @@ export async function getSortedTags() {
        JOIN post_tags pt ON pt.tag_id = t.id
        JOIN posts p      ON p.id = pt.post_id
       WHERE p.status = 'published'
-      GROUP BY t.slug
-      ORDER BY count(*) DESC, t.slug`
+      GROUP BY t.slug, t.sort_order
+      ORDER BY count(*) DESC, t.sort_order, t.slug`
   );
   return rows.map((r) => r.slug);
 }

@@ -86,6 +86,9 @@ function contentHash(markdown) {
  * would also match prose: one post is a tutorial about building this blog and
  * contains `lastmod:` in a code sample, which the first version of this
  * function happily picked up and wrote into the database.
+ *
+ * A trailing `\r` is stripped, and the same class of fix applies to every
+ * scalar read off disk — see stripCr below.
  */
 function rawDate(doc, field) {
   const src = fs.readFileSync(
@@ -96,7 +99,42 @@ function rawDate(doc, field) {
   const match = block
     ? new RegExp(`^${field}:\\s*(.+?)\\s*$`, "m").exec(block[1])
     : null;
-  return match ? match[1] : doc[field];
+  return match ? match[1].replace(/\r$/, "") : doc[field];
+}
+
+/**
+ * Normalise a source file's line endings to LF.
+ *
+ * The content files are stored LF in the repository and checked out CRLF on
+ * Windows (`core.autocrlf=true`), so the SAME post renders differently
+ * depending on which machine read it. Measured against the live site, whose
+ * checkout is LF: the local build had 163 carriage returns across the feeds and
+ * some inside post HTML (`<p>…喜爱\r\nNonandrophilic…`), production had zero.
+ *
+ * Production is the correct rendering. `\r` inside a `<p>` is invisible in a
+ * browser but is a literal junk character in a feed, a search snippet, or
+ * anything that copies the text out.
+ *
+ * Normalising here — at the boundary where bytes enter the system — rather than
+ * in the renderer means every downstream consumer (rendered HTML, stored
+ * markdown, reading time, headings, search body text, revision diffs) sees one
+ * canonical form. A revision's `content_hash` is then stable across platforms
+ * too, which matters because autosave uses it to decide whether anything
+ * actually changed.
+ */
+function normalizeEol(text) {
+  return String(text ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+}
+
+/**
+ * Remove carriage returns from a frontmatter scalar.
+ *
+ * Same class of problem, one layer up: `description`, `imageDesc` and titles
+ * come back from the YAML parser with a trailing `\r` when the file was read
+ * with CRLF, and every consumer renders them verbatim.
+ */
+function stripCr(value) {
+  return typeof value === "string" ? value.replace(/\r/g, "") : value;
 }
 
 const index = JSON.parse(
@@ -131,14 +169,43 @@ try {
   }
 
   // ---------------------------------------------------------------- tags
+  //
+  // `sort_order` is seeded from the order the LIVE site produces, not from an
+  // alphabetical list. The sidebar orders tags by post count, and four of them
+  // tie on 8 posts, so the tie-break decides what visitors actually see:
+  //
+  //   live:  Economics 28  Sociology 25  Finance 19  Capitalism 13
+  //          Politics 12  Quant 12  Meta 8  Education 8  Philosophy 8
+  //          Inequality 8  Technology 7  Crypto 6  AI 4  Gender 2
+  //
+  // The live order is the order in which the old module-scope loop happened to
+  // first encounter each tag while walking the Contentlayer array — arbitrary,
+  // but visible on every archive page, so it is reproduced rather than
+  // improved. Computing it here (rather than hardcoding) means it stays correct
+  // if the corpus changes before the migration ships.
   const tagIds = new Map();
-  const allTags = [...new Set(index.flatMap((d) => d.tags || []))].sort();
-  for (const slug of allTags) {
+  const counts = new Map();
+  for (const doc of index) {
+    if (doc.draft === true) continue;
+    for (const t of doc.tags || []) counts.set(t, (counts.get(t) || 0) + 1);
+  }
+  const allTags = [...counts.keys()].sort((a, b) => {
+    const delta = counts.get(b) - counts.get(a);
+    if (delta !== 0) return delta;
+    // Preserve first-encounter order among ties, exactly as Object.keys over
+    // the accumulating count object did.
+    const firstSeen = (slug) =>
+      index.findIndex((d) => d.draft !== true && (d.tags || []).includes(slug));
+    return firstSeen(a) - firstSeen(b);
+  });
+
+  for (const [order, slug] of allTags.entries()) {
     const { rows } = await client.query(
-      `INSERT INTO tags (slug, label) VALUES ($1, $2)
-       ON CONFLICT (slug) DO UPDATE SET label = EXCLUDED.label
+      `INSERT INTO tags (slug, label, sort_order) VALUES ($1, $2, $3)
+       ON CONFLICT (slug) DO UPDATE SET label = EXCLUDED.label,
+                                        sort_order = EXCLUDED.sort_order
        RETURNING id`,
-      [slug, TAG_LABELS[slug] || slug]
+      [slug, TAG_LABELS[slug] || slug, order]
     );
     tagIds.set(slug, rows[0].id);
   }
@@ -160,7 +227,8 @@ try {
 
   for (const doc of index) {
     const srcPath = path.join(ROOT, "data/content", doc._raw.sourceFilePath);
-    const markdown = fs.readFileSync(srcPath, "utf8");
+    // Normalised to LF before anything reads it — see normalizeEol.
+    const markdown = normalizeEol(fs.readFileSync(srcPath, "utf8"));
     const { html, headings, readingTime } = await renderMarkdown(markdown);
     const slugs = deriveSlugs(doc._raw.flattenedPath);
 
@@ -187,34 +255,37 @@ try {
       postId = existing[0].id;
       await client.query(
         `UPDATE posts SET status=$2, featured=$3, cover_image=$4, cover_alt=$5,
-                cover_image_desc=$6, published_at=$7, lastmod=$8, updated_at=now()
+                cover_image_desc=$6, published_at=$7, lastmod=$8,
+                source_path=$9, updated_at=now()
          WHERE id=$1`,
         [
           postId,
           status,
           Boolean(doc.featured),
-          doc.image || null,
-          doc.imageDesc || null,
-          doc.imageDesc || null,
+          stripCr(doc.image) || null,
+          stripCr(doc.imageDesc) || null,
+          stripCr(doc.imageDesc) || null,
           publishedAt,
           lastmod,
+          doc._raw.sourceFilePath,
         ]
       );
       updated++;
     } else {
       const { rows } = await client.query(
         `INSERT INTO posts (slug, status, featured, cover_image, cover_alt, cover_image_desc,
-                            published_at, lastmod, giscus_enabled)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,true) RETURNING id`,
+                            published_at, lastmod, source_path, giscus_enabled)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,true) RETURNING id`,
         [
           slugs.slugAsParams,
           status,
           Boolean(doc.featured),
-          doc.image || null,
-          doc.imageDesc || null,
-          doc.imageDesc || null,
+          stripCr(doc.image) || null,
+          stripCr(doc.imageDesc) || null,
+          stripCr(doc.imageDesc) || null,
           publishedAt,
           lastmod,
+          doc._raw.sourceFilePath,
         ]
       );
       postId = rows[0].id;
@@ -237,8 +308,8 @@ try {
       [
         postId,
         nextRev,
-        doc.title,
-        doc.description || null,
+        stripCr(doc.title),
+        doc.description ? stripCr(doc.description) : null,
         markdown,
         html,
         JSON.stringify(headings ?? []),

@@ -146,6 +146,30 @@ export async function getLinks() {
   }));
 }
 
+/**
+ * The home sidebar's "terminal" quotes: the newest microblog entries, trimmed
+ * to a one-liner each.
+ *
+ * Reads the raw `content` rather than the paragraph array, and deliberately
+ * does NOT collapse blank lines into spaces the way the microblog card does.
+ * The sidebar truncates at 64 characters, so any difference in how the first
+ * 64 characters are assembled changes what the home page shows. This matches
+ * the previous implementation byte for byte, newlines and all.
+ *
+ * The old version also read data/microblog.yaml from the home page directly
+ * and re-implemented the sort that src/lib/microblog.js already did — two
+ * parsers for one file.
+ */
+export async function getMicroblogQuotes({ limit = 8, minLength = 8, maxLength = 64 } = {}) {
+  const entries = await getCollectionEntries("microblog");
+
+  return entries
+    .map((entry) => String(entry.values.content ?? ""))
+    .filter((text) => text.length >= minLength)
+    .slice(0, limit)
+    .map((text) => (text.length > maxLength ? `${text.slice(0, maxLength)}…` : text));
+}
+
 /** All collections, for the /studio sidebar. */
 export async function listCollections() {
   return queryMany(

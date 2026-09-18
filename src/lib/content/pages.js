@@ -13,7 +13,6 @@
 
 import { queryOne, queryMany } from "../db";
 import { parseContentDate } from "./dates";
-import { renderMarkdown } from "../markdown/render";
 
 function toPage(row, { includeBody = false } = {}) {
   const page = {
@@ -47,7 +46,7 @@ export async function getAllPages() {
   return rows.map((r) => toPage(r));
 }
 
-/** One page, with its raw MDX source for the renderer. */
+/** One page, with its raw MDX source and compiled bytecode. */
 export async function getPageBySlug(slug) {
   const row = await queryOne(
     `SELECT p.id, p.slug, p.status, p.giscus_enabled, p.custom_css,
@@ -59,27 +58,28 @@ export async function getPageBySlug(slug) {
       WHERE p.slug = $1`,
     [String(slug).toLowerCase()]
   );
-  return row ? { ...toPage(row, { includeBody: true }), html: row.html } : null;
+  if (!row) return null;
+
+  return {
+    ...toPage(row, { includeBody: true }),
+    // For a Page, the stored `html` column holds compiled MDX bytecode rather
+    // than markup — the renderable artifact for an MDX document is a component.
+    // The naming is unfortunate; see scripts/db/import-pages.mjs.
+    mdxCode: row.html,
+  };
 }
 
 /**
- * Read a page body as HTML.
+ * Every published page's slug, for `generateStaticParams`.
  *
- * The routes render MDX through `useMDXComponent`, which needs the compiled
- * bytecode Contentlayer produced. Reproducing that outside Contentlayer means
- * running `@mdx-js/mdx`'s `compile` with the same plugin set, which is a
- * dependency the site does not currently carry.
- *
- * This function exists so that choice is explicit and localised rather than
- * spread through the route: it renders the MDX source through the same unified
- * pipeline posts use, which handles every construct in the current /about
- * source (headings, lists, links, inline HTML) except JSX component syntax.
- * The route keeps using `useMDXComponent` until the Contentlayer removal, at
- * which point this becomes the page renderer and any page that genuinely needs
- * JSX gets an explicit escape hatch.
+ * Drafts are excluded: a draft page must 404, and prerendering it would write a
+ * real route for it.
  */
-export async function renderPageBody(markdown) {
-  return renderMarkdown(markdown);
+export async function getPageSlugs() {
+  const rows = await queryMany(
+    `SELECT slug FROM pages WHERE status = 'published' ORDER BY slug`
+  );
+  return rows.map((r) => r.slug);
 }
 
 /** Page metadata for the sitemap and nav. */

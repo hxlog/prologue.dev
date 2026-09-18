@@ -1,3 +1,7 @@
+import siteMetadata from "../../../data/sitemetadata";
+import { getPublishedPostsWithContent } from "../content/posts";
+import { coverImageUrl, postUrl } from "./urls";
+
 /**
  * Post-processing applied to the serialized feeds to satisfy fields the `feed`
  * library cannot express through its shared item model:
@@ -8,19 +12,23 @@
  *     emit it from item.image, but that field also drives the RSS enclosure
  *     (forcing length=0), so we attach the JSON thumbnail here instead.
  */
-import { allPosts } from "contentlayer/generated";
-import siteMetadata from "../../../data/sitemetadata";
-import { coverImageUrl, postUrl } from "./urls";
 
 const CREATOR = siteMetadata.author;
 
-const IMAGE_BY_URL = (() => {
+/**
+ * URL -> cover image, built per call rather than at module scope.
+ *
+ * The previous version computed this map once at import time from the whole
+ * Contentlayer array. That is not available outside a request now, and more to
+ * the point a module-scope map would be frozen for the life of the process —
+ * a publish would leave the JSON feed pointing at the old cover indefinitely.
+ */
+async function coverImages() {
+  const posts = await getPublishedPostsWithContent();
   const map = {};
-  for (const post of allPosts) {
-    if (post.draft === false) map[postUrl(post.slug)] = coverImageUrl(post);
-  }
+  for (const post of posts) map[postUrl(post.slug)] = coverImageUrl(post);
   return map;
-})();
+}
 
 /** Inject <dc:creator> into every RSS <item> (Folo author source). */
 export function finalizeRss(xml) {
@@ -29,15 +37,17 @@ export function finalizeRss(xml) {
 }
 
 /** Add a per-item `image` URL to the JSON Feed (Folo thumbnail source). */
-export function finalizeJson(jsonString) {
+export async function finalizeJson(jsonString) {
   const feed = JSON.parse(jsonString);
-  if (Array.isArray(feed.items)) {
-    feed.items = feed.items.map((item) => {
-      if (!item.image && IMAGE_BY_URL[item.id]) {
-        return { ...item, image: IMAGE_BY_URL[item.id] };
-      }
-      return item;
-    });
-  }
+  if (!Array.isArray(feed.items)) return jsonString;
+
+  const images = await coverImages();
+
+  feed.items = feed.items.map((item) => {
+    if (!item.image && images[item.id]) {
+      return { ...item, image: images[item.id] };
+    }
+    return item;
+  });
   return JSON.stringify(feed, null, 2);
 }

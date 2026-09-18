@@ -33,7 +33,7 @@
  * `/studio` previews must never read through those — see `getPostForEditing`.
  */
 
-import { query, queryOne } from "../db";
+import { query, queryOne, queryMany } from "../db";
 import { parseContentDate } from "./dates";
 
 /** The list projection, which 0005 maintains from the current revision. */
@@ -55,6 +55,7 @@ const POST_COLUMNS = `
   p.headings,
   p.reading_time,
   p.content_hash,
+  p.source_path,
   coalesce(
     (SELECT array_agg(t.slug ORDER BY pt.position)
        FROM post_tags pt JOIN tags t ON t.id = pt.tag_id
@@ -62,15 +63,6 @@ const POST_COLUMNS = `
     '{}'
   ) AS tags
 `;
-
-/** Slug fields, derived the same way Contentlayer derived them. */
-function slugsFor(slug) {
-  return {
-    slugAsParams: slug,
-    slug: `/blog/${slug}`,
-    urlslug: `/blog/${slug}`,
-  };
-}
 
 /**
  * Map a database row to the document shape the routes consume.
@@ -83,7 +75,18 @@ function toPost(row) {
   const date = parseContentDate(row.published_at);
 
   return {
-    ...slugsFor(row.slug),
+    slugAsParams: row.slug,
+    // The route. Lowercased, matching what the router resolves.
+    slug: `/blog/${row.slug}`,
+    // `urlslug` is the CASE-PRESERVING source path without the extension, which
+    // is what the "view on GitHub" link at the foot of every post is built from:
+    //   .../data/content${urlslug}.md
+    //   -> .../data/content/blog/2023-Introduction-to-articles.md
+    // Falling back to the lowercased slug is wrong for 44 of 63 posts — GitHub
+    // is case-sensitive and the lowercased path 404s — so a row without a
+    // source_path gets null and the page omits the link rather than guessing.
+    // See migration 0007.
+    urlslug: row.source_path ? `/${row.source_path.replace(/\.md$/, "")}` : null,
     title: row.title,
     description: row.description ?? "",
     publishDate: date ? date.toISOString() : null,
@@ -114,7 +117,9 @@ function toPost(row) {
  * caching, and it is what every reader-facing route actually uses.
  */
 export async function getAllPosts({ includeDrafts = true } = {}) {
-  const rows = await query(
+  // queryMany, not query: the latter returns pg's full result object, and
+  // `.map` on it is a TypeError rather than an empty list.
+  const rows = await queryMany(
     `SELECT ${POST_COLUMNS}
        FROM posts p
       WHERE p.status <> 'archived'
@@ -130,14 +135,20 @@ export async function getAllPosts({ includeDrafts = true } = {}) {
  *
  * The feeds need the rendered HTML of every post in one go — that is the one
  * place the full body is legitimately read in bulk.
+ *
+ * The `slug` tie-break is load-bearing. Two posts share a publish date
+ * (2022-11-14), and without a tie-break PostgreSQL returns whichever row it
+ * reaches first — so the feed's item order, and therefore the diff against
+ * production, would be arbitrary and could change on any re-import or
+ * autovacuum. Ascending slug is what the live feed emits.
  */
 export async function getPublishedPostsWithContent() {
-  const rows = await query(
+  const rows = await queryMany(
     `SELECT ${POST_COLUMNS}, r.html, r.markdown
        FROM posts p
        JOIN post_revisions r ON r.id = p.published_revision_id
       WHERE p.status = 'published'
-      ORDER BY p.published_at DESC`
+      ORDER BY p.published_at DESC, p.slug`
   );
   return rows.map(toPost);
 }
@@ -185,4 +196,18 @@ export async function getPostStats() {
       WHERE status = 'published'`
   );
   return { posts: row?.posts ?? 0, words: row?.words ?? 0 };
+}
+
+/**
+ * Every published post's route segments, for `generateStaticParams`.
+ *
+ * Drafts are excluded here even though `getAllPosts` includes them: a draft's
+ * page must 404 (the page component checks `draft`), and prerendering it would
+ * defeat that by writing a real route for it.
+ */
+export async function getPostSlugs() {
+  const rows = await queryMany(
+    `SELECT slug FROM posts WHERE status = 'published' ORDER BY published_at DESC`
+  );
+  return rows.map((r) => r.slug);
 }

@@ -1,53 +1,41 @@
-import fs from "fs";
-import path from "path";
-import { load } from "js-yaml";
-import { allPosts } from "contentlayer/generated";
-import { compareDesc } from "date-fns";
 import siteMetadata from "../../data/sitemetadata";
 import AboutMe from "../components/aboutme";
 import Articles from "../components/articles";
 import MicroblogSnippet from "../components/microblog-snippet";
 import TerminalQuotes from "../components/terminal-quotes";
 import PageTransition from "../components/page-transition";
-import { sortedTags } from "../lib/tag-counts";
+import { getAllPosts } from "../lib/content/posts";
+import { getSortedTags, getTagLabels } from "../lib/content/tags";
+import { getMicroblogQuotes } from "../lib/content/collections";
 
-function getMicroblogQuotes() {
-  try {
-    const raw = fs.readFileSync(
-      path.join(process.cwd(), "data", "microblog.yaml"),
-      "utf8"
-    );
-    const entries = load(raw) || [];
-    return [...entries]
-      .sort((a, b) => new Date(b.date) - new Date(a.date))
-      .map((e) => String(e.content || ""))
-      .filter((c) => c.length >= 8)
-      .slice(0, 8)
-      .map((c) => (c.length > 64 ? c.slice(0, 64) + "…" : c));
-  } catch {
-    return [];
-  }
-}
+export default async function Home() {
+  // The four reads are independent, so they run together rather than in
+  // sequence: the page needs posts, the tag list, the Chinese tag labels the
+  // cards render, and the sidebar quotes — none depends on another.
+  const [posts, sortedTags, labels, quotes] = await Promise.all([
+    getAllPosts(),
+    getSortedTags(),
+    getTagLabels(),
+    getMicroblogQuotes(),
+  ]);
 
-export default function Home() {
-  // Copy before sorting — allPosts is shared module state.
-  const posts = [...allPosts]
-    .sort((a, b) => compareDesc(new Date(a.publishDate), new Date(b.publishDate)))
-    .map((post) => ({
-      title: post.title,
-      description: post.description,
-      draft: post.draft,
-      featured: post.featured,
-      slug: post.slug,
-      tags: post.tags,
-      publishDate: post.publishDate,
-      readingTime: post.readingTime?.text,
-    }));
+  // The client <Articles> browser only needs the card fields; mapping here
+  // keeps the RSC payload small instead of shipping every post's headings and
+  // rendered HTML into the client tree.
+  const articles = posts.map((post) => ({
+    title: post.title,
+    description: post.description,
+    draft: post.draft,
+    featured: post.featured,
+    slug: post.slug,
+    tags: post.tags,
+    publishDate: post.publishDate,
+    readingTime: post.readingTime?.text,
+  }));
 
-  // Top-3 tags by post count (sortedTags desc); fewer if the taxonomy is small.
+  // Top-3 tags by post count (sortedTags is already count-desc); fewer if the
+  // taxonomy is small.
   const topTags = sortedTags.slice(0, 3);
-
-  const quotes = getMicroblogQuotes();
 
   return (
     <div className="relative">
@@ -65,7 +53,7 @@ export default function Home() {
 
       <div className="max-w-7xl pt-8 lg:grid lg:grid-cols-9 lg:gap-8">
         <PageTransition className="col-span-7 max-w-4xl pt-6">
-          <Articles articles={posts} topTags={topTags} />
+          <Articles articles={articles} topTags={topTags} labels={labels} />
         </PageTransition>
 
         <div className="col-span-2 mx-auto max-w-lg">

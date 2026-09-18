@@ -3,8 +3,13 @@
  *
  * Canonical tag slugs stay English (stable URLs, feeds, analytics — raw
  * `/tags/${tag}` interpolation assumes ASCII), while the UI renders Chinese
- * labels. Single source of truth for every tag consumer: cards, tag chips,
- * tag sidebar, tag page headers, the Fuse search index and related posts.
+ * labels. The database is now the source of truth (`tags.label`, editable in
+ * /studio); this file is the fallback for tags that have not been imported and
+ * for the small number of components that render a label without a database
+ * round-trip.
+ *
+ * Keep this in sync with the `tags` table only when adding a tag inline; a tag
+ * created in /studio needs no change here.
  */
 const tagLabels = {
   Economics: "经济学",

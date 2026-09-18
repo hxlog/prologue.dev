@@ -1,13 +1,17 @@
 import Link from "next/link";
 import MicroblogCard from "./microblog-card";
-import { getMicroblog } from "../lib/microblog";
+import { getMicroblog } from "../lib/content/collections";
 
 /**
  * Home-sidebar microblog block: the three latest entries as compact cards
  * (matching the site card language), with thumbnails when images exist.
+ *
+ * Was synchronous over a YAML file read on every render of the home page.
  */
-export default function MicroblogSnippet() {
-  const entries = getMicroblog().slice(0, 3);
+export default async function MicroblogSnippet() {
+  const entries = (await getMicroblog()).slice(0, 3);
+
+  if (entries.length === 0) return null;
 
   return (
     <div className="mx-auto mt-8 max-w-2xl">

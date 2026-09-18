@@ -64,14 +64,7 @@ export default function FriendLinks({ friends }) {
         ))}
       </div>
       <p className="mt-4 py-8 text-center text-sm text-muted">
-        如有意交换友链，请
-        <Link
-          className="mx-1 text-accent underline decoration-accent/40 underline-offset-2 transition-colors hover:text-accent-strong"
-          href="https://github.com/hxlog/prologue.dev/edit/master/data/links.yaml"
-        >
-          在Github上编辑links.yaml提PR
-        </Link>
-        或在评论区告知：）
+        如有意交换友链，请在评论区告知：）
       </p>
       <Comments />
     </div>

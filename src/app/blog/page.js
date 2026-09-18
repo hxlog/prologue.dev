@@ -1,22 +1,32 @@
-import { allPosts } from "contentlayer/generated";
 import { compareDesc } from "date-fns";
 import PostsLayout from "./bloglistlayout";
 import siteMetadata from "../../../data/sitemetadata";
-import { tagCounts, sortedTags } from "../../lib/tag-counts";
+import { getAllPosts } from "../../lib/content/posts";
+import { getTagCounts, getTagLabels, getSortedTags } from "../../lib/content/tags";
 
-export default function Blog() {
-  // Copy before sorting — allPosts is shared module state.
-  const posts = [...allPosts].sort((a, b) =>
+export default async function Blog() {
+  // Independent reads; run them together. `getAllPosts` includes drafts because
+  // the layout filters them client-side for the "共 N 篇文章" line, matching
+  // what the page did before.
+  const [posts, tagCounts, sortedTags, labels] = await Promise.all([
+    getAllPosts(),
+    getTagCounts(),
+    getSortedTags(),
+    getTagLabels(),
+  ]);
+
+  const sorted = [...posts].sort((a, b) =>
     compareDesc(new Date(a.publishDate), new Date(b.publishDate))
   );
 
   return (
     <PostsLayout
-      posts={posts}
+      posts={sorted}
       tagCounts={tagCounts}
       sortedTags={sortedTags}
+      labels={labels}
       title="归档"
-      subtitle={`共 ${posts.filter((p) => p.draft !== true).length} 篇文章`}
+      subtitle={`共 ${sorted.filter((p) => p.draft !== true).length} 篇文章`}
     />
   );
 }

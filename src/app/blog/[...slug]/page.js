@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import dynamic from "next/dynamic";
-import { allPosts } from "contentlayer/generated";
 import "katex/dist/katex.min.css";
 import siteMetadata from "../../../../data/sitemetadata";
 import ScrollTopAndComment from "../../../components/scroll";
@@ -14,23 +13,24 @@ import RelatedPosts from "../../../components/related-posts";
 import ReadingProgress from "../../../components/reading-progress";
 import { OptimizedHTMLRenderer } from "../../../components/optimized-html-renderer";
 import { formatDate } from "../../../lib/date";
+import {
+  getAllPosts,
+  getPostBySlug,
+  getPostSlugs,
+} from "../../../lib/content/posts";
+import { getTagLabels } from "../../../lib/content/tags";
 
 const Comments = dynamic(() => import("../../../components/comments"), {
   loading: () => <div className="h-32" aria-hidden />,
 });
 
-async function getPostFromParams(params) {
-  const slug = params?.slug?.join("/");
-  return allPosts.find((post) => post.slugAsParams === slug);
-}
-
-// Non-mutating: allPosts is shared module state and must not be sorted in place.
-function getAdjacentPosts(post) {
+// Non-mutating: the shared array must not be sorted in place.
+function getAdjacentPosts(post, allPosts) {
   const sortedPosts = [...allPosts].sort(
     (a, b) => new Date(a.publishDate) - new Date(b.publishDate),
   );
 
-  const currentIndex = sortedPosts.findIndex((p) => p === post);
+  const currentIndex = sortedPosts.findIndex((p) => p.slug === post.slug);
   const previousPost = currentIndex > 0 ? sortedPosts[currentIndex - 1] : null;
   const nextPost =
     currentIndex < sortedPosts.length - 1
@@ -51,7 +51,7 @@ function getAdjacentPosts(post) {
 
 export async function generateMetadata(props) {
   const params = await props.params;
-  const post = await getPostFromParams(params);
+  const post = await getPostBySlug(params?.slug?.join("/"));
   if (!post) return {};
 
   return {
@@ -78,19 +78,28 @@ export async function generateMetadata(props) {
 }
 
 export async function generateStaticParams() {
-  return allPosts.map((post) => ({
-    slug: post.slugAsParams.split("/"),
+  const slugs = await getPostSlugs();
+  return slugs.map((slug) => ({
+    slug: slug.split("/"),
   }));
 }
 
 export default async function PostPage(props) {
   const params = await props.params;
-  const post = await getPostFromParams(params);
+  const post = await getPostBySlug(params?.slug?.join("/"));
   if (!post || post.draft === true) {
     notFound();
   }
 
-  const adjacentPosts = getAdjacentPosts(post);
+  // The full collection is needed twice on this page — adjacent-post
+  // navigation sorts over every post, and related posts score against the
+  // whole taxonomy — so it is fetched once and shared.
+  const [allPosts, labels] = await Promise.all([
+    getAllPosts(),
+    getTagLabels(),
+  ]);
+  const adjacentPosts = getAdjacentPosts(post, allPosts);
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -130,9 +139,9 @@ export default async function PostPage(props) {
               {formatDate(post.publishDate)}
             </time>
             <span aria-hidden="true">·</span>
-            <span>{post.readingTime.words} 字</span>
+            <span>{post.readingTime?.words} 字</span>
             <span aria-hidden="true">·</span>
-            <span>{post.readingTime.text}</span>
+            <span>{post.readingTime?.text}</span>
           </div>
 
           <h1 className="mt-4 text-3xl font-semibold leading-tight tracking-tight text-foreground sm:text-4xl">
@@ -147,7 +156,7 @@ export default async function PostPage(props) {
 
           {post.tags?.length ? (
             <div className="mt-4 not-prose">
-              <TagChips tags={post.tags} />
+              <TagChips tags={post.tags} labels={labels} />
             </div>
           ) : null}
 
@@ -185,16 +194,18 @@ export default async function PostPage(props) {
             </p>
           </Link>
 
-                    <p className="not-prose py-2 text-right">
-            <Link
-              href={`https://github.com/${siteMetadata.github}/${siteMetadata.siteRepo}/blob/master/data/content${post.urlslug}.md`}
-              target="_blank"
-              className="text-sm text-faint transition-colors duration-300 hover:text-accent"
-            >
-              在 GitHub 上查看
-            </Link>
-          </p>
-          
+          {post.urlslug ? (
+            <p className="not-prose py-2 text-right">
+              <Link
+                href={`https://github.com/${siteMetadata.github}/${siteMetadata.siteRepo}/blob/master/data/content${post.urlslug}.md`}
+                target="_blank"
+                className="text-sm text-faint transition-colors duration-300 hover:text-accent"
+              >
+                在 GitHub 上查看
+              </Link>
+            </p>
+          ) : null}
+
           <Suspense fallback={<div className="h-32" aria-hidden />}>
             <Comments />
           </Suspense>
@@ -202,6 +213,7 @@ export default async function PostPage(props) {
             <RelatedPosts
               post={post}
               allPosts={allPosts}
+              labels={labels}
               excludeSlugs={[
                 adjacentPosts.previousPostSlug,
                 adjacentPosts.nextPostSlug,

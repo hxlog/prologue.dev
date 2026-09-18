@@ -2,7 +2,8 @@ import { statSync } from "node:fs";
 import path from "node:path";
 import { Feed } from "feed";
 import siteMetadata from "../../../../data/sitemetadata";
-import { getMicroblog, entryToHtml } from "../../../lib/microblog";
+import { getMicroblog } from "../../../lib/content/collections";
+import { entryToHtml } from "../../../lib/microblog-html";
 
 const SITE = String(siteMetadata.siteUrl || "").replace(/\/+$/, "");
 
@@ -33,9 +34,14 @@ function enclosureFor(src) {
  * Standalone microblog feed — one universal RSS 2.0 with full text + images
  * (content:encoded carries HTML paragraphs + <figure>s; first image also as
  * enclosure for reader thumbnails, the format Folo and friends prefer).
+ *
+ * Item `guid` is the entry's anchor (`mb-<yyyymmdd>-<n>`), which is the value
+ * the live feed has been serving. It is stored per entry rather than derived
+ * from position, so reordering or inserting an entry no longer renumbers every
+ * guid after it — which readers treat as "everything is new again".
  */
 export async function GET() {
-  const entries = getMicroblog();
+  const entries = await getMicroblog();
 
   const feed = new Feed({
     title: `${siteMetadata.title} · 微博`,
@@ -46,7 +52,7 @@ export async function GET() {
     favicon: `${SITE}${siteMetadata.favicon}`,
     image: `${SITE}${siteMetadata.avatar}`,
     copyright: "CC BY-NC-SA 4.0",
-    updated: entries[0] ? new Date(entries[0].date) : new Date(),
+    updated: entries[0] ? new Date(entries[0].date) : new Date(0),
     generator: "prologue.dev microblog feed",
     ttl: 60,
     feedLinks: { rss: `${SITE}/microblog/rss` },

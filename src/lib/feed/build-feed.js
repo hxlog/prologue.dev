@@ -1,9 +1,8 @@
 import { statSync } from "node:fs";
 import path from "node:path";
 import { Feed } from "feed";
-import { allPosts } from "contentlayer/generated";
-import { compareDesc } from "date-fns";
 import siteMetadata from "../../../data/sitemetadata";
+import { getPublishedPostsWithContent } from "../content/posts";
 import { buildFeedContent } from "./content";
 import { absolutize, postUrl, siteUrl } from "./urls";
 
@@ -49,9 +48,16 @@ function coverEnclosure(post) {
  * Build a single `Feed` instance shared by the RSS, Atom and JSON Feed
  * routes. The routes only choose the serializer (`rss2`/`atom1`/`json1`),
  * which keeps the three formats perfectly consistent.
+ *
+ * `updated` is the newest post's timestamp, not `new Date()`. The old value
+ * stamped every build time onto the channel, so a redeploy with no content
+ * change told every reader the feed had new material — and, worse, made the
+ * output non-deterministic, which `cacheComponents` rejects at build time.
  */
-export function createFeed() {
+export async function createFeed() {
   const site = siteUrl();
+
+  const posts = await getPublishedPostsWithContent();
 
   const feed = new Feed({
     title: siteMetadata.title,
@@ -62,7 +68,7 @@ export function createFeed() {
     favicon: `${site}${siteMetadata.favicon}`,
     image: `${site}${siteMetadata.avatar}`,
     copyright: "CC BY-NC-SA 4.0",
-    updated: new Date(),
+    updated: newestDate(posts) ?? new Date(0),
     generator: "prologue.dev feed pipeline",
     ttl: 60,
     feedLinks: {
@@ -72,10 +78,6 @@ export function createFeed() {
     },
     author: AUTHOR,
   });
-
-  const posts = allPosts
-    .filter((post) => post.draft === false)
-    .sort((a, b) => compareDesc(new Date(a.publishDate), new Date(b.publishDate)));
 
   for (const post of posts) {
     const url = postUrl(post.slug);
@@ -97,4 +99,14 @@ export function createFeed() {
   }
 
   return feed;
+}
+
+function newestDate(posts) {
+  let newest = null;
+  for (const post of posts) {
+    const candidate = new Date(post.lastmod ?? post.publishDate);
+    if (Number.isNaN(candidate.getTime())) continue;
+    if (!newest || candidate > newest) newest = candidate;
+  }
+  return newest;
 }

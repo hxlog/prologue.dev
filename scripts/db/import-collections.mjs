@@ -31,8 +31,21 @@ const { contentDateISO } = await import(
   pathToFileURL(path.join(ROOT, "src/lib/content/dates.js")).href
 );
 
+/**
+ * Read a YAML file with LF line endings.
+ *
+ * The data files are LF in the repository and CRLF on a Windows checkout
+ * (`core.autocrlf=true`), and a YAML block scalar (`content: |`) preserves the
+ * line breaks it is given — so an entry's text would differ by platform, and
+ * the microblog's paragraph splitting (`/\n{2,}/`) would see `\r\n\r\n` on one
+ * machine and `\n\n` on another. Normalising here makes the stored values
+ * identical either way.
+ */
 function readYaml(relativePath) {
-  return load(fs.readFileSync(path.join(ROOT, relativePath), "utf8")) || [];
+  const raw = fs
+    .readFileSync(path.join(ROOT, relativePath), "utf8")
+    .replace(/\r\n/g, "\n");
+  return load(raw) || [];
 }
 
 /**

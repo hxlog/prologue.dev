@@ -9,21 +9,24 @@ import { tagLabel } from "../../data/tagLabels";
  * - Desktop shows up to 3 chips, mobile up to 2 (two rendered groups).
  * - Clicking "+N" expands the collapsed chips IN PLACE; the expanded chips
  *   are normal links to their tag pages.
+ *
+ * `labels` comes from the server (the `tags` table, editable in /studio). It
+ * falls back to the static map in data/tagLabels.js, which matters because this
+ * is a client component rendered inside another client component's tree — a
+ * caller that forgets the prop gets the built-in labels rather than raw English
+ * slugs on the page.
  */
-export default function TagChips({ tags, className = "" }) {
+export default function TagChips({ tags, className = "", labels }) {
   const [expanded, setExpanded] = useState(false);
 
   if (!tags?.length) return null;
 
+  const label = (tag) => labels?.[tag] || tagLabel(tag);
+
   const renderChips = (list) =>
     list.map((tag) => (
-      <Link
-        key={tag}
-        href={`/tags/${tag}`}
-        className="pill"
-        title={tag}
-      >
-        {tagLabel(tag)}
+      <Link key={tag} href={`/tags/${tag}`} className="pill" title={tag}>
+        {label(tag)}
       </Link>
     ));
 

@@ -12,7 +12,7 @@ const PAGE_SIZE = 8;
  * docs) so the RSC payload stays small. Search runs over the build-time
  * Fuse index (src/lib/use-post-search.js) — identical behavior site-wide.
  */
-export default function SearchGrid({ posts, className = "" }) {
+export default function SearchGrid({ posts, className = "", labels }) {
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
   const [results, setResults] = useState([]);
@@ -97,6 +97,7 @@ export default function SearchGrid({ posts, className = "" }) {
                 tags={post.tags}
                 readingTime={post.readingTime}
                 featured={post.featured}
+                labels={labels}
               />
             ))}
           </div>

@@ -17,7 +17,7 @@ const PAGE_SIZE = 8;
  * added via "load more" or search results animate in. Search runs over the
  * shared build-time Fuse index (src/lib/use-post-search.js).
  */
-export default function Articles({ articles, topTags = [] }) {
+export default function Articles({ articles, topTags = [], labels }) {
   const [tabIndex, setTabIndex] = useState(0);
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
@@ -97,12 +97,12 @@ export default function Articles({ articles, topTags = [] }) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             >
-              <Card {...cardProps(article)} />
+              <Card {...cardProps(article, labels)} />
             </motion.div>
           ))}
         </AnimatePresence>
       ) : (
-        list.map((article) => <Card key={article.slug} {...cardProps(article)} />)
+        list.map((article) => <Card key={article.slug} {...cardProps(article, labels)} />)
       )}
     </div>
   );
@@ -148,7 +148,7 @@ export default function Articles({ articles, topTags = [] }) {
           {[
             { label: "最新", vis: "" },
             ...topTags.map((tag, i) => ({
-              label: tagLabel(tag),
+              label: labels?.[tag] || tagLabel(tag),
               vis: tagTabVisibility[i] || "",
             })),
             { label: "搜索", vis: "" },
@@ -244,7 +244,10 @@ export default function Articles({ articles, topTags = [] }) {
   );
 }
 
-function cardProps(article) {
+// `labels` is per-render (it comes from the database), so the helper closes
+// over it rather than living at module scope where it would only see the
+// static fallback map.
+function cardProps(article, labels) {
   return {
     slug: article.slug,
     title: article.title,
@@ -253,5 +256,6 @@ function cardProps(article) {
     tags: article.tags,
     readingTime: article.readingTime,
     featured: article.featured,
+    labels,
   };
 }

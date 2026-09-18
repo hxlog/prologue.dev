@@ -1,8 +1,6 @@
-import fs from "fs";
-import path from "path";
-import { load } from "js-yaml";
 import FriendLinks from "../../components/friendlinks";
 import PageTransition from "../../components/page-transition";
+import { getLinks } from "../../lib/content/collections";
 
 export async function generateMetadata() {
   return {
@@ -12,13 +10,14 @@ export async function generateMetadata() {
 }
 
 export default async function LinksPage() {
-  const filePath = path.join(process.cwd(), "data", "links.yaml");
-  const links = fs.readFileSync(filePath, "utf8");
-  const data = load(links);
+  // Reads the `links` collection. Field names are mapped back to the shape the
+  // component already renders (`name` / `description` / `blog_url` / `avatar`),
+  // so the page markup is unchanged.
+  const links = await getLinks();
 
   return (
     <PageTransition>
-      <FriendLinks friends={data} />
+      <FriendLinks friends={links} />
     </PageTransition>
   );
 }

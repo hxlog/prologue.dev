@@ -4,17 +4,25 @@ import { tagLabel } from "../../../data/tagLabels";
 
 /**
  * Shared archive layout for /blog and /tags/[...slug].
- * Server component: maps full contentlayer docs to slim objects before they
- * cross into the client <SearchGrid>, keeping the RSC payload small.
+ * Server component: maps full documents to slim objects before they cross into
+ * the client <SearchGrid>, keeping the RSC payload small.
+ *
+ * `labels` is the tag slug -> 中文 label map from the database (editable in
+ * /studio). It is threaded down to every chip so a tag renamed in /studio shows
+ * its new name immediately, with data/tagLabels.js as the fallback for a
+ * component rendered without the prop.
  */
 export default function PostsLayout({
   posts,
   tagCounts = {},
   sortedTags = [],
+  labels,
   activeTag = null,
   title = "归档",
   subtitle,
 }) {
+  const label = (tag) => labels?.[tag] || tagLabel(tag);
+
   const slimPosts = posts
     .filter((post) => post.draft !== true)
     .map((post) => ({
@@ -34,7 +42,7 @@ export default function PostsLayout({
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
           {title}
           {activeTag ? (
-            <span className="text-gradient"> · {tagLabel(activeTag)}</span>
+            <span className="text-gradient"> · {label(activeTag)}</span>
           ) : null}
         </h1>
         {subtitle ? (
@@ -63,7 +71,7 @@ export default function PostsLayout({
                         : "text-muted hover:bg-surface-2 hover:text-foreground"
                     }`}
                   >
-                    {tagLabel(tag)}
+                    {label(tag)}
                     <span className="ml-1 text-xs text-faint">
                       {tagCounts[tag]}
                     </span>
@@ -75,7 +83,7 @@ export default function PostsLayout({
         )}
 
         <div className={sortedTags.length > 0 ? "lg:col-span-5" : "lg:col-span-6"}>
-          <SearchGrid posts={slimPosts} />
+          <SearchGrid posts={slimPosts} labels={labels} />
         </div>
       </div>
     </div>
