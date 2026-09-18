@@ -1,12 +1,16 @@
 /**
- * Content importer: Contentlayer-generated posts -> prologue Postgres.
+ * Content importer: data/content/blog/**\/*.md -> prologue Postgres.
  *
- * Reads the Contentlayer output (already verified byte-identical to the new
- * renderer), renders each post through the SHARED renderMarkdown(), and writes
- * posts + post_revisions + tags + post_tags into the database.
+ * Reads the markdown from disk, renders each post through the SHARED
+ * renderMarkdown(), and writes posts + post_revisions + tags + post_tags into
+ * the database.
  *
- * Idempotent: re-running replaces the post's revision 1 and re-links tags
- * rather than duplicating rows.
+ * Historically this read Contentlayer's generated index instead of the files.
+ * That indirection is gone — Contentlayer is uninstalled, and the index was a
+ * projection of these same files with the same parser (js-yaml, via
+ * gray-matter) that this now does directly.
+ *
+ * Idempotent: re-running adds a revision rather than duplicating rows.
  *
  * `--reset` first clears the content tables (posts, revisions, tags, search
  * index). Use it when a change to the renderer or importer should replace the
@@ -14,13 +18,10 @@
  * numbers are meant to be a real edit history, and 63 posts that each show one
  * "re-import" revision before launch is noise, not history.
  *
- * Usage (from the worktree root):
- *   node --env-file=.env.local scripts/db/import-contentlayer.mjs [--dry] [--reset]
- *
- * CONTENTLAYER_ROOT overrides where `.contentlayer/` is read from. A fresh git
- * worktree has no generated output of its own, while the main checkout does, so
- * the importer reads content from here and generated metadata from there.
+ * Usage (from the repo root):
+ *   node --env-file=.env.local scripts/db/import-posts.mjs [--dry] [--reset]
  */
+
 import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
@@ -29,14 +30,15 @@ import pg from "pg";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "..", "..");
-// Markdown is read from this checkout; `.contentlayer/` may only exist in
-// another one (a worktree does not inherit generated output).
-const CONTENTLAYER_ROOT = process.env.CONTENTLAYER_ROOT || ROOT;
+const CONTENT_DIR = path.join(ROOT, "data", "content", "blog");
 const DRY = process.argv.includes("--dry");
 const RESET = process.argv.includes("--reset");
 
 const { renderMarkdown, deriveSlugs, RENDERER_VERSION } = await import(
   pathToFileURL(path.join(ROOT, "src/lib/markdown/render.js")).href
+);
+const { parseFrontmatter } = await import(
+  pathToFileURL(path.join(ROOT, "src/lib/content/frontmatter.js")).href
 );
 const { contentDateISO } = await import(
   pathToFileURL(path.join(ROOT, "src/lib/content/dates.js")).href
@@ -74,35 +76,6 @@ function contentHash(markdown) {
 }
 
 /**
- * Read a date field straight out of the frontmatter block, as the literal
- * string the author typed.
- *
- * Contentlayer's parsed value is already a Date, and its instant depends on
- * the time zone of whichever machine ran the build — which is why production
- * and this checkout disagreed about six posts. The raw text has no such
- * ambiguity.
- *
- * The search is confined to the frontmatter block. Scanning the whole file
- * would also match prose: one post is a tutorial about building this blog and
- * contains `lastmod:` in a code sample, which the first version of this
- * function happily picked up and wrote into the database.
- *
- * A trailing `\r` is stripped, and the same class of fix applies to every
- * scalar read off disk — see stripCr below.
- */
-function rawDate(doc, field) {
-  const src = fs.readFileSync(
-    path.join(ROOT, "data/content", doc._raw.sourceFilePath),
-    "utf8"
-  );
-  const block = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---/.exec(src);
-  const match = block
-    ? new RegExp(`^${field}:\\s*(.+?)\\s*$`, "m").exec(block[1])
-    : null;
-  return match ? match[1].replace(/\r$/, "") : doc[field];
-}
-
-/**
  * Normalise a source file's line endings to LF.
  *
  * The content files are stored LF in the repository and checked out CRLF on
@@ -137,12 +110,65 @@ function stripCr(value) {
   return typeof value === "string" ? value.replace(/\r/g, "") : value;
 }
 
-const index = JSON.parse(
-  fs.readFileSync(
-    path.join(CONTENTLAYER_ROOT, ".contentlayer/generated/Post/_index.json"),
-    "utf8"
-  )
-);
+/** Every .md under data/content/blog, recursively, in a stable order. */
+function listPostFiles(dir) {
+  return fs
+    .readdirSync(dir, { withFileTypes: true })
+    .flatMap((entry) => {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) return listPostFiles(full);
+      return entry.name.endsWith(".md") ? [full] : [];
+    })
+    .sort();
+}
+
+/**
+ * Read one file into the shape the rest of this script expects.
+ *
+ * `sourceFilePath` and `flattenedPath` are relative to data/content and
+ * POSIX-separated, which is what they were when Contentlayer produced them —
+ * `source_path` is stored in the database and rendered into a GitHub URL, so a
+ * Windows backslash there would produce a link that 404s.
+ */
+function readPost(file) {
+  const sourceFilePath = path
+    .relative(path.join(ROOT, "data", "content"), file)
+    .split(path.sep)
+    .join("/");
+
+  // Normalised to LF before anything reads it — see normalizeEol.
+  const markdown = normalizeEol(fs.readFileSync(file, "utf8"));
+  const { data } = parseFrontmatter(markdown);
+
+  return {
+    sourceFilePath,
+    flattenedPath: sourceFilePath.replace(/\.md$/, ""),
+    // Everything below is read as the author typed it. `data.publishDate` may
+    // be a Date if the YAML was zero-padded and the parser resolved the
+    // timestamp type; parseContentDate handles both, and pinning it there
+    // rather than here is what keeps this identical to what /studio will do.
+    title: stripCr(data.title),
+    description: stripCr(data.description),
+    tags: data.tags ?? [],
+    draft: data.draft === true,
+    featured: data.featured === true,
+    image: stripCr(data.image),
+    imageDesc: stripCr(data.imageDesc),
+    publishDate: data.publishDate,
+    lastmod: data.lastmod,
+    markdown,
+  };
+}
+
+const files = listPostFiles(CONTENT_DIR);
+const index = files.map(readPost);
+
+for (const doc of index) {
+  if (!doc.title) throw new Error(`${doc.sourceFilePath}: missing title`);
+  if (!doc.publishDate && !doc.draft) {
+    throw new Error(`${doc.sourceFilePath}: published post has no publishDate`);
+  }
+}
 
 const client = new pg.Client({
   connectionString: process.env.DATABASE_URL_UNPOOLED,
@@ -179,14 +205,14 @@ try {
   //          Inequality 8  Technology 7  Crypto 6  AI 4  Gender 2
   //
   // The live order is the order in which the old module-scope loop happened to
-  // first encounter each tag while walking the Contentlayer array — arbitrary,
-  // but visible on every archive page, so it is reproduced rather than
-  // improved. Computing it here (rather than hardcoding) means it stays correct
-  // if the corpus changes before the migration ships.
+  // first encounter each tag while walking the post array — arbitrary, but
+  // visible on every archive page, so it is reproduced rather than improved.
+  // Computing it here (rather than hardcoding) means it stays correct if the
+  // corpus changes before this runs again.
   const tagIds = new Map();
   const counts = new Map();
   for (const doc of index) {
-    if (doc.draft === true) continue;
+    if (doc.draft) continue;
     for (const t of doc.tags || []) counts.set(t, (counts.get(t) || 0) + 1);
   }
   const allTags = [...counts.keys()].sort((a, b) => {
@@ -195,7 +221,7 @@ try {
     // Preserve first-encounter order among ties, exactly as Object.keys over
     // the accumulating count object did.
     const firstSeen = (slug) =>
-      index.findIndex((d) => d.draft !== true && (d.tags || []).includes(slug));
+      index.findIndex((d) => !d.draft && (d.tags || []).includes(slug));
     return firstSeen(a) - firstSeen(b);
   });
 
@@ -226,22 +252,17 @@ try {
   const warnings = [];
 
   for (const doc of index) {
-    const srcPath = path.join(ROOT, "data/content", doc._raw.sourceFilePath);
-    // Normalised to LF before anything reads it — see normalizeEol.
-    const markdown = normalizeEol(fs.readFileSync(srcPath, "utf8"));
-    const { html, headings, readingTime } = await renderMarkdown(markdown);
-    const slugs = deriveSlugs(doc._raw.flattenedPath);
+    const { html, headings, readingTime } = await renderMarkdown(doc.markdown);
+    const slugs = deriveSlugs(doc.flattenedPath);
 
-    const status = doc.draft === true ? "draft" : "published";
-    // Normalise through parseContentDate. `doc.publishDate` here is the
-    // Contentlayer build's Date, which was itself produced by
-    // `new Date("2025-2-15")` in the BUILD machine's zone — the live site
-    // renders 2月15日 while this checkout renders 2月14日 for the same post.
-    // Re-reading the raw frontmatter and parsing it explicitly makes the
-    // stored instant, and therefore the rendered date and the feed pubDate,
-    // identical everywhere.
-    const publishedAt = status === "published" ? contentDateISO(rawDate(doc, "publishDate")) : null;
-    const lastmod = contentDateISO(rawDate(doc, "lastmod"));
+    const status = doc.draft ? "draft" : "published";
+    // Normalise through parseContentDate. `doc.publishDate` as read from YAML
+    // is either a string in whatever form the author typed (`2025-2-15`) or a
+    // timestamp the YAML parser already resolved to a Date in the machine's
+    // zone. Re-parsing explicitly makes the stored instant, and therefore the
+    // rendered date and the feed pubDate, identical everywhere.
+    const publishedAt = status === "published" ? contentDateISO(doc.publishDate) : null;
+    const lastmod = contentDateISO(doc.lastmod);
 
     // The route matches on slugAsParams; posts.slug stores the same value so
     // the URL can never drift from what the router resolves.
@@ -261,13 +282,13 @@ try {
         [
           postId,
           status,
-          Boolean(doc.featured),
-          stripCr(doc.image) || null,
-          stripCr(doc.imageDesc) || null,
-          stripCr(doc.imageDesc) || null,
+          doc.featured,
+          doc.image || null,
+          doc.imageDesc || null,
+          doc.imageDesc || null,
           publishedAt,
           lastmod,
-          doc._raw.sourceFilePath,
+          doc.sourceFilePath,
         ]
       );
       updated++;
@@ -279,13 +300,13 @@ try {
         [
           slugs.slugAsParams,
           status,
-          Boolean(doc.featured),
-          stripCr(doc.image) || null,
-          stripCr(doc.imageDesc) || null,
-          stripCr(doc.imageDesc) || null,
+          doc.featured,
+          doc.image || null,
+          doc.imageDesc || null,
+          doc.imageDesc || null,
           publishedAt,
           lastmod,
-          doc._raw.sourceFilePath,
+          doc.sourceFilePath,
         ]
       );
       postId = rows[0].id;
@@ -308,15 +329,15 @@ try {
       [
         postId,
         nextRev,
-        stripCr(doc.title),
-        doc.description ? stripCr(doc.description) : null,
-        markdown,
+        doc.title,
+        doc.description || null,
+        doc.markdown,
         html,
         JSON.stringify(headings ?? []),
         readingTime ? JSON.stringify(readingTime) : null,
         RENDERER_VERSION,
-        contentHash(markdown),
-        nextRev === 1 ? "initial import from Contentlayer" : "re-import",
+        contentHash(doc.markdown),
+        nextRev === 1 ? "initial import from content files" : "re-import",
       ]
     );
 
@@ -349,8 +370,8 @@ try {
   // ------------------------------------------------------- search_index
   await client.query(`DELETE FROM search_index WHERE kind = 'post'`);
   for (const doc of index) {
-    if (doc.draft === true) continue;
-    const slugs = deriveSlugs(doc._raw.flattenedPath);
+    if (doc.draft) continue;
+    const slugs = deriveSlugs(doc.flattenedPath);
     const { rows } = await client.query(
       `SELECT p.id, r.html, r.title, r.description
        FROM posts p JOIN post_revisions r ON r.id = p.published_revision_id
@@ -376,7 +397,7 @@ try {
         `/blog/${slugs.slugAsParams}`,
         [...(doc.tags || []), ...labelTags],
         bodyText,
-        contentDateISO(rawDate(doc, "publishDate")),
+        contentDateISO(doc.publishDate),
       ]
     );
   }

@@ -23,7 +23,7 @@ import rehypeMermaidPre from "../../components/rehype-mermaid-pre.js";
  * measured to change token colours in 2 of 63 existing posts with no config
  * change at all.
  */
-export const RENDERER_VERSION = 1;
+export const RENDERER_VERSION = 2;
 
 /**
  * Languages that actually appear in this blog's content (measured across all

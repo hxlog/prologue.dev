@@ -2,15 +2,14 @@
 /**
  * Import MDX pages (data/content/pages/*.md) into the database.
  *
- *   CONTENTLAYER_ROOT=/path/to/checkout node --env-file=.env.local \
- *     scripts/db/import-pages.mjs [--dry] [--reset]
+ *   node --env-file=.env.local scripts/db/import-pages.mjs [--dry] [--reset]
  *
- * Pages differ from posts in one way that shapes everything here: they are
- * `contentType: "mdx"`, so their stored artifact is compiled MDX bytecode, not
- * an HTML string. The bytecode embeds the rendering runtime's module ids, which
- * differ between Contentlayer's bundler and plain `@mdx-js/mdx` — so the correct
- * source of truth is the markdown, compiled by src/lib/content/mdx.js at
- * publish time, and that is what this writes.
+ * Pages differ from posts in one way that shapes everything here: they carry
+ * JSX (`<img ... />`, `<center>`), so markdown alone cannot express them and
+ * the stored artifact is compiled MDX bytecode rather than an HTML string. The
+ * correct source of truth is therefore the markdown on disk, compiled by
+ * src/lib/content/mdx.js — not anything a previous build produced, since
+ * compiled bytecode embeds the bundler's module ids.
  *
  * `html` is also stored, produced by the shared markdown renderer. It is not
  * what the route renders (the route uses the MDX component) but it is what any
@@ -26,7 +25,7 @@ import pg from "pg";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, "..", "..");
-const CONTENTLAYER_ROOT = process.env.CONTENTLAYER_ROOT || ROOT;
+const PAGES_DIR = path.join(ROOT, "data", "content", "pages");
 const DRY = process.argv.includes("--dry");
 const RESET = process.argv.includes("--reset");
 
@@ -36,10 +35,8 @@ const { renderMarkdown, RENDERER_VERSION } = await import(
 const { compilePage } = await import(
   pathToFileURL(path.join(ROOT, "src/lib/content/mdx.js")).href
 );
-
-const PAGES_INDEX = path.join(
-  CONTENTLAYER_ROOT,
-  ".contentlayer/generated/Page/_index.json"
+const { parseFrontmatter } = await import(
+  pathToFileURL(path.join(ROOT, "src/lib/content/frontmatter.js")).href
 );
 
 function contentHash(markdown) {
@@ -53,7 +50,7 @@ function contentHash(markdown) {
  * (`core.autocrlf=true`), so without this the same page renders differently
  * depending on which machine read it — measured against production, whose
  * checkout is LF: 163 carriage returns in the local feeds, zero in the live
- * ones. See the equivalent helpers in import-contentlayer.mjs.
+ * ones. See the equivalent helpers in import-posts.mjs.
  */
 function normalizeEol(text) {
   return String(text ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
@@ -63,7 +60,30 @@ function stripCr(value) {
   return typeof value === "string" ? value.replace(/\r/g, "") : value;
 }
 
-const pages = JSON.parse(fs.readFileSync(PAGES_INDEX, "utf8"));
+const pages = fs
+  .readdirSync(PAGES_DIR, { withFileTypes: true })
+  .filter((entry) => entry.isFile() && entry.name.endsWith(".md"))
+  .map((entry) => {
+    const markdown = normalizeEol(
+      fs.readFileSync(path.join(PAGES_DIR, entry.name), "utf8")
+    );
+    const { data } = parseFrontmatter(markdown);
+    return {
+      // Pages are flat, and the slug is the filename — the route is /<slug>,
+      // not /pages/<slug>. Anything nested would need the drop-first-segment
+      // treatment posts get; nothing is nested today.
+      slug: entry.name.replace(/\.md$/, "").toLowerCase(),
+      title: stripCr(data.title),
+      description: stripCr(data.description),
+      markdown,
+    };
+  })
+  .sort((a, b) => a.slug.localeCompare(b.slug));
+
+for (const page of pages) {
+  if (!page.title) throw new Error(`pages/${page.slug}.md: missing title`);
+}
+
 console.log(`\nImporting ${pages.length} page(s) (dry=${DRY})...\n`);
 
 const client = new pg.Client({
@@ -86,24 +106,16 @@ try {
   let created = 0;
   let updated = 0;
 
-  for (const doc of pages) {
-    const slug = doc.slugAsParams;
-    const markdown = normalizeEol(
-      fs.readFileSync(
-        path.join(ROOT, "data/content", doc._raw.sourceFilePath),
-        "utf8"
-      )
-    );
-
+  for (const page of pages) {
     // The route renders the MDX component, so both artifacts are produced here
     // from the same source: the component for the page, the HTML for anything
     // that cannot evaluate JS.
-    const { html, headings, readingTime } = await renderMarkdown(markdown);
-    const mdxCode = await compilePage(markdown);
+    const { html, headings, readingTime } = await renderMarkdown(page.markdown);
+    const mdxCode = await compilePage(page.markdown);
 
     const { rows: existing } = await client.query(
       `SELECT id FROM pages WHERE slug = $1`,
-      [slug]
+      [page.slug]
     );
 
     let pageId;
@@ -114,7 +126,7 @@ try {
       const { rows } = await client.query(
         `INSERT INTO pages (slug, status, giscus_enabled, published_at)
          VALUES ($1, 'published', true, now()) RETURNING id`,
-        [slug]
+        [page.slug]
       );
       pageId = rows[0].id;
       created++;
@@ -135,9 +147,9 @@ try {
       [
         pageId,
         nextRev,
-        doc.title,
-        doc.description ? stripCr(doc.description) : null,
-        markdown,
+        page.title,
+        page.description || null,
+        page.markdown,
         // `html` is where the compiled MDX bytecode is parked for pages: the
         // column is "the renderable artifact for this revision", and for an
         // MDX document that artifact is the component, not markup.
@@ -145,8 +157,8 @@ try {
         JSON.stringify(headings ?? []),
         readingTime ? JSON.stringify(readingTime) : null,
         RENDERER_VERSION,
-        contentHash(markdown),
-        nextRev === 1 ? "initial import" : "re-import",
+        contentHash(page.markdown),
+        nextRev === 1 ? "initial import from content files" : "re-import",
       ]
     );
 
