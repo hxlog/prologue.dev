@@ -10,13 +10,7 @@
 # next.js
 /.next/
 
-# contentlayer
-/.contentlayer
-
-# generated search index (rebuilt on every build; must not ship to the template snapshot)
-/public/search-index.json
-
-# publish worktree
+# local scratch (worktrees, one-off scripts)
 /.tmp/
 
 # yarn, not using zero-installs

@@ -1,10 +1,6 @@
-const { withContentlayer } = require("next-contentlayer2");
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Contentlayer injects a webpack config; empty turbopack silences Next 16's mismatch error.
-  turbopack: {},
   images: {
     formats: ["image/avif", "image/webp"],
     unoptimized: false,
@@ -29,4 +25,4 @@ const nextConfig = {
   },
 };
 
-module.exports = withContentlayer(nextConfig);
+module.exports = nextConfig;

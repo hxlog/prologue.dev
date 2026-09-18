@@ -1,8 +1,0 @@
-- name: "Example Friend"
-  description: "Replace with your own friends list."
-  blog_url: "https://example.com/"
-  avatar: "/static/avatars/template-avatar.svg"
-- name: "槐序"
-  description: "对当下的反思和批判"
-  blog_url: "https://prologue.dev/"
-  avatar: "https://prologue.dev/static/favicons/avatar.png"

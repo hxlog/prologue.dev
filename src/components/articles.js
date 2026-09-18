@@ -15,7 +15,7 @@ const PAGE_SIZE = 8;
  * LCP notes: the first PAGE_SIZE cards render STATICALLY (no entrance
  * animation, no opacity gate) so they paint with the server HTML; only cards
  * added via "load more" or search results animate in. Search runs over the
- * shared build-time Fuse index (src/lib/use-post-search.js).
+ * shared server-side index (src/lib/use-post-search.js).
  */
 export default function Articles({ articles, topTags = [], labels }) {
   const [tabIndex, setTabIndex] = useState(0);

@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-label="Template Cover">
-  <rect width="1600" height="900" fill="#111827"/>
-  <rect x="60" y="60" width="1480" height="780" fill="none" stroke="#374151" stroke-width="2"/>
-  <text x="120" y="430" font-size="72" fill="#f9fafb" font-family="system-ui, sans-serif">Starter Post Cover</text>
-  <text x="120" y="500" font-size="36" fill="#9ca3af" font-family="system-ui, sans-serif">Replace /public/static/photos/template-cover.svg</text>
-</svg>
