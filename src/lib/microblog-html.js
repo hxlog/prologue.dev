@@ -2,9 +2,10 @@
  * HTML serialization for microblog entries (used by the microblog RSS feed).
  *
  * Split out of the old src/lib/microblog.js, which also read and normalised
- * data/microblog.yaml. The data now comes from the `microblog` collection
- * (src/lib/content/collections.js); this is the one piece of that module that
- * was about output rather than input, and it is unchanged.
+ * data/microblog.yaml — a file that no longer exists. The data now comes from
+ * the `microblog` collection (src/lib/content/collections.js); this is the one
+ * piece of that module that was about output rather than input, and it is
+ * unchanged.
  */
 
 /** Escape text for interpolation into HTML. Entries are author-written, but

@@ -10,9 +10,9 @@ export async function generateMetadata() {
 }
 
 export default async function MicroblogPage() {
-  // Reads the `microblog` collection, not data/microblog.yaml. The entries
-  // arrive in the same normalized shape (paragraphs[] + images[]) the cards
-  // already render, and keep their original anchors, so the page is unchanged.
+  // Reads the `microblog` collection. The entries arrive in the same normalized
+  // shape (paragraphs[] + images[]) the cards already render, and keep their
+  // original anchors, so the page is unchanged by the move off YAML.
   const entries = await getMicroblog();
 
   return (

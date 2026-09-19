@@ -177,9 +177,9 @@ export async function getLinks() {
  * 64 characters are assembled changes what the home page shows. This matches
  * the previous implementation byte for byte, newlines and all.
  *
- * The old version also read data/microblog.yaml from the home page directly
- * and re-implemented the sort that src/lib/microblog.js already did — two
- * parsers for one file.
+ * The old version also read a YAML file from the home page directly and
+ * re-implemented the sort that src/lib/microblog.js already did — two parsers
+ * for one file. That file is gone; the collection is the only source.
  */
 export async function getMicroblogQuotes({ limit = 8, minLength = 8, maxLength = 64 } = {}) {
   const entries = await getCollectionEntries("microblog");

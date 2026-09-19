@@ -28,7 +28,6 @@ Database scripts need the direct (unpooled) connection and do not read `.env.loc
 node --env-file=.env.local scripts/db/migrate.mjs [--status|--dry-run|--baseline]
 node --env-file=.env.local scripts/db/import-posts.mjs [--dry] [--reset]
 node --env-file=.env.local scripts/db/import-pages.mjs [--dry] [--reset]
-node --env-file=.env.local scripts/db/import-collections.mjs [--dry] [--reset]
 ```
 
 ## Verification
@@ -43,6 +42,7 @@ There is no unit-test suite, so these scripts are the safety net. They are not d
 | `smoke.mjs` | every route responds; CJK search returns hits; microblog guids unchanged. |
 | `dump-posts.mjs` | the full reader-visible projection of every post, as text, for diffing before/after a change. |
 | `verify-feed-dates.mjs` | stored instants render the same day they do in production. |
+| `check-seed-idempotent.mjs` | re-applying the collections seed changes nothing — it is `ON CONFLICT DO NOTHING` throughout, and a deploy must never revert a /studio edit. |
 
 The `/studio` side has its own set, under `scripts/studio/`. They need the local
 server on `:3212` (the e2e suite) or `:3211` (the site verifiers) and the direct
@@ -59,6 +59,8 @@ is safe.
 | `media-test.mjs` | the store is private, a pathname cannot be client-chosen, and a delete is refused while anything references the object. |
 | `blob-probe.mjs` | the store authenticates and answers 403 unauthenticated. Run this first when media misbehaves. |
 | `media-reconcile.mjs` | reports (and only under `--fix`, removes) blobs with no row and rows with no object. |
+| `sanitize-test.mjs` | the feed sanitizer refuses `javascript:`, `data:`, `on*`, `url()` in a style, and every escaping container — and is a no-op on the markup the renderer actually emits. |
+| `feed-before-after.mjs` | the feed pipeline's output against the PREVIOUS revision of the code, so a change to it is measured against its own predecessor rather than against whatever production was built from. |
 | `check-imports.mjs` | every relative specifier in `src/` resolves, without a build. Route groups add a directory level; run this after moving anything under one. |
 
 ## Database
@@ -81,7 +83,7 @@ Migrations are numbered `.sql` files applied by `scripts/db/migrate.mjs`, each i
 
 ## Content model
 
-Reading source of truth: `data/content/blog/**/*.md` (posts), `data/content/pages/*.md` (pages), `data/*.yaml` (collections, imported by `scripts/db/import-collections.mjs`).
+Reading source of truth: `data/content/blog/**/*.md` (posts) and `data/content/pages/*.md` (pages). Collections are **not** in files — they have lived in `collections` / `collection_entries` since the import, `db/migrations/0012_seed_collections.sql` is what a fresh database gets, and `/studio/collections` is how they are edited. `data/*.yaml` and `scripts/db/import-collections.mjs` were retired with the last commit that could still write them.
 
 Post frontmatter: `title`, `description`, `publishDate` (required); `lastmod`, `image`, `imageDesc`, `draft`, `featured`, `tags` (optional). The whole corpus uses only these eight keys.
 
@@ -106,7 +108,7 @@ Routes: `src/app/rss`, `src/app/atomfeed`, `src/app/jsonfeed`. All three call `c
 
 Feeds are edge-cached (`s-maxage=600, stale-while-revalidate=86400`).
 
-**Feed HTML is assembled by string surgery** — a stack of regex passes (strip KaTeX presentation, promote block math, absolutise URLs, rebuild `<img>`) rather than a DOM traversal. This is the most fragile code in the repo and the reason `compare-feeds.mjs` exists. Anything that changes the shape of stored post HTML can break a feed without breaking a page.
+**Feed HTML is assembled by string surgery** — a stack of regex passes (strip KaTeX presentation, promote block math, absolutise URLs) rather than a DOM traversal. Those passes ADD structure; they are not a defence and must not be mistaken for one, which is why `src/lib/feed/sanitize.js` runs LAST, over the finished artifact, as a real parse → walk → allowlist → serialize. Its allowlist was measured against the corpus (`feed-survey.mjs`, `feed-props.mjs`) — the property keys it matches are the ones `hast-util-from-html` produces, not the HTML spellings, which is the difference between keeping every code block's colour and silently stripping it. Anything that changes the shape of stored post HTML can break a feed without breaking a page, which is why `compare-feeds.mjs` exists and why `feed-before-after.mjs` measures a pipeline change against the previous revision of the code rather than against the deployed site.
 
 ## Media
 

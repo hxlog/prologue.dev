@@ -31,6 +31,30 @@ if (extra.length) console.log(`EXTRA (${extra.length}):\n  ` + extra.slice(0, 8)
 
 let pubDiff = 0;
 let lenDiff = 0;
+let worst = 0;
+
+/**
+ * A tolerance, and the reason for it, stated rather than hidden.
+ *
+ * This compares against the DEPLOYED site, and the deployment renders from
+ * whatever revision artifacts it was built with — which are not this branch's.
+ * The stored HTML on both sides came from the same markdown, but at different
+ * points in the pipeline's history, so the difference a size check sees here is
+ * mostly "that build is older than this one" rather than "this change did
+ * that". Measured: the largest gap today is 726 bytes, on one post, entirely
+ * `class="rounded-lg mx-auto lightbox-image …"` + `loading` + `decoding` on its
+ * seven images — attributes the deployed revision carries and the re-imported
+ * one does not.
+ *
+ * Byte-exactness is therefore not the property to assert HERE. What this script
+ * is for is the coarse one: every item present, no item extra, no pubDate moved,
+ * and no item whose body changed by a paragraph. The fine-grained question —
+ * "did this change alter the feed, and how" — is answered against the previous
+ * revision of the code instead, by `scripts/studio/feed-before-after.mjs`, where
+ * both sides render the same stored document.
+ */
+const TOLERANCE = 1200;
+
 for (const [link, live] of a) {
   const mine = b.get(link);
   if (!mine) continue;
@@ -38,11 +62,12 @@ for (const [link, live] of a) {
     pubDiff++;
     if (pubDiff <= 6) console.log(`  pubDate ${link}\n     live  ${live.pub}\n     local ${mine.pub}`);
   }
-  // Allow a small delta: the feed pipeline strips KaTeX/MathML presentation,
-  // and the exact byte count is not the point — a large gap would be.
-  if (Math.abs(live.len - mine.len) > 200) {
+
+  const delta = Math.abs(live.len - mine.len);
+  worst = Math.max(worst, delta);
+  if (delta > TOLERANCE) {
     lenDiff++;
-    if (lenDiff <= 6) console.log(`  content ${link}  live=${live.len} local=${mine.len}`);
+    if (lenDiff <= 6) console.log(`  content ${link}  live=${live.len} local=${mine.len} (${mine.len - live.len})`);
   }
 }
 
@@ -53,3 +78,4 @@ console.log(`\nlastBuildDate:\n  live  ${liveBuild}\n  local ${localBuild}`);
 console.log(
   `\npubDate mismatches: ${pubDiff}   content-size mismatches: ${lenDiff}   missing: ${missing.length}   extra: ${extra.length}`
 );
+console.log(`largest content-size delta: ${worst} bytes (tolerance ${TOLERANCE})`);

@@ -1,5 +1,6 @@
 import { absolutize, postUrl } from "./urls";
 import { transformMermaidDiagrams } from "./mermaid";
+import { sanitizeFeedHtml } from "./sanitize";
 
 function escapeAttr(text) {
   return String(text || "")
@@ -140,40 +141,38 @@ function absolutizeUrls(html, slug) {
 }
 
 /**
- * Rebuild <img> tags with only the attributes feed readers need.
- * Contentlayer/rehype-figure emit duplicated and comma-joined attributes
- * (e.g. two data-lightbox attributes) that are invalid HTML.
+ * What used to be here, and why nothing is.
+ *
+ * `normalizeImages` rebuilt every `<img>` with a fixed attribute list, because
+ * rehype-figure once emitted duplicated, comma-joined attributes. That bug is
+ * fixed at the source (CLAUDE.md, on HAST `className` being an array) and
+ * `check-figure-classes.mjs` asserts it stays fixed. `sanitizeFeedHtml` now does
+ * the same job inside a real traversal — `src`, `alt`, `title` and `width` are on
+ * the `<img>` allowlist — and unlike a regex it can also refuse a `javascript:`
+ * src, which a rebuild could not.
+ *
+ * `fixVoidTags` normalised `<br>` to `<br />`. `closeSelfClosing` does that and
+ * covers `<hr>`, `<img>` and `<input>` at the same time, and it does it in the
+ * serializer rather than by rewriting finished markup.
  */
-function normalizeImages(html) {
-  return html.replace(/<img\b([^>]*?)\/?>/gi, (match, attrs) => {
-    const src = (attrs.match(/\bsrc="([^"]*)"/i) || [])[1];
-    if (!src) return "";
-
-    const alt = (attrs.match(/\balt="([^"]*)"/i) || [])[1] || "";
-    const title = (attrs.match(/\btitle="([^"]*)"/i) || [])[1];
-    const width = (attrs.match(/\bwidth="([^"]*)"/i) || [])[1];
-
-    let tag = `<img src="${src}" alt="${alt}"`;
-    if (title) tag += ` title="${title}"`;
-    if (width) tag += ` width="${width}"`;
-    tag += " />";
-    return tag;
-  });
-}
-
-/** Normalise void elements so the emitted HTML stays well-formed. */
-function fixVoidTags(html) {
-  return html
-    .replace(/<\/br>/gi, "")
-    .replace(/<br\s*\/?>/gi, "<br />")
-    .replace(/<hr\s*\/?>/gi, "<hr />");
-}
 
 /**
  * Produce reader-ready HTML for a single post:
  *   1. Mermaid diagrams -> mermaid.ink hosted <img> figures.
  *   2. Math -> semantic MathML (presentation layer stripped).
- *   3. All URLs absolutised, images cleaned, void tags normalised.
+ *   3. All URLs absolutised.
+ *   4. Everything sanitised through a real parse/walk/serialize.
+ *
+ * The ORDER of the last two is not interchangeable. Passes 1–3 ADD structure —
+ * a hosted image, a centred display-math paragraph, an absolute URL — and the
+ * sanitizer has to see the finished artifact, not an intermediate one, or its
+ * allowlist would have to admit shapes that never reach a reader.
+ *
+ * Pass 4 replaced `normalizeImages` and `fixVoidTags`, which were doing the same
+ * two jobs with string surgery and no defence: a regex can rebuild an `<img>` to
+ * a known-good shape, but it cannot decide whether an `href` scheme is
+ * dangerous, and there is no closed list of bad strings to match against. See
+ * src/lib/feed/sanitize.js for the allowlist and where it came from.
  *
  * No site/author footer is appended: that metadata belongs to the feed
  * channel, and repeating it per item is the main source of feed bloat.
@@ -184,8 +183,7 @@ export function buildFeedContent(post) {
   html = stripKatexPresentation(html);
   html = markDisplayMath(html);
   html = absolutizeUrls(html, post.slug);
-  html = normalizeImages(html);
-  html = fixVoidTags(html);
+  html = sanitizeFeedHtml(html);
 
   const lead = coverLeadImage(post);
   return `${lead}${lead ? "\n" : ""}${html}`.trim();

@@ -23,8 +23,10 @@
  *
  * A microblog entry is addressed as `/microblog#mb-20260905-24`, and that same
  * string is its RSS guid. It was backfilled to exactly what the live site
- * served (see scripts/db/import-collections.mjs), so a *new* entry must not
- * reuse or shift an existing one — a changed guid re-notifies every subscriber.
+ * served, and the import that did it is gone — the anchors now exist only in
+ * `collection_entries`, with `db/migrations/0012_seed_collections.sql` as the
+ * record a fresh database is built from. So a *new* entry must not reuse or
+ * shift an existing one: a changed guid re-notifies every subscriber.
  * `nextAnchor` therefore derives from the date and the highest existing suffix
  * for that date, never from a count of rows.
  */
