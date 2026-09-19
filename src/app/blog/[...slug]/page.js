@@ -14,9 +14,9 @@ import ReadingProgress from "../../../components/reading-progress";
 import { OptimizedHTMLRenderer } from "../../../components/optimized-html-renderer";
 import { formatDate } from "../../../lib/date";
 import {
-  getAllPosts,
   getPostBySlug,
   getPostSlugs,
+  getPublishedPosts,
 } from "../../../lib/content/posts";
 import { getTagLabels } from "../../../lib/content/tags";
 
@@ -93,9 +93,11 @@ export default async function PostPage(props) {
 
   // The full collection is needed twice on this page — adjacent-post
   // navigation sorts over every post, and related posts score against the
-  // whole taxonomy — so it is fetched once and shared.
+  // whole taxonomy — so it is fetched once and shared. Published only: this is
+  // a reader-facing page, and a cached read cannot depend on an autosaving
+  // draft.
   const [allPosts, labels] = await Promise.all([
-    getAllPosts(),
+    getPublishedPosts(),
     getTagLabels(),
   ]);
   const adjacentPosts = getAdjacentPosts(post, allPosts);

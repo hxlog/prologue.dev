@@ -1,15 +1,15 @@
 import { compareDesc } from "date-fns";
 import PostsLayout from "./bloglistlayout";
 import siteMetadata from "../../../data/sitemetadata";
-import { getAllPosts } from "../../lib/content/posts";
+import { getPublishedPosts } from "../../lib/content/posts";
 import { getTagCounts, getTagLabels, getSortedTags } from "../../lib/content/tags";
 
 export default async function Blog() {
-  // Independent reads; run them together. `getAllPosts` includes drafts because
-  // the layout filters them client-side for the "共 N 篇文章" line, matching
-  // what the page did before.
+  // Independent reads; run them together. The published-only read is what makes
+  // this page cacheable at all: the previous version loaded drafts too and
+  // filtered them here, so every autosave in /studio invalidated the archive.
   const [posts, tagCounts, sortedTags, labels] = await Promise.all([
-    getAllPosts(),
+    getPublishedPosts(),
     getTagCounts(),
     getSortedTags(),
     getTagLabels(),
@@ -26,7 +26,7 @@ export default async function Blog() {
       sortedTags={sortedTags}
       labels={labels}
       title="归档"
-      subtitle={`共 ${sorted.filter((p) => p.draft !== true).length} 篇文章`}
+      subtitle={`共 ${sorted.length} 篇文章`}
     />
   );
 }

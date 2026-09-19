@@ -11,12 +11,26 @@
  * every function here is "this collection, in this order" rather than a generic
  * query builder: /microblog renders with the microblog card, /links with the
  * friend-link row, and neither wants the other's shape.
+ *
+ * CACHING: `getCollectionEntries` and everything built on it are tagged
+ * `collection:<slug>`, so editing one entry in the microblog does not evict the
+ * friend-links page. `getCollection` — the schema read — is tagged too, because
+ * adding a field changes it, but NOT by entry writes; that is a different tag
+ * (`collection:<slug>:schema`) so a new microblog post does not rebuild the
+ * field list for the editor.
+ *
+ * `listCollections` is for /studio's sidebar and is not cached.
  */
 
+import { cacheLife, cacheTag } from "next/cache";
 import { queryOne, queryMany } from "../db";
 
 /** One collection, with its field definitions in display order. */
 export async function getCollection(slug) {
+  "use cache";
+  cacheLife("max");
+  cacheTag(`collection:${slug}:schema`);
+
   const collection = await queryOne(
     `SELECT id, slug, name, description, icon, schema_version, settings, public_read
        FROM collections
@@ -54,6 +68,13 @@ export async function getCollection(slug) {
  * assembled at runtime.
  */
 export async function getCollectionEntries(slug, { includeDrafts = false } = {}) {
+  "use cache";
+  cacheLife("max");
+  // The drafts flag is part of the cache key (it is an argument, and arguments
+  // are part of the key), so /studio's draft-inclusive read and the reader's
+  // published-only read do not share an entry.
+  cacheTag(`collection:${slug}`, "collections");
+
   const collection = await queryOne(
     `SELECT id, ordering FROM collections WHERE slug = $1`,
     [slug]

@@ -1,5 +1,5 @@
 import siteMetadata from "../../data/sitemetadata";
-import { getAllPosts } from "../lib/content/posts";
+import { getPublishedPosts } from "../lib/content/posts";
 import { getAllPages } from "../lib/content/pages";
 import { getSortedTags } from "../lib/content/tags";
 
@@ -17,7 +17,7 @@ import { getSortedTags } from "../lib/content/tags";
  */
 export default async function sitemap() {
   const [posts, pages, tags] = await Promise.all([
-    getAllPosts({ includeDrafts: false }),
+    getPublishedPosts(),
     getAllPages(),
     getSortedTags(),
   ]);

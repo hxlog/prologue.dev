@@ -10,8 +10,20 @@
  * Counts only include PUBLISHED posts. The previous version skipped drafts in
  * JS; doing it in SQL means the number in the sidebar is always the number of
  * links a reader can actually follow.
+ *
+ * CACHING: the reader-facing reads below are tagged, and which tags they carry
+ * is not uniform, because the two tables behind them are edited independently:
+ *
+ *   counts and ordering depend on `posts` (a publish changes them) AND on
+ *   `tags` (a rename or a reorder in /studio changes them);
+ *   the label map depends only on `tags`.
+ *
+ * Tagging all three with `posts` would be correct-but-slow on a tag rename;
+ * tagging them all with `tags` would be wrong on a publish. `getAllTags`
+ * includes unpublished tags and is for /studio, so it is not cached at all.
  */
 
+import { cacheLife, cacheTag } from "next/cache";
 import { queryOne, queryMany } from "../db";
 
 /**
@@ -22,6 +34,10 @@ import { queryOne, queryMany } from "../db";
  * the layout for no benefit.
  */
 export async function getTagCounts() {
+  "use cache";
+  cacheLife("max");
+  cacheTag("posts", "tags");
+
   const rows = await queryMany(
     `SELECT t.slug, count(*)::int AS n
        FROM tags t
@@ -48,6 +64,10 @@ export async function getTagCounts() {
  * order a stored value instead of an accident of iteration.
  */
 export async function getSortedTags() {
+  "use cache";
+  cacheLife("max");
+  cacheTag("posts", "tags");
+
   const rows = await queryMany(
     `SELECT t.slug
        FROM tags t
@@ -60,7 +80,12 @@ export async function getSortedTags() {
   return rows.map((r) => r.slug);
 }
 
-/** The whole taxonomy, including tags with no published posts (for /studio). */
+/**
+ * The whole taxonomy, including tags with no published posts.
+ *
+ * For /studio, and therefore NOT cached: the editor has to see a tag the
+ * instant it is created, not when the tag is first used by a published post.
+ */
 export async function getAllTags() {
   return queryMany(
     `SELECT t.slug, t.label, t.description, t.sort_order,
@@ -74,6 +99,10 @@ export async function getAllTags() {
 
 /** slug -> Chinese display label. Replaces data/tagLabels.js for the read path. */
 export async function getTagLabels() {
+  "use cache";
+  cacheLife("max");
+  cacheTag("tags");
+
   const rows = await queryMany(`SELECT slug, label FROM tags`);
   const labels = {};
   for (const row of rows) labels[row.slug] = row.label;
@@ -90,8 +119,20 @@ export async function getTagLabels() {
  *
  * Returns null when the segment is neither a tag nor an alias, which the caller
  * turns into a 404.
+ *
+ * Cached, tagged `tags`. That is not just an optimisation under
+ * `cacheComponents`: an uncached database call inside a page body makes the
+ * whole route uncacheable, so leaving this one out of the cache would opt
+ * every tag page out of prerendering even though all of its other reads are
+ * cached. The cache key includes the argument, so a miss for an unknown
+ * segment is cached separately from a hit — and a tag created later clears it,
+ * because creation invalidates `tags`.
  */
 export async function resolveTagSlug(candidate) {
+  "use cache";
+  cacheLife("max");
+  cacheTag("tags");
+
   const row = await queryOne(
     `SELECT resolve_tag_slug($1) AS slug, tag_is_known($1) AS known`,
     [String(candidate)]

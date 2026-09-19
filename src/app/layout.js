@@ -6,6 +6,7 @@ import Navbar from "../components/navbar";
 import Footer from "../components/footer";
 import siteMetadata from "../../data/sitemetadata";
 import UmamiAnalytics from "../components/umami-analytics";
+import { getSiteYear } from "../lib/site-year";
 
 const ImageLightbox = dynamic(() => import("../components/ImageLightbox"));
 
@@ -67,7 +68,12 @@ export const metadata = {
   },
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  // Read here, not in <Footer>: the footer is a client component and cannot
+  // open a 'use cache' boundary, and the year is an unstable value that must
+  // not be read directly during prerender. See src/lib/site-year.js.
+  const year = await getSiteYear();
+
   return (
     <html
       lang={siteMetadata.language}
@@ -79,7 +85,7 @@ export default function RootLayout({ children }) {
           <Navbar />
           <div className="max-w-7xl mx-auto px-6">
             <main>{children}</main>
-            <Footer />
+            <Footer year={year} />
           </div>
           <ImageLightbox />
         </Providers>

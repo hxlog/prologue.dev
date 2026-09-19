@@ -117,15 +117,25 @@ if (!attached && !globalForDb.__prologuePoolAttached) {
   }
 }
 
-/** Run a parameterised query. Throws on error — callers decide what that means. */
+/**
+ * Run a parameterised query. Throws on error — callers decide what that means.
+ *
+ * The duration is measured with `performance.now()`, not `Date.now()`. Both
+ * would work for a log line, but `Date.now()` reads the wall clock, and reading
+ * the wall clock during prerender is an unstable value: with `cacheComponents`
+ * on, Next refuses to prerender a page whose output would depend on the current
+ * time. The clock here is telemetry, not output, so the monotonic timer is both
+ * the more appropriate primitive and the one that does not make every querying
+ * page unprerenderable.
+ */
 export async function query(text, params) {
-  const started = Date.now();
+  const started = performance.now();
   try {
     return await pool.query(text, params);
   } catch (err) {
     // Surface the statement shape without leaking values into logs.
     console.error("[db] query failed", {
-      ms: Date.now() - started,
+      ms: Math.round(performance.now() - started),
       sql: text.replace(/\s+/g, " ").slice(0, 160),
       code: err.code,
       message: err.message,

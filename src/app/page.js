@@ -4,7 +4,7 @@ import Articles from "../components/articles";
 import MicroblogSnippet from "../components/microblog-snippet";
 import TerminalQuotes from "../components/terminal-quotes";
 import PageTransition from "../components/page-transition";
-import { getAllPosts } from "../lib/content/posts";
+import { getPublishedPosts } from "../lib/content/posts";
 import { getSortedTags, getTagLabels } from "../lib/content/tags";
 import { getMicroblogQuotes } from "../lib/content/collections";
 
@@ -13,7 +13,7 @@ export default async function Home() {
   // sequence: the page needs posts, the tag list, the Chinese tag labels the
   // cards render, and the sidebar quotes — none depends on another.
   const [posts, sortedTags, labels, quotes] = await Promise.all([
-    getAllPosts(),
+    getPublishedPosts(),
     getSortedTags(),
     getTagLabels(),
     getMicroblogQuotes(),

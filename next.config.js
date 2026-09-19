@@ -1,6 +1,20 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+
+  // Cache Components. This is the switch that makes `'use cache'`,
+  // `cacheLife()` and `cacheTag()` real; without it the directives are parsed
+  // and silently ignored, so pages look cached and re-query on every request.
+  //
+  // It also changes what is legal: `export const dynamic` and `dynamicParams`
+  // become build errors (the reading is "say what you want to cache, rather
+  // than opting the whole route out"), and so does touching a non-deterministic
+  // value — `new Date()`, `Math.random()` — outside a `'use cache'` boundary,
+  // because its output would differ between builds with no input having
+  // changed. Both constraints are enforced by the build, which is why the flag
+  // went on in the same commit as the caching tags rather than before them.
+  cacheComponents: true,
+
   images: {
     formats: ["image/avif", "image/webp"],
     unoptimized: false,

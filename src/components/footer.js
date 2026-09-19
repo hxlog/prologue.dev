@@ -3,14 +3,21 @@
 import Link from "next/link";
 import EmailModal from "./email-modal";
 import sitemetadata, { siteRepo } from "../../data/sitemetadata";
-import { currentYear } from "../lib/date";
 
-export default function Footer() {
+/**
+ * The copyright year arrives as a prop.
+ *
+ * A client component cannot open a `'use cache'` boundary, and reading the wall
+ * clock during prerender is an error under `cacheComponents` — so the read
+ * lives in src/lib/site-year.js, which the server layout calls. See that file
+ * for why caching was preferred over deferring to an effect here.
+ */
+export default function Footer({ year }) {
   return (
     <footer className="mt-16 border-t border-border">
       <div className="container mx-auto flex select-none flex-col items-center px-8 py-8 sm:flex-row">
         <div className="text-sm text-muted">
-          © {currentYear()} {sitemetadata.publishName}
+          © {year} {sitemetadata.publishName}
         </div>
         <p className="mt-4 text-sm text-muted sm:ml-4 sm:mt-0 sm:border-l sm:border-border sm:pl-4">
           Powered by{" "}

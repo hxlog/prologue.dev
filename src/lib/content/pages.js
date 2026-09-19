@@ -9,8 +9,15 @@
  *
  * That means a page's stored artifact cannot be a flat HTML string the way a
  * post's is. It has to be the MDX source, compiled at render time.
+ *
+ * CACHING: same split as posts. The reader-facing reads (`getAllPages`,
+ * `getPageBySlug`, `getPageSlugs`, `getPagesForSitemap`) are tagged;
+ * `getPageBySlug` also carries `page:<slug>` so editing /about does not evict
+ * every other page. Nothing here is used by /studio's editor yet — when it is,
+ * it gets an uncached sibling, the way `getPostForEditing` does.
  */
 
+import { cacheLife, cacheTag } from "next/cache";
 import { queryOne, queryMany } from "../db";
 import { parseContentDate } from "./dates";
 
@@ -37,6 +44,10 @@ function toPage(row, { includeBody = false } = {}) {
 
 /** Every page a reader could navigate to. */
 export async function getAllPages() {
+  "use cache";
+  cacheLife("max");
+  cacheTag("pages");
+
   const rows = await queryMany(
     `SELECT p.id, p.slug, p.status, p.giscus_enabled, p.custom_css,
             p.title, p.description, p.headings
@@ -48,6 +59,10 @@ export async function getAllPages() {
 
 /** One page, with its raw MDX source and compiled bytecode. */
 export async function getPageBySlug(slug) {
+  "use cache";
+  cacheLife("max");
+  cacheTag("pages", `page:${String(slug).toLowerCase()}`);
+
   const row = await queryOne(
     `SELECT p.id, p.slug, p.status, p.giscus_enabled, p.custom_css,
             p.title, p.description, p.headings,
@@ -76,6 +91,10 @@ export async function getPageBySlug(slug) {
  * real route for it.
  */
 export async function getPageSlugs() {
+  "use cache";
+  cacheLife("max");
+  cacheTag("pages");
+
   const rows = await queryMany(
     `SELECT slug FROM pages WHERE status = 'published' ORDER BY slug`
   );
@@ -84,6 +103,10 @@ export async function getPageSlugs() {
 
 /** Page metadata for the sitemap and nav. */
 export async function getPagesForSitemap() {
+  "use cache";
+  cacheLife("max");
+  cacheTag("pages");
+
   const rows = await queryMany(
     `SELECT slug, published_at, updated_at
        FROM pages

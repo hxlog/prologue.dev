@@ -1,8 +1,7 @@
 import { notFound } from "next/navigation";
-import { compareDesc } from "date-fns";
 import PostsLayout from "../../blog/bloglistlayout";
 import siteMetadata from "../../../../data/sitemetadata";
-import { getAllPosts } from "../../../lib/content/posts";
+import { getPublishedPosts } from "../../../lib/content/posts";
 import {
   getTagCounts,
   getTagLabels,
@@ -52,22 +51,16 @@ export default async function Tag(props) {
   if (!slug) notFound();
 
   const [allPosts, tagCounts, sortedTags, labels] = await Promise.all([
-    getAllPosts(),
+    getPublishedPosts(),
     getTagCounts(),
     getSortedTags(),
     getTagLabels(),
   ]);
 
-  const filtered = allPosts.filter(
-    (post) => post.draft !== true && (post.tags || []).includes(slug)
-  );
-  if (filtered.length === 0) {
+  const posts = allPosts.filter((post) => (post.tags || []).includes(slug));
+  if (posts.length === 0) {
     notFound();
   }
-
-  const posts = [...filtered].sort((a, b) =>
-    compareDesc(new Date(a.publishDate), new Date(b.publishDate))
-  );
 
   const label = labels[slug] ?? slug;
 

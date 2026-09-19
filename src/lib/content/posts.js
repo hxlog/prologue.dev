@@ -10,29 +10,40 @@
  *
  * Caching
  * -------
- * These are the reads behind the busiest pages on the site (home, /blog,
- * /tags/*, every post, the sitemap and three feed routes), and they are
- * deliberately NOT cached yet.
+ * Two families of read, split by who consumes them, and the split is the whole
+ * design:
  *
- * `cacheComponents` is off in next.config.js while Contentlayer is still the
- * rendering source, and a `'use cache'` directive is only honoured when it is
- * on. Adding the directives now would be decoration that silently does nothing,
- * and the failure mode is invisible: pages that look cached and re-query on
- * every request. They go in with the flag, in the commit that turns
- * `cacheComponents` on, where the build can prove they take effect.
+ *   PUBLISHED  — `getPublishedPostsWithContent`, `getPostSlugs`, and the
+ *                `getPostBySlug` path when the row is published. These back the
+ *                busiest pages on the site (home, /blog, /tags/*, every post,
+ *                the sitemap, three feed routes). They are wrapped in
+ *                `'use cache'` and tagged, so a publish invalidates exactly
+ *                what changed.
  *
- * The plan for then, so the tags are not invented later:
+ *   EDITING    — `getAllPosts`, `getPostForEditing`, `getPostStats`. /studio
+ *                reads these. They are deliberately NOT cached: autosave
+ *                writes every few seconds and the author has to see what they
+ *                just typed, so a cached read would show the last published
+ *                revision until something invalidated it.
  *
- *   tag `posts`        — the whole collection; any write invalidates it
- *   tag `post:<slug>`  — one post; an edit to A must not evict B's page
+ * Tags:
+ *
+ *   `posts`        — the whole collection; any write bumps it
+ *   `post:<slug>`  — one post; an edit to A must not evict B's page
  *
  * `cacheLife('max')` suits both: content changes only when the author
  * publishes, at which point the tag is invalidated immediately, so a long
- * lifetime costs nothing and keeps unaffected pages warm.
+ * lifetime costs nothing and keeps unaffected pages warm. The exception is the
+ * cache tag, not the lifetime.
  *
- * `/studio` previews must never read through those — see `getPostForEditing`.
+ * A trap worth knowing about, because it is silent: a `'use cache'` function
+ * may only be called from a request scope that has one. Calling a cached read
+ * from inside another cached function is fine; calling one from a route handler
+ * that Next has decided is dynamic is not, and the error names the function,
+ * not the call site.
  */
 
+import { cacheLife, cacheTag } from "next/cache";
 import { query, queryOne, queryMany } from "../db";
 import { parseContentDate } from "./dates";
 
@@ -107,14 +118,8 @@ function toPost(row) {
 }
 
 /**
- * Every post, published and draft, newest first — the /blog archive and the
- * home page's Latest tab both want the drafts present and filter client-side
- * (they already did, with `draft !== true`).
- *
- * Not `'use cache'`: it is called from several differently-cached entry points
- * and from /studio, and a cached draft list would show a stale editor state
- * after an autosave. The published-only read below is the one that needs
- * caching, and it is what every reader-facing route actually uses.
+ * Every post, published and draft, newest first — /studio's list and the
+ * "共 N 篇文章" count. NOT cached; see the header.
  */
 export async function getAllPosts({ includeDrafts = true } = {}) {
   // queryMany, not query: the latter returns pg's full result object, and
@@ -126,6 +131,35 @@ export async function getAllPosts({ includeDrafts = true } = {}) {
         AND ($1::boolean OR p.status = 'published')
       ORDER BY p.published_at DESC NULLS LAST, p.slug`,
     [includeDrafts]
+  );
+  return rows.map(toPost);
+}
+
+/**
+ * Every published post, newest first — the reader-facing list.
+ *
+ * This is what `/`, `/blog`, `/tags/*` and the sitemap actually want. They used
+ * to call `getAllPosts()` and filter `draft !== true` in the component, which
+ * had two consequences worth naming: drafts travelled in the RSC payload to
+ * every reader, and the list could not be cached because it changed whenever a
+ * draft was autosaved.
+ *
+ * Ordering matches `getAllPosts` exactly (`published_at DESC NULLS LAST, slug`)
+ * so the two agree on ties. That matters because `/blog` re-sorts by date with
+ * `compareDesc`, and the previous read's order is the input to a stable sort —
+ * two posts share 2022-11-14, so a different tie-break here would reorder them
+ * on the archive page.
+ */
+export async function getPublishedPosts() {
+  "use cache";
+  cacheLife("max");
+  cacheTag("posts");
+
+  const rows = await queryMany(
+    `SELECT ${POST_COLUMNS}
+       FROM posts p
+      WHERE p.status = 'published'
+      ORDER BY p.published_at DESC NULLS LAST, p.slug`
   );
   return rows.map(toPost);
 }
@@ -143,6 +177,13 @@ export async function getAllPosts({ includeDrafts = true } = {}) {
  * autovacuum. Ascending slug is what the live feed emits.
  */
 export async function getPublishedPostsWithContent() {
+  "use cache";
+  cacheLife("max");
+  // The collection tag only: this read spans every post, so any publish
+  // invalidates it. A per-post tag would be useless here because the result
+  // depends on all of them at once.
+  cacheTag("posts");
+
   const rows = await queryMany(
     `SELECT ${POST_COLUMNS}, r.html, r.markdown
        FROM posts p
@@ -153,8 +194,19 @@ export async function getPublishedPostsWithContent() {
   return rows.map(toPost);
 }
 
-/** One post with its rendered body. Returns null when there is no such post. */
+/**
+ * One post with its rendered body. Returns null when there is no such post.
+ *
+ * Cached, and tagged per post. A draft is served through here too (a preview
+ * link may point at one), so the tag is applied unconditionally: a slug that is
+ * not yet published is still a slug, and the tag has to exist before the first
+ * publish invalidates it.
+ */
 export async function getPostBySlug(slug) {
+  "use cache";
+  cacheLife("max");
+  cacheTag("posts", `post:${String(slug).toLowerCase()}`);
+
   const row = await queryOne(
     `SELECT ${POST_COLUMNS}, r.html, r.markdown
        FROM posts p
@@ -189,6 +241,10 @@ export async function getPostForEditing(slug) {
 
 /** Total published-post count, for the sidebar's "文章" figure. */
 export async function getPostStats() {
+  "use cache";
+  cacheLife("max");
+  cacheTag("posts");
+
   const row = await queryOne(
     `SELECT count(*)::int AS posts,
             coalesce(sum((reading_time->>'words')::int), 0)::int AS words
@@ -206,6 +262,10 @@ export async function getPostStats() {
  * defeat that by writing a real route for it.
  */
 export async function getPostSlugs() {
+  "use cache";
+  cacheLife("max");
+  cacheTag("posts");
+
   const rows = await queryMany(
     `SELECT slug FROM posts WHERE status = 'published' ORDER BY published_at DESC`
   );

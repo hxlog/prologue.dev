@@ -66,8 +66,3 @@ export function formatDateTime(dateLike) {
   if (Number.isNaN(date.getTime())) return "";
   return `${longDateTime.format(date)}（北京时间）`;
 }
-
-/** Current year, e.g. for the footer copyright. */
-export function currentYear() {
-  return new Date().getUTCFullYear();
-}
