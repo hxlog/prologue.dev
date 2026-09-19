@@ -474,6 +474,52 @@ try {
     `status ${missingCollection.status}`
   );
 
+  // ── settings ─────────────────────────────────────────────────────────────
+  //
+  // The account screen, the taxonomy screen, and the redirect table. None of
+  // these was reachable before this commit; two of them are the only place a
+  // value that arrived from the static site can now be changed without an
+  // import.
+  const settings = await request("/studio/settings");
+  ok("settings renders", settings.status === 200, `status ${settings.status}`);
+  ok("settings names the screen", settings.text.includes("设置"));
+  ok("settings has the second-factor panel", settings.text.includes("两步验证"));
+  ok("settings has the device list", settings.text.includes("登录设备"));
+  ok("settings has the redirect table", settings.text.includes("跳转"));
+  ok("settings has the password form", settings.text.includes("修改密码"));
+
+  // The session created by this script for the signed-in request must appear,
+  // and be marked as the current one — a device list that omits the device you
+  // are looking at it from is worse than no list.
+  ok(
+    "settings lists the current session",
+    settings.text.includes("当前"),
+    "the session in use is not marked"
+  );
+
+  // ── tags ─────────────────────────────────────────────────────────────────
+  const tags = await request("/studio/tags");
+  ok("tags screen renders", tags.status === 200, `status ${tags.status}`);
+
+  const { rows: tagRows } = await client.query(
+    `SELECT slug, label FROM tags ORDER BY sort_order, slug`
+  );
+  ok("the taxonomy has tags", tagRows.length > 0);
+  for (const tag of tagRows) {
+    ok(
+      `the tag list carries “${tag.label}”`,
+      tags.text.includes(tag.label),
+      `missing ${tag.slug}`
+    );
+  }
+  // The alias created by the static-site merge must be visible, because it is
+  // the only way to discover that /tags/Web3 still resolves.
+  ok(
+    "the alias left by the taxonomy merge is shown",
+    tags.text.includes("Web3"),
+    "tag_aliases is not surfaced"
+  );
+
   // ── sign out clears the session ──────────────────────────────────────────
   const { rows: sessions } = await client.query(
     `SELECT count(*)::int AS n FROM sessions s

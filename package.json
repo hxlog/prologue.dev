@@ -39,6 +39,7 @@
     "pako": "^3.0.1",
     "pg": "^8.23.0",
     "postcss": "^8.5.28",
+    "qrcode-generator": "^2.0.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "reading-time": "^1.5.0",
