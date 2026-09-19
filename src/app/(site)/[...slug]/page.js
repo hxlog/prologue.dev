@@ -1,14 +1,14 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import dynamic from "next/dynamic";
-import siteMetadata from "../../../data/sitemetadata";
-import TableofContent from "../../components/toc";
-import ScrollTopAndComment from "../../components/scroll";
-import PageTransition from "../../components/page-transition";
-import MDXRenderer from "../../components/mdx-renderer";
-import { getPageBySlug, getPageSlugs } from "../../lib/content/pages";
+import siteMetadata from "../../../../data/sitemetadata.js";
+import TableofContent from "../../../components/toc.js";
+import ScrollTopAndComment from "../../../components/scroll.js";
+import PageTransition from "../../../components/page-transition.js";
+import MDXRenderer from "../../../components/mdx-renderer.js";
+import { getPageBySlug, getPageSlugs } from "../../../lib/content/pages.js";
 
-const Comments = dynamic(() => import("../../components/comments"), {
+const Comments = dynamic(() => import("../../../components/comments.js"), {
   loading: () => <div className="h-32" aria-hidden />,
 });
 

@@ -2,25 +2,25 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import dynamic from "next/dynamic";
 import "katex/dist/katex.min.css";
-import siteMetadata from "../../../../data/sitemetadata";
-import ScrollTopAndComment from "../../../components/scroll";
-import TableofContent from "../../../components/toc";
+import siteMetadata from "../../../../../data/sitemetadata.js";
+import ScrollTopAndComment from "../../../../components/scroll.js";
+import TableofContent from "../../../../components/toc.js";
 import Link from "next/link";
 import Image from "next/image";
-import AboutMe from "../../../components/aboutme";
-import TagChips from "../../../components/tag-chips";
-import RelatedPosts from "../../../components/related-posts";
-import ReadingProgress from "../../../components/reading-progress";
-import { OptimizedHTMLRenderer } from "../../../components/optimized-html-renderer";
-import { formatDate } from "../../../lib/date";
+import AboutMe from "../../../../components/aboutme.js";
+import TagChips from "../../../../components/tag-chips.js";
+import RelatedPosts from "../../../../components/related-posts.js";
+import ReadingProgress from "../../../../components/reading-progress.js";
+import { OptimizedHTMLRenderer } from "../../../../components/optimized-html-renderer.js";
+import { formatDate } from "../../../../lib/date.js";
 import {
   getPostBySlug,
   getPostSlugs,
   getPublishedPosts,
-} from "../../../lib/content/posts";
-import { getTagLabels } from "../../../lib/content/tags";
+} from "../../../../lib/content/posts.js";
+import { getTagLabels } from "../../../../lib/content/tags.js";
 
-const Comments = dynamic(() => import("../../../components/comments"), {
+const Comments = dynamic(() => import("../../../../components/comments.js"), {
   loading: () => <div className="h-32" aria-hidden />,
 });
 

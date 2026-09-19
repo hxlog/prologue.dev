@@ -1,8 +1,8 @@
 import { compareDesc } from "date-fns";
 import PostsLayout from "./bloglistlayout";
-import siteMetadata from "../../../data/sitemetadata";
-import { getPublishedPosts } from "../../lib/content/posts";
-import { getTagCounts, getTagLabels, getSortedTags } from "../../lib/content/tags";
+import siteMetadata from "../../../../data/sitemetadata.js";
+import { getPublishedPosts } from "../../../lib/content/posts.js";
+import { getTagCounts, getTagLabels, getSortedTags } from "../../../lib/content/tags.js";
 
 export default async function Blog() {
   // Independent reads; run them together. The published-only read is what makes

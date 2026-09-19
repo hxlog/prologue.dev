@@ -1,9 +1,9 @@
 import { statSync } from "node:fs";
 import path from "node:path";
 import { Feed } from "feed";
-import siteMetadata from "../../../../data/sitemetadata";
-import { getMicroblog } from "../../../lib/content/collections";
-import { entryToHtml } from "../../../lib/microblog-html";
+import siteMetadata from "../../../../../data/sitemetadata.js";
+import { getMicroblog } from "../../../../lib/content/collections.js";
+import { entryToHtml } from "../../../../lib/microblog-html.js";
 
 const SITE = String(siteMetadata.siteUrl || "").replace(/\/+$/, "");
 

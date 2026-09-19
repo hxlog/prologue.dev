@@ -1,14 +1,18 @@
 import "./globals.css";
-import dynamic from "next/dynamic";
 import { Noto_Sans_SC, Noto_Serif_SC, JetBrains_Mono } from "next/font/google";
 import { Providers } from "../components/providers";
-import Navbar from "../components/navbar";
-import Footer from "../components/footer";
 import siteMetadata from "../../data/sitemetadata";
-import UmamiAnalytics from "../components/umami-analytics";
-import { getSiteYear } from "../lib/site-year";
 
-const ImageLightbox = dynamic(() => import("../components/ImageLightbox"));
+/**
+ * The root layout is deliberately thin: document shell, fonts, theme.
+ *
+ * The public chrome (navbar, footer, lightbox, analytics) lives in
+ * src/app/(site)/layout.js instead, because a root layout wraps *every* route
+ * including /studio — and /studio must not render the blog's navigation, must
+ * not mount the image lightbox, and must not report its own pageviews to
+ * Umami. Before this split the only way to have an admin area was to render
+ * the public navbar on top of it.
+ */
 
 /**
  * Typography stack (next/font best practice: self-hosted, zero layout shift,
@@ -68,12 +72,7 @@ export const metadata = {
   },
 };
 
-export default async function RootLayout({ children }) {
-  // Read here, not in <Footer>: the footer is a client component and cannot
-  // open a 'use cache' boundary, and the year is an unstable value that must
-  // not be read directly during prerender. See src/lib/site-year.js.
-  const year = await getSiteYear();
-
+export default function RootLayout({ children }) {
   return (
     <html
       lang={siteMetadata.language}
@@ -81,15 +80,7 @@ export default async function RootLayout({ children }) {
       className={`${notoSansSC.variable} ${notoSerifSC.variable} ${jetbrainsMono.variable}`}
     >
       <body className="mx-auto bg-background text-foreground antialiased">
-        <Providers>
-          <Navbar />
-          <div className="max-w-7xl mx-auto px-6">
-            <main>{children}</main>
-            <Footer year={year} />
-          </div>
-          <ImageLightbox />
-        </Providers>
-        <UmamiAnalytics />
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

@@ -1,6 +1,6 @@
-import PageTransition from "../../components/page-transition";
-import MicroblogCard from "../../components/microblog-card";
-import { getMicroblog } from "../../lib/content/collections";
+import PageTransition from "../../../components/page-transition.js";
+import MicroblogCard from "../../../components/microblog-card.js";
+import { getMicroblog } from "../../../lib/content/collections.js";
 
 export async function generateMetadata() {
   return {

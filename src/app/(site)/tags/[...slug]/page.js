@@ -1,13 +1,13 @@
 import { notFound } from "next/navigation";
 import PostsLayout from "../../blog/bloglistlayout";
-import siteMetadata from "../../../../data/sitemetadata";
-import { getPublishedPosts } from "../../../lib/content/posts";
+import siteMetadata from "../../../../../data/sitemetadata.js";
+import { getPublishedPosts } from "../../../../lib/content/posts.js";
 import {
   getTagCounts,
   getTagLabels,
   getSortedTags,
   resolveTagSlug,
-} from "../../../lib/content/tags";
+} from "../../../../lib/content/tags.js";
 
 /**
  * Prerender every known tag page at build time. Unknown tags still resolve at

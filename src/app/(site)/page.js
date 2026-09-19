@@ -1,12 +1,12 @@
-import siteMetadata from "../../data/sitemetadata";
-import AboutMe from "../components/aboutme";
-import Articles from "../components/articles";
-import MicroblogSnippet from "../components/microblog-snippet";
-import TerminalQuotes from "../components/terminal-quotes";
-import PageTransition from "../components/page-transition";
-import { getPublishedPosts } from "../lib/content/posts";
-import { getSortedTags, getTagLabels } from "../lib/content/tags";
-import { getMicroblogQuotes } from "../lib/content/collections";
+import siteMetadata from "../../../data/sitemetadata.js";
+import AboutMe from "../../components/aboutme.js";
+import Articles from "../../components/articles.js";
+import MicroblogSnippet from "../../components/microblog-snippet.js";
+import TerminalQuotes from "../../components/terminal-quotes.js";
+import PageTransition from "../../components/page-transition.js";
+import { getPublishedPosts } from "../../lib/content/posts.js";
+import { getSortedTags, getTagLabels } from "../../lib/content/tags.js";
+import { getMicroblogQuotes } from "../../lib/content/collections.js";
 
 export default async function Home() {
   // The four reads are independent, so they run together rather than in

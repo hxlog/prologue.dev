@@ -1,6 +1,6 @@
 import Link from "next/link";
-import SearchGrid from "../../components/search-grid";
-import { tagLabel } from "../../../data/tagLabels";
+import SearchGrid from "../../../components/search-grid.js";
+import { tagLabel } from "../../../../data/tagLabels.js";
 
 /**
  * Shared archive layout for /blog and /tags/[...slug].

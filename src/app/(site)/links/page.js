@@ -1,6 +1,6 @@
-import FriendLinks from "../../components/friendlinks";
-import PageTransition from "../../components/page-transition";
-import { getLinks } from "../../lib/content/collections";
+import FriendLinks from "../../../components/friendlinks.js";
+import PageTransition from "../../../components/page-transition.js";
+import { getLinks } from "../../../lib/content/collections.js";
 
 export async function generateMetadata() {
   return {
