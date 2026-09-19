@@ -497,6 +497,64 @@ try {
     "the session in use is not marked"
   );
 
+  // ── media ────────────────────────────────────────────────────────────────
+  const media = await request("/studio/media");
+  ok("media screen renders", media.status === 200, `status ${media.status}`);
+  ok(
+    "the media screen names the store's visibility",
+    media.text.includes("私有 Blob") || media.text.includes("未配置 Blob"),
+    "the store's access level is not stated anywhere on the screen"
+  );
+  ok(
+    "the media screen explains the proxy",
+    media.text.includes("/api/img"),
+    "nothing tells the author how an uploaded image is served"
+  );
+
+  // The editor carries the insert control. Asserted here rather than by
+  // uploading: the upload pipeline has its own test against the real store
+  // (`media-test.mjs`), and driving a browser PUT from this script would test
+  // the presigned URL rather than the studio.
+  const { rows: anyPost } = await client.query(
+    `SELECT slug FROM posts WHERE published_revision_id IS NOT NULL ORDER BY slug LIMIT 1`
+  );
+  const editorForMedia = await request(`/studio/posts/${encodeURIComponent(anyPost[0].slug)}`);
+  ok(
+    "the editor offers an image insert",
+    editorForMedia.text.includes("插入图片"),
+    "the media picker has no entry point from the editor"
+  );
+
+  // ── the image proxy refuses what is not published ────────────────────────
+  //
+  // A pathname shaped exactly like a real one, pointing at an object that was
+  // never uploaded. The answer must be 404 — not 403, which would confirm that
+  // *something* is at that pathname, and not 200, which is the failure this
+  // route exists to prevent. The request carries the session cookie, so this
+  // also proves the proxy does not fall back to "any signed-in user may read
+  // anything" for an object that does not exist.
+  const ghost = `/api/img/media/2026/09/${Date.now().toString(36)}z-does-not-exist.png`;
+  const ghostRes = await request(ghost);
+  ok(
+    "the image proxy 404s an object that does not exist",
+    ghostRes.status === 404,
+    `status ${ghostRes.status}`
+  );
+
+  // A malformed pathname is refused before any store call.
+  for (const bad of [
+    "/api/img/../../etc/passwd",
+    "/api/img/media/2026/09/abc.png?x=1",
+    "/api/img/photo.png",
+  ]) {
+    const res = await request(bad);
+    ok(
+      `the image proxy refuses ${bad.slice(0, 40)}`,
+      res.status === 404,
+      `status ${res.status}`
+    );
+  }
+
   // ── tags ─────────────────────────────────────────────────────────────────
   const tags = await request("/studio/tags");
   ok("tags screen renders", tags.status === 200, `status ${tags.status}`);

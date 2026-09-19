@@ -5,6 +5,7 @@ import { getPostForEdit, listRevisions } from "../../../../../lib/studio/posts-w
 import { readMeta } from "../../../../../lib/studio/frontmatter-doc";
 import { renderMarkdown } from "../../../../../lib/markdown/render";
 import { getAllTags } from "../../../../../lib/content/tags";
+import { blobConfigured } from "../../../../../lib/media/blob";
 import Editor from "./editor";
 import { IconBack } from "../../../../../components/studio/icons";
 
@@ -119,7 +120,7 @@ export default async function EditPostPage(props) {
         文章
       </Link>
 
-      <Editor initial={initial} tags={tags} />
+      <Editor initial={initial} tags={tags} mediaConfigured={blobConfigured()} />
     </div>
   );
 }

@@ -69,6 +69,19 @@ export const TAGS = {
 
   /** The unified search index. Written on every publish, read by /api/search. */
   search: "search",
+
+  /**
+   * The media library.
+   *
+   * Covers two reads that must move together: the library listing, and
+   * `isPublishedMedia` — the question the /api/img proxy answers. Publishing a
+   * post is what makes its images public, so `invalidatePost` drops this tag as
+   * well as a media write doing so. Without that, an image uploaded into a draft
+   * and then published would keep the "not published" answer until the cache
+   * expired, and the reader would get a 404 for a picture that is visibly in the
+   * post they are looking at.
+   */
+  media: "media",
 };
 
 /**
@@ -87,6 +100,10 @@ export function invalidatePost(slug) {
   updateTag(TAGS.posts);
   updateTag(TAGS.tags);
   updateTag(TAGS.search);
+  // Publishing is what makes a draft's images reachable through /api/img, so
+  // the proxy's "is this published" answer is part of what a post write
+  // invalidates. See the note on TAGS.media.
+  updateTag(TAGS.media);
   if (slug) updateTag(TAGS.post(slug));
 }
 

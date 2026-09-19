@@ -27,6 +27,7 @@
     "@lezer/highlight": "^1.2.3",
     "@mdx-js/mdx": "^3.1.1",
     "@tailwindcss/postcss": "^4.3.3",
+    "@vercel/blob": "^2.8.0",
     "date-fns": "^4.4.0",
     "feed": "^6.0.0",
     "framer-motion": "^13.2.0",

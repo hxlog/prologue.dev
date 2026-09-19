@@ -44,6 +44,23 @@ There is no unit-test suite, so these scripts are the safety net. They are not d
 | `dump-posts.mjs` | the full reader-visible projection of every post, as text, for diffing before/after a change. |
 | `verify-feed-dates.mjs` | stored instants render the same day they do in production. |
 
+The `/studio` side has its own set, under `scripts/studio/`. They need the local
+server on `:3212` (the e2e suite) or `:3211` (the site verifiers) and the direct
+connection, and they take a while — run them before claiming a write-path change
+is safe.
+
+| script | what it proves |
+|---|---|
+| `e2e.mjs` | the studio's whole HTTP surface: auth, every screen, the redirect table, the taxonomy, and that `/api/img` 404s what is not published. |
+| `write-test.mjs` | publish / revert / restore, and the concurrency refusal. |
+| `preview-parity.mjs` | the editor's preview is the stored artifact, byte for byte. |
+| `collections-test.mjs` | entry anchors, the field-index projection, partial-update merging. |
+| `tags-test.mjs` | a rename leaves a working alias, a tag in use cannot be deleted, an alias cannot shadow a tag. |
+| `media-test.mjs` | the store is private, a pathname cannot be client-chosen, and a delete is refused while anything references the object. |
+| `blob-probe.mjs` | the store authenticates and answers 403 unauthenticated. Run this first when media misbehaves. |
+| `media-reconcile.mjs` | reports (and only under `--fix`, removes) blobs with no row and rows with no object. |
+| `check-imports.mjs` | every relative specifier in `src/` resolves, without a build. Route groups add a directory level; run this after moving anything under one. |
+
 ## Database
 
 One database, `prologue`, on a shared self-hosted PostgreSQL 18 cluster. Two neighbouring databases are **never touched**: `postgres` (another project's `bp_*` tables) and `umami`.
@@ -91,6 +108,14 @@ Feeds are edge-cached (`s-maxage=600, stale-while-revalidate=86400`).
 
 **Feed HTML is assembled by string surgery** — a stack of regex passes (strip KaTeX presentation, promote block math, absolutise URLs, rebuild `<img>`) rather than a DOM traversal. This is the most fragile code in the repo and the reason `compare-feeds.mjs` exists. Anything that changes the shape of stored post HTML can break a feed without breaking a page.
 
+## Media
+
+Bytes live in a **private** Vercel Blob store (`src/lib/media/blob.js` is the only module that touches it); metadata lives in `media`. Images are served exclusively through `/api/img/<pathname>`, which serves anything referenced by a **published** post or page to anyone, and everything else only to a session — as a **404, not a 403**, so a stranger cannot learn that unpublished work exists. Publishing a post is therefore a media-visibility event, which is why `invalidatePost` drops the `media` cache tag.
+
+A pathname is generated on the server, never chosen by the client: `media/<y>/<m>/<8 hex>-<slug>.<ext>`, with the extension derived from an allowlist of MIME types rather than from the filename. `isMediaPathname` is the anchored regex the proxy validates against. SVG is deliberately not on the allowlist — it can carry script, and serving one from the site's own origin is stored XSS against anyone who opens it directly.
+
+Uploads are presigned PUTs straight from the browser to the store, so bytes never pass through a function. **`addRandomSuffix: false` is load-bearing**: the default appends four characters at storage time, which puts the object somewhere the database was never told about and makes the commit step's `head()` say "does not exist". `docs/studio.md` has the full reasoning.
+
 ## Design system
 
 Semantic tokens live in `src/app/globals.css` under `@theme inline` (`background/foreground/surface/surface-2/surface-3/muted/faint/border/border-strong/accent/accent-strong/accent-soft/secondary/secondary-soft`, radii, shadows, motion), mapped to CSS variables that flip under `.dark`. **Primary accent = cyan, secondary = violet**; interactive states use `accent`, emphasis/badges use the `--gradient-brand`. The v3-style `tailwind.config.js` (loaded via `@config`) holds only `darkMode: ["class"]` + the typography plugin. Fonts are self-hosted via `next/font/google` in `layout.js`.
@@ -108,6 +133,7 @@ Tags: canonical slugs are English (15-tag taxonomy), Chinese display labels live
 - `/tags/[...slug]` — tag pages, statically prerendered via `generateStaticParams`.
 - `/microblog`, `/links` — collections-backed pages. `/microblog/rss` is a standalone RSS 2.0 feed for the microblog.
 - `/api/search` — the search endpoint (see below).
+- `/api/img/[...path]` — the authenticated image proxy for the private Blob store. The only way any uploaded image is served.
 - `/og` — dynamic Open Graph image, per-title Noto Sans SC subset, CDN-cached.
 - `sitemap.js`, `robots.js`, and the feed routes handle SEO/discovery.
 

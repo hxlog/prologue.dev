@@ -131,3 +131,75 @@ one document.
 
 Two tag families: the collection (`posts`) so a new post appears on /blog, and
 the member (`post:<slug>`) so editing one post does not evict the other 62.
+
+A third tag, `media`, does not follow that shape and is worth knowing about
+because it is invalidated by things that are not media writes. It covers two
+reads that move together: the library listing, and `isMediaPublished` — the
+answer `/api/img` gives a request with no session. Publishing a POST is what
+makes its images public, so `invalidatePost` drops `media` as well. Without
+that, an image uploaded into a draft and then published would keep answering
+"not published" and a reader would get a 404 for a picture visibly in the post
+in front of them.
+
+## Media
+
+Bytes live in a **private** Vercel Blob store; `media` rows hold the metadata.
+Neither is reachable without the other, and the join is `/api/img/<pathname>`.
+
+**Why private.** A public store is a bucket anybody can enumerate. The moment
+the library is writable from the studio, that becomes "anybody can list
+everything ever uploaded, including the screenshots in a draft that never
+shipped". `scripts/studio/blob-probe.mjs` asserts the store answers 403 to an
+unauthenticated fetch — the check is worth keeping runnable because
+`access: 'private'` is an argument on every call rather than a property of the
+store, so the same code against a public store would succeed and serve the
+object to the world.
+
+**The upload is three steps and the middle one is in the browser.**
+
+1. `beginUpload` decides the pathname, checks the declared type and size, and
+   returns a presigned PUT. Nothing is written yet.
+2. The browser PUTs the bytes straight to the store. A 12 MB photo through a
+   serverless body limit is either refused or slow and expensive, and the point
+   of a presigned URL is that this leg does not exist.
+3. `commitUpload` asks the store whether the object is actually there — with
+   `head()` — and only then writes the row.
+
+Step 3 is the one that is easy to skip. It is the difference between a library
+whose rows are facts and one whose rows are intentions: a row written at step 1
+leaves broken thumbnails the first time a tab is closed mid-upload.
+
+`addRandomSuffix: false` in the presign options is load-bearing and its default
+is not what you would guess. Vercel Blob appends four random characters to a
+pathname at storage time by default — a sane default for public uploads — and
+here it means the object lands somewhere nobody recorded, `head()` on the
+promised pathname says "does not exist", and the commit refuses. Measured, not
+theorised.
+
+**A pathname is generated on the server and never chosen by the client.** It is
+`media/<year>/<month>/<8 hex>-<slug>.<ext>`: the date makes the store browsable
+as a timeline, the random prefix is what makes a URL unguessable, and the
+extension is derived from the MIME type rather than copied from the filename.
+`isMediaPathname` is the anchored regex that the proxy validates against, which
+is what makes `../`, a query string, a percent-encoding trick or an absolute URL
+unrepresentable rather than merely rejected.
+
+**Serving.** `/api/img/<pathname>` is the only way any image is served. An
+object referenced by a PUBLISHED post or page is served to anyone — it has to
+be, because `next/image` fetches it server-side with no cookie and every feed
+reader does too. Anything else needs a session, and answers **404, not 403** to
+a stranger: a 403 would confirm an object is there, and the set of things a
+stranger can learn about unpublished work should be empty. Published responses
+carry `immutable`; session-only ones are `no-store`.
+
+**Deleting is refused while anything references the object**, searched across
+`post_revisions.html`, `page_revisions.markdown` and
+`collection_entries.values::text` — three stores that keep the URL in three
+different shapes. Missing one is how a published page ends up with a broken
+image. The refusal carries the counts, and `force` is only reachable from a
+second confirmation that has already shown them.
+
+`scripts/studio/media-reconcile.mjs` is the one thing that reads the STORE
+rather than the database. It reports blobs with no row (a commit that failed
+after a successful PUT — invisible by definition) and rows with no object
+(deleted in the Vercel dashboard), and only deletes either under `--fix`.

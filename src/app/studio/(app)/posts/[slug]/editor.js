@@ -9,8 +9,11 @@ import {
   unpublishPostAction,
 } from "../../../actions/posts";
 import { CodeMirrorEditor } from "../../../../../components/studio/codemirror";
+import { MediaPicker } from "../../../../../components/studio/media-picker";
 import { MetaPanel } from "../../../../../components/studio/meta-panel";
 import { PreviewPane } from "../../../../../components/studio/preview-pane";
+import { mediaUrl } from "../../../../../lib/media/paths";
+import { IconMedia } from "../../../../../components/studio/icons";
 
 /**
  * The editor screen.
@@ -46,7 +49,7 @@ import { PreviewPane } from "../../../../../components/studio/preview-pane";
  * does NOT retry — retrying would overwrite whatever the other tab wrote, which
  * is the exact thing the check exists to prevent.
  */
-export default function Editor({ initial, tags }) {
+export default function Editor({ initial, tags, mediaConfigured = true }) {
   const router = useRouter();
 
   const [markdown, setMarkdown] = useState(initial.markdown);
@@ -68,6 +71,27 @@ export default function Editor({ initial, tags }) {
   const revisionRef = useRef(initial.revisionNumber);
   const timer = useRef(null);
   const inFlight = useRef(false);
+
+  // Handed to CodeMirror so the media picker can insert at the caret. Created
+  // here, not inside the editor, because the trigger lives in the toolbar above
+  // it and the two have no other way to reach each other — a controlled
+  // document would be the alternative, and it is the thing this design
+  // deliberately avoids (see the note in codemirror.js).
+  const editorApi = useRef(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  const insertImage = useCallback((media) => {
+    const alt = media.alt || media.original_name?.replace(/\.[^.]+$/, "") || "";
+    const line = `![${alt.replace(/[[\]]/g, "")}](${mediaUrl(media.pathname)})`;
+
+    // `block: true` lets the editor compute the surrounding blank lines from
+    // the real document. It has the caret and this does not, so the padding is
+    // the one thing that cannot be decided here.
+    editorApi.current?.insert(line, { block: true });
+    // The editor reports the change through `onChange`, which schedules the
+    // autosave. Nothing to do here but close.
+    setPickerOpen(false);
+  }, []);
 
   const flush = useCallback(async () => {
     if (inFlight.current) return null;
@@ -192,10 +216,29 @@ export default function Editor({ initial, tags }) {
             knownTags={tags}
             slug={initial.slug}
           />
+          {/*
+            The insert trigger sits directly above the document rather than in
+            the top bar: it acts on the CARET, and the caret is down here. A
+            control that inserts at a position you cannot see is a control you
+            use once and then stop trusting.
+          */}
+          <div className="mt-4 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPickerOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs text-muted transition-colors hover:bg-surface-2 hover:text-accent"
+            >
+              <IconMedia className="h-3.5 w-3.5" />
+              插入图片
+            </button>
+            <span className="text-[11px] text-faint">插入到光标位置</span>
+          </div>
+
           <CodeMirrorEditor
             initialValue={initial.markdown}
             onChange={onMarkdownChange}
-            className="mt-4"
+            apiRef={editorApi}
+            className="mt-2"
           />
         </div>
 
@@ -207,6 +250,16 @@ export default function Editor({ initial, tags }) {
           <PreviewPane html={html} />
         </div>
       </div>
+
+      {/* The picker is mounted unconditionally so its own `open` prop is what
+          controls visibility — mounting it inside a conditional would drop the
+          upload progress of an in-flight file the moment it closed. */}
+      <MediaPicker
+        open={pickerOpen}
+        configured={mediaConfigured}
+        onClose={() => setPickerOpen(false)}
+        onPick={insertImage}
+      />
 
       {/*
         Phone tab bar. Sticky to the bottom rather than fixed: `fixed` would sit

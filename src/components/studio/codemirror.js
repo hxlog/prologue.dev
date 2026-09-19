@@ -76,7 +76,7 @@ import { prologueTheme, prologueHighlight } from "./editor-theme";
  * unhighlighted code rather than failing, which is the same degradation
  * src/lib/markdown/render.js already documents for shiki.
  */
-export function CodeMirrorEditor({ initialValue, onChange, className = "" }) {
+export function CodeMirrorEditor({ initialValue, onChange, className = "", apiRef }) {
   const host = useRef(null);
   const view = useRef(null);
   const onChangeRef = useRef(onChange);
@@ -87,6 +87,66 @@ export function CodeMirrorEditor({ initialValue, onChange, className = "" }) {
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
+
+  // Hand the parent an imperative way IN, without making the document
+  // controlled on the way out.
+  //
+  // The media library needs exactly one operation: "insert this at the caret".
+  // A controlled value would be the wrong tool — it would mean React writing
+  // into the document on every render, which is what resets the cursor and the
+  // undo history. An api object is the same escape hatch CodeMirror itself
+  // uses (`EditorView.dispatch`), and it keeps the one-way data flow intact:
+  // changes still leave only through `onChange`.
+  useEffect(() => {
+    if (!apiRef) return;
+    apiRef.current = {
+      /**
+       * Put `text` at the caret.
+       *
+       * `block: true` makes the insertion stand alone as its own paragraph,
+       * adding only the newlines that are actually missing. The padding is
+       * computed from the document rather than guessed by the caller, because
+       * the caller cannot see where the caret is — and a markdown image glued
+       * to the end of the previous line is a paragraph continuation, not the
+       * block the author who clicked "insert" had in mind.
+       */
+      insert(text, { block = false } = {}) {
+        const instance = view.current;
+        if (!instance) return false;
+
+        const doc = instance.state.doc;
+        const { from, to } = instance.state.selection.main;
+
+        let chunk = text;
+        let anchor = from + text.length;
+        if (block) {
+          const before = doc.sliceString(0, from);
+          const after = doc.sliceString(to);
+          const lead =
+            before === "" || before.endsWith("\n\n")
+              ? ""
+              : before.endsWith("\n")
+                ? "\n"
+                : "\n\n";
+          // A trailing newline at the very end of the document would leave a
+          // dangling blank line that the next keystroke types into.
+          const tail = after.startsWith("\n") ? "\n" : "\n\n";
+          chunk = `${lead}${text}${after === "" ? "\n" : tail}`;
+          anchor = from + lead.length + text.length;
+        }
+
+        instance.dispatch({
+          changes: { from, to, insert: chunk },
+          selection: { anchor },
+        });
+        instance.focus();
+        return true;
+      },
+    };
+    return () => {
+      apiRef.current = null;
+    };
+  }, [apiRef]);
 
   useEffect(() => {
     if (!host.current) return;
