@@ -21,11 +21,29 @@
  * generated columns — none of which those tools can express) or wants to own the
  * connection (we connect as a specific role against a shared server).
  *
- * Connects to DATABASE_URL_UNPOOLED, not DATABASE_URL. Migrations issue DDL and
- * take session-level advisory locks, and PgBouncer in transaction mode is a
- * session-level-feature-free zone: a plain `SET` there affects whichever backend
- * the next statement happens to land on, and `pg_advisory_lock` is released at
- * a moment we do not control. Direct connection, no pooler.
+ * Connects as the schema OWNER (PGADMIN_URL), not as the application role.
+ *
+ * The application connects as `prologue_app`, which holds DML privileges on the
+ * public schema but NOT CREATE, and owns none of the tables. An ALTER on an
+ * existing table therefore fails with "must be owner of table" even though the
+ * role can read and write it. Migrations use the owner connection, and the app
+ * role receives its privileges from the ALTER DEFAULT PRIVILEGES already
+ * configured for it on this database:
+ *
+ *     ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
+ *       GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO prologue_app;
+ *
+ * which is why no migration contains a GRANT. Creating a table as any other
+ * role would silently produce a table the application cannot touch, so the
+ * connection is pinned to the one owner.
+ *
+ * Not DATABASE_URL_UNPOOLED: that is the direct-to-Postgres path as the
+ * APPLICATION role, which is right for the scripts that only read and write
+ * rows (imports, dumps, verification) and wrong for DDL.
+ *
+ * And never through PgBouncer. Migrations take a session-level advisory lock,
+ * and transaction pooling releases those at a moment we do not control: a
+ * plain `SET` there affects whichever backend the next statement lands on.
  *
  * Each file runs in its own transaction so a failure leaves earlier files
  * applied and later ones untouched — a partially-applied sequence is
@@ -64,17 +82,26 @@ const SENTINELS = {
   "0003_fix_cjk_tokenizer.sql": null, // replaces functions; nothing to probe
 };
 
+/**
+ * The connection string migrations run on.
+ *
+ * PGADMIN_URL first, and it is the only one that normally works — see the file
+ * header for why the application role cannot run DDL here. DATABASE_URL_UNPOOLED
+ * is accepted as a fallback for a deployment where the application role DOES own
+ * the schema (a fresh database where migrations ran as that role from the
+ * start), because in that case the two are genuinely interchangeable and
+ * demanding a second variable would be ceremony.
+ *
+ * Both are validated for the same two things: they must be set, and they must
+ * not point at PgBouncer.
+ */
 function loadConnectionString() {
-  // .env.local is not read automatically outside Next, so read it the way the
-  // other scripts in this directory do.
-  const url =
-    process.env.DATABASE_URL_UNPOOLED ||
-    process.env.DATABASE_URL ||
-    "";
+  const url = process.env.PGADMIN_URL || process.env.DATABASE_URL_UNPOOLED || "";
+
   if (!url) {
     console.error(
-      "DATABASE_URL_UNPOOLED is not set.\n" +
-        "Load .env.local first, e.g.\n" +
+      "No migration connection string.\n" +
+        "Set PGADMIN_URL (the schema owner) in .env.local, then:\n" +
         "  node --env-file=.env.local scripts/db/migrate.mjs"
     );
     process.exit(1);
