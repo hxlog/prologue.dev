@@ -9,8 +9,16 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@codemirror/autocomplete": "^6.20.3",
+    "@codemirror/commands": "^6.11.1",
+    "@codemirror/lang-markdown": "^6.5.2",
+    "@codemirror/language": "^6.12.4",
+    "@codemirror/search": "^6.7.2",
+    "@codemirror/state": "^6.7.5",
+    "@codemirror/view": "^6.43.12",
     "@giscus/react": "^3.1.0",
     "@headlessui/react": "^2.2.10",
+    "@lezer/highlight": "^1.2.3",
     "@mdx-js/mdx": "^3.1.1",
     "@tailwindcss/postcss": "^4.3.3",
     "date-fns": "^4.4.0",
