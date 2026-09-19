@@ -82,6 +82,17 @@ export const TAGS = {
    * post they are looking at.
    */
   media: "media",
+
+  /**
+   * The redirect table.
+   *
+   * Read on the 404 path by the two catch-all routes, so a tag that nothing
+   * drops means a retired URL keeps 404ing for thirty days after the author
+   * renamed the thing it pointed at — which is exactly the moment they are
+   * looking at it. `setRedirect` writes the row; `invalidateRedirects` is what
+   * makes the reader see it.
+   */
+  redirects: "redirects",
 };
 
 /**
@@ -121,6 +132,17 @@ export function invalidatePage(slug) {
  */
 export function invalidateNav() {
   updateTag(TAGS.nav);
+}
+
+/**
+ * Invalidate the redirect table.
+ *
+ * Called by every write that adds, changes or removes a forwarding address —
+ * the two rename actions and the settings screen's redirect editor. See the
+ * note on `TAGS.redirects` for what goes stale without it.
+ */
+export function invalidateRedirects() {
+  updateTag(TAGS.redirects);
 }
 
 /**

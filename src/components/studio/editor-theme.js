@@ -28,6 +28,13 @@ export const prologueTheme = EditorView.theme(
       color: "var(--foreground)",
       backgroundColor: "transparent",
       fontSize: "14px",
+      // A floor, not a height. A new post has an empty document, and CodeMirror
+      // sizes itself to its content — so without this the editor for a post the
+      // author has not written yet is one line tall, a 40px sliver with a
+      // border, which reads as "this did not load". The measurement is roughly
+      // a third of a laptop viewport and a comfortable phone screenful; a long
+      // document still grows past it and scrolls with the page.
+      minHeight: "42vh",
     },
     "&.cm-focused": { outline: "none" },
     ".cm-content": {

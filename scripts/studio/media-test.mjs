@@ -322,6 +322,52 @@ try {
 
   await pool.query(`DELETE FROM pages WHERE id = $1`, [pageRow[0].id]);
 
+  // ── the COVER column ───────────────────────────────────────────────────────
+  //
+  // A cover set through /studio lives only in `posts.cover_image`. It is not in
+  // the revision's HTML, so a search that reads only the revisions cannot see
+  // it — and a post whose only image is its cover would have that cover 404 for
+  // every reader while looking perfect to the signed-in author.
+  //
+  // Exercised here because this is the test that owns `usage.js`; the end-to-end
+  // consequence is asserted in `journey-test.mjs`.
+  //
+  // Drafting the post is what makes the revision stop counting for VISIBILITY —
+  // `isPublishedRow` joins through `published_revision_id`, and nulling it means
+  // no published pointer. `usageFor` is a different question and still reports
+  // the revision, because a revision row is history: it exists, and a delete
+  // that ignored it would break the post if it were ever republished. Both are
+  // asserted, because "the counts disagree" is the expected shape here.
+  await pool.query(
+    `UPDATE posts SET cover_image = $2, published_revision_id = NULL,
+       status = 'draft' WHERE id = $1`,
+    [postId, mediaUrl(ticket.pathname)]
+  );
+
+  const coverDraft = await usageFor(ticket.pathname);
+  eq("usage: a draft's cover is counted", coverDraft.covers, 1);
+  eq("usage: the revision still counts too", coverDraft.posts, 1);
+  eq("usage: so the total is both", coverDraft.total, 2);
+  eq(
+    "privacy: a DRAFT's cover is not published",
+    await isPublishedRow(ticket.pathname),
+    false,
+    "an unpublished cover must not be readable by a stranger"
+  );
+
+  await pool.query(`UPDATE posts SET status = 'published' WHERE id = $1`, [postId]);
+  eq(
+    "privacy: publishing the post publishes its cover",
+    await isPublishedRow(ticket.pathname),
+    true,
+    "next/image fetches without a cookie, so a cover the author can see would 404 for every reader"
+  );
+
+  const refusedCover = await deleteMedia(media.id);
+  eq("delete: a cover-only reference still blocks", refusedCover.reason, "in_use");
+  eq("delete: and the refusal reports it as a cover", refusedCover.covers, 1);
+  await pool.query(`UPDATE posts SET cover_image = NULL, status = 'draft' WHERE id = $1`, [postId]);
+
   // ── force, and the real delete ─────────────────────────────────────────────
   const forced = await deleteMedia(media.id, { force: true });
   ok("delete: force deletes an in-use object", forced.ok, JSON.stringify(forced));

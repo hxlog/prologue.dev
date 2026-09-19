@@ -14,6 +14,13 @@ import { signIn, verifySecondFactor } from "../../actions/auth";
  * `background-color` in others depending on how the value is written. The
  * inline style is unambiguous, and it is what every other gradient in this
  * codebase does (see card.js, aboutme.js, modal.js).
+ *
+ * `.btn-brand` supplies the label colour and the hover. Not `text-white` and
+ * not `hover:opacity-90`: white on this gradient's cyan end is 2.43:1 and on
+ * its violet end 4.23:1, and an opacity hover composites the label toward the
+ * page and lowers the ratio further. The full reasoning is in the `--on-accent`
+ * note in globals.css — this is the first screen an author sees, so it is the
+ * worst place to ship a button whose text fails contrast.
  */
 function SubmitButton({ pending, children }) {
   return (
@@ -21,8 +28,8 @@ function SubmitButton({ pending, children }) {
       type="submit"
       disabled={pending}
       style={{ background: "var(--gradient-brand)" }}
-      className="w-full rounded-lg px-4 py-2 text-sm font-medium text-white transition-opacity
-                 hover:opacity-90 focus-visible:outline focus-visible:outline-2
+      className="btn-brand w-full rounded-lg px-4 py-2 text-sm font-medium
+                 focus-visible:outline focus-visible:outline-2
                  focus-visible:outline-offset-2 focus-visible:outline-accent
                  disabled:cursor-not-allowed disabled:opacity-60"
     >
@@ -79,7 +86,7 @@ export default function SignInForm() {
           />
         </div>
 
-        {state.error && <p className="text-sm text-red-500">{state.error}</p>}
+        {state.error && <p className="text-sm text-danger">{state.error}</p>}
 
         <SubmitButton pending={pending}>{pending ? "验证中…" : "验证并登录"}</SubmitButton>
 
@@ -141,7 +148,7 @@ export default function SignInForm() {
         />
       </div>
 
-      {state.error && <p className="text-sm text-red-500">{state.error}</p>}
+      {state.error && <p className="text-sm text-danger">{state.error}</p>}
 
       <SubmitButton pending={pending}>{pending ? "登录中…" : "登录"}</SubmitButton>
     </form>

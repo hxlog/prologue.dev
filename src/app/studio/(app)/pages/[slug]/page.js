@@ -89,6 +89,9 @@ export default async function EditPagePage(props) {
       showInNav: row.show_in_nav === true,
       navLabel: row.nav_label ?? "",
     },
+    // The delete confirmation says whether the header will lose an entry, and
+    // only this row knows.
+    showInNav: row.show_in_nav === true,
   };
 
   return (

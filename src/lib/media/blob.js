@@ -49,7 +49,9 @@ export const MEDIA_PREFIX = "media/";
  *
  * The constraints are enforced by the CDN, not by us: `allowedContentTypes` and
  * `maximumSizeInBytes` are part of the signature, so a client that edits the
- * request is refused at storage rather than after the fact. `allowOverwrite` is
+ * request cannot get the store to hold something the server did not agree to.
+ * What "enforced" means differs per constraint and the difference is not
+ * obvious, so it is spelled out below rather than assumed. `allowOverwrite` is
  * off — a pathname is generated fresh per upload and a collision would mean two
  * different images claiming one URL.
  *
@@ -57,18 +59,31 @@ export const MEDIA_PREFIX = "media/";
  * and once as the presign's, because they are separate arguments and only the
  * second one is the one the CDN checks.
  *
- * ## `addRandomSuffix: false` is load-bearing, and its default is not what you
- * ## would guess
+ * ## What the signature actually pins, measured
  *
- * The presign options inherit Vercel Blob's default, which is to append four
- * random characters to the pathname at upload time. That default exists for
- * PUBLIC uploads, where the danger is two people picking `avatar.png`. Here the
- * pathname already carries its own random prefix — and more importantly, the
- * server has ALREADY TOLD the client and the database which pathname this object
- * will have. A suffix added at storage time means the object lands somewhere
- * nobody recorded: `head()` on the promised pathname answers "does not exist",
- * the commit step refuses, and the library ends up with bytes that no row points
- * at. Measured, not theorised — `media-test.mjs` fails on exactly this.
+ * `scripts/studio/blob-signing-probe.mjs` asks the store four questions, and the
+ * answers are the security posture of this whole path. Run on 2.8.0 against the
+ * real store:
+ *
+ *   - `addRandomSuffix` defaults to FALSE, on `put()` and on `presignUrl()`
+ *     alike. It is still set explicitly below, because the value matters and a
+ *     default is not a promise — but this file previously claimed the opposite
+ *     and cited a measurement that does not reproduce. The probe is what
+ *     settled it; the comment now records the probe, not a story about one.
+ *
+ *   - A client that swaps the PATHNAME in a presigned URL is refused with 403.
+ *     The pathname is part of the signed query, so a ticket is a ticket for one
+ *     object and not a skeleton key for the store.
+ *
+ *   - A body over `maximumSizeInBytes` is refused with 403.
+ *
+ *   - A client that sends a Content-Type OUTSIDE `allowedContentTypes` is
+ *     ACCEPTED with 200 — and the object is stored with the content type the
+ *     signature declared, not the one the client sent. The constraint is
+ *     enforced by overriding rather than by rejecting, which is the safe half of
+ *     those two options but not the half a reader would assume. This is why
+ *     `commitUpload` re-reads the type with `head()` instead of trusting the
+ *     request, and why the proxy sends `nosniff`.
  *
  * `allowOverwrite` is off for the same reason a pathname is generated fresh per
  * upload: a collision would mean two different images claiming one URL.

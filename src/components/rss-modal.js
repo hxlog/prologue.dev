@@ -94,7 +94,7 @@ export default function RssModal() {
                   className={`shrink-0 rounded-md px-2 py-1 text-xs font-medium transition-colors duration-150 ${
                     state === "copied" && copiedKey === feed.key
                       ? "bg-accent-soft text-accent"
-                      : "bg-surface-2 text-muted group-hover:bg-accent group-hover:text-white"
+                      : "bg-surface-2 text-muted group-hover:bg-accent group-hover:text-on-accent"
                   }`}
                 >
                   {state === "copied" && copiedKey === feed.key ? "已复制 ✓" : "复制"}

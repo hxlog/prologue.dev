@@ -22,9 +22,31 @@ const Comments = dynamic(() => import("../../../components/comments.js"), {
  * here rather than in the proxy — a proxy runs on the edge runtime, where there
  * is no database to reach.
  *
+ * `src/app/(site)/blog/[...slug]/page.js` carries the same function for posts,
+ * and the two are deliberately separate rather than shared: each builds a
+ * different path and each was written at a different time. The duplication is
+ * the reason one of them was missed for a while; the note there records what
+ * went wrong.
+ *
  * Returns null when there is no redirect, and also when a chain does not
  * terminate (a cycle). A reader who hits a redirect loop cannot get out of it
  * by clicking Back, so a loop is answered with a 404 instead.
+ *
+ * ## The duplicated `location` header
+ *
+ * On a cache MISS this response carries `location` twice — once from the
+ * prerender, where the lookup returned null, and once from the request-time
+ * render. Measured on `next start` with a raw socket; the values are identical
+ * so every client resolves it the same way, and `fetch` with `redirect:
+ * "manual"` (which is what a test should use) sees it as a single value.
+ *
+ * It is recorded rather than fixed. The fix in the framework's own vocabulary
+ * is `await connection()`, which declares that the response's headers depend on
+ * request-time data — but inside a partially prerendered page with no Suspense
+ * boundary it fails the blocking-prerender check and turns every unknown path
+ * into a 500. `instant = false` would also fix the header and break the 404,
+ * because a blocking route commits its status line before the render that
+ * discovers there is no page.
  */
 async function movedTo(slug) {
   const target = await follow(`/${slug}`);

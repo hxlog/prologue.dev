@@ -29,9 +29,9 @@ import MDXRenderer from "../mdx-renderer";
 export function MdxPreview({ code, error, empty }) {
   if (error) {
     return (
-      <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4">
-        <p className="text-xs font-medium text-red-500">MDX 无法编译</p>
-        <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-all font-mono text-[11px] leading-5 text-red-500/90">
+      <div className="rounded-xl border border-danger/30 bg-danger-soft p-4">
+        <p className="text-xs font-medium text-danger">MDX 无法编译</p>
+        <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-all font-mono text-[11px] leading-5 text-danger/90">
           {error}
         </pre>
         <p className="mt-3 text-xs text-muted">

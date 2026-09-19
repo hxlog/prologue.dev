@@ -85,7 +85,7 @@ export default function NavEditor({ initial }) {
   return (
     <div className="space-y-4">
       {error && (
-        <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-500">
+        <p className="rounded-xl border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
           {error}
         </p>
       )}
@@ -208,7 +208,7 @@ export default function NavEditor({ initial }) {
                     onClick={() =>
                       run(item.id, () => deleteNavItemAction(item.id), "已删除。")
                     }
-                    className="inline-flex items-center gap-1 text-[11px] text-faint transition-colors hover:text-red-500 disabled:opacity-50"
+                    className="inline-flex items-center gap-1 text-[11px] text-faint transition-colors hover:text-danger disabled:opacity-50"
                   >
                     <IconClose className="h-3 w-3" />
                     删除
@@ -254,7 +254,7 @@ export default function NavEditor({ initial }) {
           <button
             type="submit"
             disabled={pending || !draft.label.trim() || !draft.href.trim()}
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-medium btn-brand disabled:opacity-40"
           >
             <IconPlus className="h-4 w-4" />
             添加
@@ -272,7 +272,7 @@ export default function NavEditor({ initial }) {
       </form>
 
       <p className="flex items-start gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-xs text-muted">
-        <IconWarning className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+        <IconWarning className="mt-0.5 h-4 w-4 shrink-0 text-warn" />
         <span>
           这里只编辑链接本身，不会创建页面或路由。指向不存在的路径会在读者点击时得到 404。
         </span>

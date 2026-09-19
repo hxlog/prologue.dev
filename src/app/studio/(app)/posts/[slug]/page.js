@@ -92,19 +92,24 @@ export default async function EditPostPage(props) {
     );
   }
 
-  const [tags, rendered] = await Promise.all([
+  const [tags, rendered, revisions] = await Promise.all([
     getAllTags(),
     // Re-rendered rather than read from the stored `html` column: this is the
     // preview, and the stored value is what the LAST save produced. If the
     // renderer has changed since (a `RENDERER_VERSION` bump), showing the
     // stored HTML would preview a pipeline that no longer exists.
     renderMarkdown(row.markdown ?? ""),
+    // Only the length is needed, and only so the delete confirmation can say
+    // how much history goes with the post. Selecting the rows to count them
+    // would ship every revision's metadata to render one number.
+    listRevisions(row.id).then((all) => all.length),
   ]);
 
   const initial = {
     slug: row.slug,
     status: row.status,
     revisionNumber: row.revision_number ?? 1,
+    revisionCount: revisions,
     markdown: row.markdown ?? "",
     html: rendered.html,
     meta: readMeta(row.markdown ?? ""),

@@ -69,15 +69,24 @@ export default async function PagesPage() {
                   </p>
                 </Link>
 
-                <a
-                  href={`/${page.slug}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label={`查看 /${page.slug}`}
-                  className="hidden h-7 w-7 shrink-0 items-center justify-center rounded-full text-faint transition-colors hover:bg-surface-3 hover:text-accent sm:flex"
-                >
-                  <IconExternal className="h-3.5 w-3.5" />
-                </a>
+                {/*
+                  Only when there is something at the other end. The public
+                  route calls `notFound()` for an unpublished page, so an
+                  unconditional icon would be a 404 one click from the list —
+                  and on exactly the rows an author is most likely to click,
+                  because a draft page is one they have not looked at yet.
+                */}
+                {page.status === "published" && (
+                  <a
+                    href={`/${page.slug}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={`查看 /${page.slug}`}
+                    className="hidden h-7 w-7 shrink-0 items-center justify-center rounded-full text-faint transition-colors hover:bg-surface-3 hover:text-accent sm:flex"
+                  >
+                    <IconExternal className="h-3.5 w-3.5" />
+                  </a>
+                )}
 
                 <Link
                   href={`/studio/pages/${page.slug}`}
@@ -118,7 +127,7 @@ function StatusPill({ page }) {
         已发布
       </span>
       {page.pending && (
-        <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-500">
+        <span className="rounded-full bg-warn-soft px-2 py-0.5 text-[11px] font-medium text-warn">
           有未发布的改动
         </span>
       )}

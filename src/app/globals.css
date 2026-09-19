@@ -6,6 +6,57 @@
  * Design tokens — Prologue 序章
  * Primary accent: cyan · Secondary accent: violet (anime-inspired analogous
  * cool pairing). Base: zinc grayscale. Every semantic token flips in .dark.
+ *
+ * ## Everything here was solved, not eyeballed
+ *
+ * This palette was measured rather than chosen, because "looks grey enough" and
+ * "is legible" are different questions and only the second one has a number.
+ * `scripts/studio/contrast-audit.mjs` re-derives every ratio below from these
+ * declarations and fails the build's verification gate if one drops under its
+ * floor — retuning a token is a deliberate act, not a nudge.
+ *
+ * The floor is 4.5:1 for every text token, on every surface it is actually
+ * used on: `--background`, `--surface` and `--surface-2`. `--surface-3` is
+ * deliberately excluded — it only ever appears as a transient hover or selected
+ * background, never a resting one — and the one place a text token does rest on
+ * it uses `--muted`, not `--faint`.
+ *
+ * Four things in here are the result of a measurement that surprised me.
+ *
+ * **The greys moved one step.** `--faint` was `#a1a1aa`, which is 2.33:1 on
+ * `--surface-2` — not dim, unreadable, and it carries 174 timestamps, hints and
+ * counts in the studio. The ramp is now one step darker in light mode and one
+ * step lighter in dark: the value that used to be `--muted` is what `--faint`
+ * holds today. The tiers are still 1.5x apart, so nothing reads flat.
+ *
+ * **The light-mode accents moved one step.** `--accent` was cyan-600 at 3.68:1
+ * on white; a link in body copy is normal text and needs 4.5. It is now
+ * cyan-700. `--secondary` went violet-500 to violet-600 for the same reason.
+ * The hue is unchanged — this is one step down the same ramp, and the brand
+ * gradient (below) is the only place the change is visible as a colour shift
+ * rather than as slightly deeper text.
+ *
+ * **The brand gradient darkened in light mode, and only in light mode.** As
+ * declared, `#06b6d4 -> #8b5cf6` measured 2.43:1 for white text at its cyan end
+ * and 4.23:1 at its violet end — every brand button in the app was `text-white`
+ * over it, so every one of them failed AA, and dark mode failed it far worse
+ * (1.81:1). Dark mode is fixed by moving the LABEL (below), because a cyan-400
+ * accent is the point of the dark palette. Light mode had no such latitude: a
+ * mid-tone that carries white has to be dark, so the gradient is now
+ * cyan-700 -> violet-600, which carries white at 5.36:1 at its worst point.
+ *
+ * **`--on-accent` flips.** It is white in light mode and near-black in dark.
+ * That is not a style choice, it is arithmetic: white on cyan-400 is 1.81:1 and
+ * near-black on cyan-400 is 11.01:1, while white on cyan-700 is 5.36:1 and
+ * near-black on it is only 3.71:1. A single value cannot be legible in both
+ * modes, and the alternative — a dark-mode accent dark enough for white — would
+ * throw away the palette.
+ *
+ * The consequence, stated because it is a real one: a brand button's hover can
+ * no longer be `opacity-90`. That composites the label toward the page as well
+ * as the fill and drags the ratio down while the pointer is on the button. Use
+ * `.btn-brand` / `.btn-danger`, which hover with `filter: brightness()` — that
+ * moves the fill and leaves the label where it is.
  * ------------------------------------------------------------------------- */
 @theme inline {
   --color-background: var(--background);
@@ -23,6 +74,12 @@
   --color-secondary: var(--secondary);
   --color-secondary-strong: var(--secondary-strong);
   --color-secondary-soft: var(--secondary-soft);
+  --color-on-accent: var(--on-accent);
+  --color-danger: var(--danger);
+  --color-danger-strong: var(--danger-strong);
+  --color-danger-soft: var(--danger-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
 
   --font-sans: var(--font-noto-sans-sc), "PingFang SC", "Hiragino Sans GB",
     "Microsoft YaHei UI", "Microsoft YaHei", -apple-system,
@@ -53,22 +110,40 @@
   --foreground: #18181b; /* zinc-900 */
   --surface: #ffffff;
   --surface-2: #f4f4f5; /* zinc-100 */
-  --surface-3: #e4e4e7; /* zinc-200 */
-  --muted: #71717a; /* zinc-500 */
-  --faint: #a1a1aa; /* zinc-400 */
+  --surface-3: #e4e4e7; /* zinc-200 — hover/selected only, never a resting surface */
+  --muted: #52525b; /* zinc-600 — 7.7:1 on white, 7.0:1 on surface-2 */
+  --faint: #6b6b74; /* between zinc-500 and zinc-600 — 5.3:1 on white, 4.8:1 on surface-2 */
   --border: rgba(24, 24, 27, 0.08);
   --border-strong: rgba(24, 24, 27, 0.16);
   --shadow-tint: rgba(15, 23, 42, 0.12);
 
-  --accent: #0891b2; /* cyan-600 — links/active, AAA on white */
-  --accent-strong: #0e7490; /* cyan-700 — hover */
-  --accent-soft: rgba(6, 182, 212, 0.1);
+  --accent: #0e7490; /* cyan-700 — links, active nav. 5.4:1 on white */
+  --accent-strong: #155e75; /* cyan-800 — hover. 7.3:1 on white */
+  /* A fixed value, not an alpha, and that is deliberate: an alpha panel changes
+     the contrast of every text token on it with the surface behind it, and the
+     binding case here (--faint, which is the quiet tier and therefore the
+     lightest) lands one hundredth of a point under 4.5 at 10% over surface-2.
+     This is what 8% over --background composites to, fixed. */
+  --accent-soft: #eef5f7;
 
-  --secondary: #8b5cf6; /* violet-500 — featured/emphasis */
-  --secondary-strong: #7c3aed; /* violet-600 */
-  --secondary-soft: rgba(139, 92, 246, 0.1);
+  --secondary: #7c3aed; /* violet-600 — featured/emphasis. 5.7:1 on white */
+  --secondary-strong: #6d28d9; /* violet-700 */
+  --secondary-soft: rgba(124, 58, 237, 0.1);
 
-  --gradient-brand: linear-gradient(120deg, #06b6d4, #8b5cf6);
+  /* What sits ON a brand fill. White here, near-black in dark mode — see the
+     block comment above for why one value cannot do both. */
+  --on-accent: #ffffff;
+
+  /* Status. `danger` is text, `danger-strong` is a fill under white, and
+     `danger-soft` is a panel behind the text — three roles, because one value
+     cannot serve all three at AA in both modes. */
+  --danger: #b91c1c; /* red-700 — 6.5:1 on white, 5.9:1 on surface-2 */
+  --danger-strong: #b91c1c; /* fill under white text — 6.5:1 */
+  --danger-soft: #f8e8e8; /* red-700 at 10% over --surface */
+  --warn: #92400e; /* amber-800 — 7.1:1 on white, 6.5:1 on surface-2 */
+  --warn-soft: #f4ece7; /* amber-800 at 10% over --surface */
+
+  --gradient-brand: linear-gradient(120deg, #0e7490, #7c3aed);
 
   --nav-height: 3.5rem;
   color-scheme: light;
@@ -81,19 +156,27 @@
   --surface: #111113;
   --surface-2: #1b1b1f;
   --surface-3: #27272a; /* zinc-800 */
-  --muted: #a1a1aa; /* zinc-400 */
-  --faint: #71717a; /* zinc-500 */
+  --muted: #a1a1aa; /* zinc-400 — 7.4:1 on surface */
+  --faint: #909099; /* between zinc-500 and zinc-400 — 6.0:1 on surface */
   --border: rgba(244, 244, 245, 0.09);
   --border-strong: rgba(244, 244, 245, 0.18);
   --shadow-tint: rgba(0, 0, 0, 0.55);
 
-  --accent: #22d3ee; /* cyan-400 — brighter for dark contrast */
-  --accent-strong: #67e8f9; /* cyan-300 — hover */
-  --accent-soft: rgba(34, 211, 238, 0.13);
+  --accent: #22d3ee; /* cyan-400 — brighter for dark contrast, 10.4:1 */
+  --accent-strong: #67e8f9; /* cyan-300 — hover. 13.0:1 */
+  --accent-soft: #132427; /* cyan-400 at 10% over --surface */
 
   --secondary: #a78bfa; /* violet-400 */
   --secondary-strong: #c4b5fd; /* violet-300 */
   --secondary-soft: rgba(167, 139, 250, 0.14);
+
+  --on-accent: #09090b;
+
+  --danger: #f87171; /* red-400 — 6.8:1 on surface */
+  --danger-strong: #dc2626; /* fill under white text — 4.8:1 */
+  --danger-soft: #2b1a1c;
+  --warn: #fbbf24; /* amber-400 — 11.3:1 on surface */
+  --warn-soft: #2b2416;
 
   --gradient-brand: linear-gradient(120deg, #22d3ee, #a78bfa);
 
@@ -151,6 +234,39 @@
  * Component classes
  * ------------------------------------------------------------------------- */
 @layer components {
+  /* A brand-fill button.
+     `background` is set inline at every call site (`var(--gradient-brand)` is a
+     gradient shorthand, and Tailwind has no `bg-[…]` mapping for a value that
+     is itself an image), so this class carries only the parts that are the
+     same everywhere and the parts that are easy to get wrong.
+
+     The hover is `filter`, not `opacity`. `opacity` composites the whole
+     element — label included — toward the page behind it, which drags an ink
+     label from 4.70:1 to 4.42:1, under AA, exactly while the pointer is on the
+     button. A filter adjusts the rendered colours instead: the ink label stays
+     near-black and the ratio rises. */
+  .btn-brand {
+    color: var(--on-accent);
+    transition: filter var(--duration-fast) ease;
+  }
+  .btn-brand:hover:not(:disabled) {
+    filter: brightness(1.08);
+  }
+
+  /* The destructive counterpart.
+     Its label IS white — white on `--danger-strong` clears AA (6.47:1 light,
+     4.83:1 dark) where white on a brand fill does not — so the hover has to be
+     applied the other way: `brightness(1.08)` would take the fill UP and the
+     dark-mode ratio DOWN to 4.21:1. Darkening moves it up instead. */
+  .btn-danger {
+    color: #fff;
+    background-color: var(--danger-strong);
+    transition: filter var(--duration-fast) ease;
+  }
+  .btn-danger:hover:not(:disabled) {
+    filter: brightness(0.92);
+  }
+
   /* Card: hairline ring + soft shadow; interactive variant lifts on hover */
   .card {
     background-color: var(--surface);

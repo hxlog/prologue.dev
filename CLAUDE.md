@@ -54,14 +54,19 @@ is safe.
 | `e2e.mjs` | the studio's whole HTTP surface: auth, every screen, the redirect table, the taxonomy, and that `/api/img` 404s what is not published. |
 | `write-test.mjs` | publish / revert / restore, and the concurrency refusal. |
 | `preview-parity.mjs` | the editor's preview is the stored artifact, byte for byte. |
+| `journey-test.mjs` | the author's whole path as ONE flow: upload a cover, create, save, publish, read the page, check its OG/JSON-LD/OG-card/feeds/search, confirm the image is served to a stranger, unpublish (and confirm it is not), rename (asserting the 308, the moved search row, and that the old path still redirects), then delete. Drives the real Server Actions over HTTP rather than the modules beneath them, so a publish that forgets to invalidate a cache fails here and nowhere else. Needs `lib/actions.mjs` and a build. It found two real defects on its first run: the post route had no redirect lookup at all, and `posts.cover_image` was invisible to the media-visibility check. |
 | `collections-test.mjs` | entry anchors, the field-index projection, partial-update merging. |
 | `tags-test.mjs` | a rename leaves a working alias, a tag in use cannot be deleted, an alias cannot shadow a tag. |
 | `media-test.mjs` | the store is private, a pathname cannot be client-chosen, and a delete is refused while anything references the object. |
 | `blob-probe.mjs` | the store authenticates and answers 403 unauthenticated. Run this first when media misbehaves. |
+| `blob-cors-probe.mjs` | a browser's presigned PUT works cross-origin — preflight plus the echoed `Origin`. Node does not enforce CORS, so `journey-test.mjs`'s PUT proves nothing about this, and the whole client-upload design hinges on it. |
+| `blob-signing-probe.mjs` | what a presigned URL actually pins: a swapped pathname and an over-size body are refused 403, and a disallowed Content-Type is stored as the SIGNED type rather than refused. Run after touching the upload path. |
 | `media-reconcile.mjs` | reports (and only under `--fix`, removes) blobs with no row and rows with no object. |
 | `sanitize-test.mjs` | the feed sanitizer refuses `javascript:`, `data:`, `on*`, `url()` in a style, and every escaping container — and is a no-op on the markup the renderer actually emits. |
 | `feed-before-after.mjs` | the feed pipeline's output against the PREVIOUS revision of the code, so a change to it is measured against its own predecessor rather than against whatever production was built from. |
 | `check-imports.mjs` | every relative specifier in `src/` resolves, without a build. Route groups add a directory level; run this after moving anything under one. |
+| `contrast-audit.mjs` | every text token in `globals.css` clears 4.5:1 on every surface it rests on. Reads the declared values rather than a copy, so retuning a token to something prettier fails here. Run after touching the palette. No server needed. |
+| `repaint-tokens.mjs` | (a migration tool, not a check) rewrites `text-red-500` / `text-amber-600 dark:text-amber-500` / `text-white`-on-a-brand-fill into the semantic tokens. Idempotent, `--dry` to preview. |
 
 ## Database
 
@@ -116,11 +121,20 @@ Bytes live in a **private** Vercel Blob store (`src/lib/media/blob.js` is the on
 
 A pathname is generated on the server, never chosen by the client: `media/<y>/<m>/<8 hex>-<slug>.<ext>`, with the extension derived from an allowlist of MIME types rather than from the filename. `isMediaPathname` is the anchored regex the proxy validates against. SVG is deliberately not on the allowlist — it can carry script, and serving one from the site's own origin is stored XSS against anyone who opens it directly.
 
-Uploads are presigned PUTs straight from the browser to the store, so bytes never pass through a function. **`addRandomSuffix: false` is load-bearing**: the default appends four characters at storage time, which puts the object somewhere the database was never told about and makes the commit step's `head()` say "does not exist". `docs/studio.md` has the full reasoning.
+Uploads are presigned PUTs straight from the browser to the store, so bytes never pass through a function. **`addRandomSuffix: false` is passed explicitly at every call site** — its default is already false, but a suffix appended at storage time puts the object somewhere the database was never told about, and the failure is silent: `head()` on the promised pathname answers "does not exist" and the commit refuses. `scripts/studio/blob-signing-probe.mjs` measures what the signature actually pins (pathname 403, oversize 403, disallowed type stored-as-signed rather than refused) — run it after touching the upload path. `docs/studio.md` has the table.
 
 ## Design system
 
-Semantic tokens live in `src/app/globals.css` under `@theme inline` (`background/foreground/surface/surface-2/surface-3/muted/faint/border/border-strong/accent/accent-strong/accent-soft/secondary/secondary-soft`, radii, shadows, motion), mapped to CSS variables that flip under `.dark`. **Primary accent = cyan, secondary = violet**; interactive states use `accent`, emphasis/badges use the `--gradient-brand`. The v3-style `tailwind.config.js` (loaded via `@config`) holds only `darkMode: ["class"]` + the typography plugin. Fonts are self-hosted via `next/font/google` in `layout.js`.
+Semantic tokens live in `src/app/globals.css` under `@theme inline` (`background/foreground/surface/surface-2/surface-3/muted/faint/border/border-strong/accent/accent-strong/accent-soft/secondary/secondary-soft/on-accent/danger/danger-strong/danger-soft/warn/warn-soft`, radii, shadows, motion), mapped to CSS variables that flip under `.dark`. **Primary accent = cyan, secondary = violet**; interactive states use `accent`, emphasis/badges use the `--gradient-brand`. The v3-style `tailwind.config.js` (loaded via `@config`) holds only `darkMode: ["class"]` + the typography plugin. Fonts are self-hosted via `next/font/google` in `layout.js`.
+
+**Every text token clears 4.5:1, and `scripts/studio/contrast-audit.mjs` is what keeps that true.** It reads the declared values out of `globals.css` and re-derives each ratio, so retuning a token to something prettier goes red. Four things in the palette are consequences of that measurement rather than taste, and they are easy to "fix" back into failing:
+
+- `--faint` is the *quiet* tier and therefore the token that sets the floor. It carries 174 timestamps, hints and counts in `/studio`, so it is only one step lighter than `--muted` — not the two it used to be.
+- `--on-accent` **flips**: white in light mode, near-black in dark. White on cyan-400 is 1.81:1 and near-black on it is 11.01:1; the reverse holds for cyan-700. One value cannot be legible in both modes.
+- The light-mode `--gradient-brand` is cyan-700 → violet-600, one step darker than the dark-mode one, because a gradient that carries white text has to be dark. Dark mode keeps the 400s and moves the label instead.
+- A brand button therefore cannot hover with `opacity` — that composites the label too. Use `.btn-brand` / `.btn-danger`, which hover with `filter: brightness()`.
+
+`/studio` uses these same tokens — it is the blog's admin, not a separate app with its own look.
 
 Shared UI primitives: `card.js`, `tag-chips.js`, `modal.js` (+ `rss-modal.js` / `email-modal.js`), `search-grid.js`. Custom `.prose` overrides in globals.css must keep their `:not(.not-prose *)` guards or they leak into card UI. `/studio` uses these same tokens — it is the blog's admin, not a separate app with its own look.
 

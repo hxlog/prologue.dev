@@ -5,16 +5,19 @@ import { useRouter } from "next/navigation";
 
 import {
   autosavePage,
+  deletePageAction,
   publishPageAction,
   renamePageAction,
   renderPagePreview,
   unpublishPageAction,
 } from "../../../actions/pages";
 import { CodeMirrorEditor } from "../../../../../components/studio/codemirror";
+import { ConfirmDialog } from "../../../../../components/studio/confirm-dialog";
 import { MdxPreview } from "../../../../../components/studio/mdx-preview";
 import { PageSettings } from "../../../../../components/studio/page-settings";
 import { PageMetaPanel } from "../../../../../components/studio/page-meta-panel";
 import { RenamePageDialog } from "../../../../../components/studio/page-rename-dialog";
+import { IconTrash } from "../../../../../components/studio/icons";
 import { readMeta, patchMeta } from "../../../../../lib/studio/frontmatter-doc";
 
 /**
@@ -72,6 +75,7 @@ export default function PageEditor({ initial }) {
   const [pending, setPending] = useState(false);
   const [mobileTab, setMobileTab] = useState("source");
   const [renaming, setRenaming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Readable from the debounced callbacks without being a dependency of them.
   // `useCallback([markdown, meta])` would recreate the timer handler on every
@@ -256,7 +260,17 @@ export default function PageEditor({ initial }) {
           </div>
 
           <div className="flex items-center gap-2">
-            <button type="button" onClick={() => setRenaming(true)} className={buttonGhost}>
+            <button
+              type="button"
+              onClick={() => {
+                // A page's autosave holds the old slug too, and this one also
+                // has a compile timer pointed at it.
+                if (saveTimer.current) clearTimeout(saveTimer.current);
+                if (compileTimer.current) clearTimeout(compileTimer.current);
+                setRenaming(true);
+              }}
+              className={buttonGhost}
+            >
               路径
             </button>
             {published && (
@@ -280,12 +294,30 @@ export default function PageEditor({ initial }) {
             >
               保存
             </button>
+            {/*
+              Deleting a page leaves a hole where a URL used to be, and the page
+              may own a navigation entry. The dialog says both, because "delete"
+              on a screen full of settings reads like "delete a draft" and this
+              is the page the header links to.
+            */}
+            <button
+              type="button"
+              onClick={() => {
+                if (saveTimer.current) clearTimeout(saveTimer.current);
+                if (compileTimer.current) clearTimeout(compileTimer.current);
+                setDeleting(true);
+              }}
+              aria-label="删除页面"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-faint transition-colors hover:bg-danger-soft hover:text-danger"
+            >
+              <IconTrash className="h-3.5 w-3.5" />
+            </button>
             <button
               type="button"
               onClick={onPublish}
               disabled={pending || saving}
               style={{ background: "var(--gradient-brand)" }}
-              className="rounded-lg px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+              className="rounded-lg px-3 py-1.5 text-xs font-medium btn-brand disabled:opacity-60"
             >
               {pending ? "处理中…" : published ? "撤回为草稿" : "发布"}
             </button>
@@ -293,7 +325,7 @@ export default function PageEditor({ initial }) {
         </div>
 
         {error && (
-          <p className="mt-2 whitespace-pre-wrap rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-500">
+          <p className="mt-2 whitespace-pre-wrap rounded-lg border border-danger/30 bg-danger-soft px-3 py-2 text-xs text-danger">
             {error}
           </p>
         )}
@@ -327,7 +359,7 @@ export default function PageEditor({ initial }) {
           <div className="overflow-hidden rounded-xl border border-border bg-surface">
             <div className="flex items-center justify-between border-b border-border px-3 py-2">
               <span className="text-xs font-medium text-muted">预览</span>
-              {compileError && <span className="text-[11px] text-red-500">编译失败</span>}
+              {compileError && <span className="text-[11px] text-danger">编译失败</span>}
             </div>
             <div className="p-4">
               <MdxPreview code={code} error={compileError} />
@@ -377,13 +409,35 @@ export default function PageEditor({ initial }) {
           onRename={(next) => renamePageAction(initial.slug, next)}
         />
       )}
+
+      {deleting && (
+        <ConfirmDialog
+          title={`删除《${meta.title || initial.slug}》`}
+          intro="这会连同这个页面的全部版本历史一起删除，无法撤销。"
+          consequences={[
+            `路径 /${initial.slug} 将不再存在，也不会留下跳转。`,
+            initial.showInNav
+              ? "导航栏里的条目会一并移除。"
+              : "它在导航栏中没有条目。",
+            "搜索记录会一并删除。",
+          ]}
+          confirmWord={initial.slug}
+          confirmLabel="永久删除"
+          onConfirm={() => deletePageAction(initial.slug)}
+          onClose={(result) => {
+            if (!result?.ok) return;
+            router.push("/studio/pages");
+            router.refresh();
+          }}
+        />
+      )}
     </div>
   );
 }
 
 function SaveState({ dirty, saving, savedAt }) {
   if (saving) return <span className="text-faint">保存中…</span>;
-  if (dirty) return <span className="text-amber-600 dark:text-amber-500">未保存</span>;
+  if (dirty) return <span className="text-warn">未保存</span>;
   if (savedAt) return <span className="text-accent">已保存</span>;
   return <span className="text-faint">已同步</span>;
 }

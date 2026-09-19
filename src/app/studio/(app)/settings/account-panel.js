@@ -99,7 +99,7 @@ export function AccountPanel({ account, totp }) {
   return (
     <div className="space-y-4">
       {error && (
-        <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-500">
+        <p className="rounded-xl border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
           {error}
         </p>
       )}
@@ -136,6 +136,7 @@ export function AccountPanel({ account, totp }) {
               type="button"
               onClick={startEnrollment}
               disabled={busy}
+              style={{ background: "var(--gradient-brand)" }}
               className={primary}
             >
               开始设置
@@ -176,7 +177,12 @@ export function AccountPanel({ account, totp }) {
                   className={`${input} w-32 font-mono tracking-widest`}
                 />
               </div>
-              <button type="submit" disabled={busy || !code} className={primary}>
+              <button
+                type="submit"
+                disabled={busy || !code}
+                style={{ background: "var(--gradient-brand)" }}
+                className={primary}
+              >
                 {busy ? "验证中…" : "确认开启"}
               </button>
               <button
@@ -246,8 +252,8 @@ export function AccountPanel({ account, totp }) {
         )}
 
         {backupCodes && (
-          <div className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
-            <p className="flex items-start gap-2 text-xs text-amber-700 dark:text-amber-500">
+          <div className="mt-3 rounded-lg border border-warn/40 bg-warn-soft p-3">
+            <p className="flex items-start gap-2 text-xs text-warn">
               <IconWarning className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
                 备用码只显示这一次，之后无法再查看。每个码只能用一次，
@@ -345,14 +351,15 @@ function PasswordPanel() {
           </Labelled>
         </div>
 
-        {tooShort && <p className="text-xs text-amber-600 dark:text-amber-500">至少 12 个字符。</p>}
-        {mismatch && <p className="text-xs text-red-500">两次输入不一致。</p>}
-        {error && <p className="text-xs text-red-500">{error}</p>}
+        {tooShort && <p className="text-xs text-warn">至少 12 个字符。</p>}
+        {mismatch && <p className="text-xs text-danger">两次输入不一致。</p>}
+        {error && <p className="text-xs text-danger">{error}</p>}
         {notice && <p className="text-xs text-accent">{notice}</p>}
 
         <button
           type="submit"
           disabled={busy || !form.current || !form.next || mismatch || tooShort}
+          style={{ background: "var(--gradient-brand)" }}
           className={primary}
         >
           {busy ? "修改中…" : "修改密码"}
@@ -482,17 +489,26 @@ function QrCode({ value }) {
   );
 }
 
-const primary =
-  "rounded-lg px-3 py-2 text-sm font-medium text-white transition-opacity " +
-  "hover:opacity-90 disabled:opacity-40";
+/**
+ * A primary button that actually has a fill.
+ *
+ * It was `text-white` on no background at all, so all three of this panel's
+ * primary buttons rendered as white text on the page — invisible in light mode
+ * and near-invisible in dark. The fill is supplied inline rather than as a
+ * class because `--gradient-brand` is a gradient shorthand and Tailwind has no
+ * `bg-[…]` mapping for one; `.btn-brand` carries the label colour and the
+ * hover, both of which are the parts that are easy to get wrong (see the
+ * --on-accent note in globals.css).
+ */
+const primary = "btn-brand rounded-lg px-3 py-2 text-sm font-medium disabled:opacity-50";
 
 const ghost =
   "rounded-lg border border-border px-3 py-2 text-sm text-muted transition-colors " +
   "hover:bg-surface-2 hover:text-accent disabled:opacity-50";
 
 const danger =
-  "rounded-lg border border-red-500/40 px-3 py-2 text-sm text-red-500 " +
-  "transition-colors hover:bg-red-500/10 disabled:opacity-40";
+  "rounded-lg border border-danger/40 px-3 py-2 text-sm text-danger " +
+  "transition-colors hover:bg-danger-soft disabled:opacity-40";
 
 const input =
   "w-full rounded-lg border border-border bg-surface-2 px-3 py-2 text-sm text-foreground " +

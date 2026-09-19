@@ -52,7 +52,7 @@ export default function FieldsTab({ fields, onChange, onDelete, pending }) {
                     <span className="font-mono text-[11px] text-faint">
                       {field.key}
                     </span>
-                    {field.required && <span className="text-[11px] text-red-500">必填</span>}
+                    {field.required && <span className="text-[11px] text-danger">必填</span>}
                   </p>
                   <p className="mt-0.5 text-[11px] text-faint">{field.type}</p>
                 </button>
@@ -62,7 +62,7 @@ export default function FieldsTab({ fields, onChange, onDelete, pending }) {
                   disabled={pending}
                   onClick={() => onDelete(field)}
                   aria-label={`删除字段 ${field.label}`}
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-faint transition-colors hover:bg-surface-3 hover:text-red-500 disabled:opacity-40"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-faint transition-colors hover:bg-surface-3 hover:text-danger disabled:opacity-40"
                 >
                   <IconClose className="h-3.5 w-3.5" />
                 </button>
@@ -130,7 +130,7 @@ export default function FieldsTab({ fields, onChange, onDelete, pending }) {
           <button
             type="submit"
             disabled={pending}
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-medium btn-brand disabled:opacity-40"
           >
             <IconPlus className="h-4 w-4" />
             添加
@@ -245,7 +245,7 @@ function FieldForm({ field, onSubmit, onCancel, pending }) {
         <button
           type="submit"
           disabled={pending}
-          className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+          className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium btn-brand disabled:opacity-40"
         >
           保存
         </button>

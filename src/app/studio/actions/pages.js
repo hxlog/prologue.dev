@@ -38,7 +38,11 @@ import {
 } from "../../../lib/studio/pages-write";
 import { compilePage } from "../../../lib/content/mdx";
 import { renderMarkdown } from "../../../lib/markdown/render";
-import { invalidatePage, invalidateNav } from "../../../lib/studio/cache-tags";
+import {
+  invalidatePage,
+  invalidateNav,
+  invalidateRedirects,
+} from "../../../lib/studio/cache-tags";
 import { indexPage, unindex } from "../../../lib/studio/search-write";
 import { readMeta } from "../../../lib/studio/frontmatter-doc";
 import { diffDocuments } from "../../../lib/studio/diff";
@@ -197,6 +201,7 @@ export async function renamePageAction(slug, nextSlug) {
   if (!result.ok || result.unchanged) return result;
 
   await setRedirect(`/${result.previous}`, `/${result.slug}`, { permanent: true });
+  invalidateRedirects();
   await reindexPage(result.slug);
 
   invalidatePage(result.previous);

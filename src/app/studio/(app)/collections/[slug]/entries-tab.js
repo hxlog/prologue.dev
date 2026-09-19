@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { IconClose, IconPlus } from "../../../../../components/studio/icons";
+import { IconChevron, IconClose, IconPin, IconPlus } from "../../../../../components/studio/icons";
 import { FieldInput } from "../../../../../components/studio/field-input";
 
 /**
@@ -29,15 +29,29 @@ import { FieldInput } from "../../../../../components/studio/field-input";
  * problem that does not exist. The toggle is here rather than hidden in a menu
  * because a draft entry is invisible on the public page and the author needs to
  * be able to see that at a glance.
+ *
+ * ## Reordering only exists for a `manual` collection
+ *
+ * `sortable` is the collection's `ordering` setting, and it is not cosmetic.
+ * The reader query for a `date` collection orders by `published_at` first, so a
+ * move would appear to do nothing at all — a control that silently has no
+ * effect is worse than no control, so the arrows are not rendered. Microblog is
+ * `date`; the friend links are `manual` and get them.
+ *
+ * The pin is gated on the same setting because `sort_pinned` is only read in the
+ * `manual` branch of that query (src/lib/content/collections.js).
  */
 export default function EntriesTab({
   fields,
   entries,
   pending,
   busyId,
+  sortable = false,
   onSave,
   onDelete,
   onToggleStatus,
+  onMove,
+  onTogglePin,
 }) {
   const [expanded, setExpanded] = useState(null);
   const [creating, setCreating] = useState(false);
@@ -60,7 +74,7 @@ export default function EntriesTab({
           type="button"
           onClick={() => setCreating(true)}
           style={{ background: "var(--gradient-brand)" }}
-          className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+          className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium btn-brand"
         >
           <IconPlus className="h-4 w-4" />
           新建条目
@@ -74,11 +88,34 @@ export default function EntriesTab({
           </li>
         )}
 
-        {entries.map((entry) => {
+        {entries.map((entry, index) => {
           const open = expanded === entry.id;
           return (
             <li key={entry.id} className="px-3 py-2.5">
               <div className="flex items-start gap-2">
+                {sortable && (
+                  <div className="flex shrink-0 flex-col">
+                    <button
+                      type="button"
+                      disabled={pending || index === 0}
+                      onClick={() => onMove(entry.id, -1)}
+                      aria-label={`上移 ${entry.anchor}`}
+                      className="flex h-4 w-5 items-center justify-center rounded text-faint transition-colors hover:text-accent disabled:opacity-20"
+                    >
+                      <IconChevron className="h-3 w-3 -rotate-90" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={pending || index === entries.length - 1}
+                      onClick={() => onMove(entry.id, 1)}
+                      aria-label={`下移 ${entry.anchor}`}
+                      className="flex h-4 w-5 items-center justify-center rounded text-faint transition-colors hover:text-accent disabled:opacity-20"
+                    >
+                      <IconChevron className="h-3 w-3 rotate-90" />
+                    </button>
+                  </div>
+                )}
+
                 <button
                   type="button"
                   onClick={() => setExpanded(open ? null : entry.id)}
@@ -103,12 +140,29 @@ export default function EntriesTab({
                   </p>
                 </button>
 
+                {sortable && (
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={() => onTogglePin(entry)}
+                    aria-pressed={entry.sort_pinned}
+                    aria-label={entry.sort_pinned ? `取消置顶 ${entry.anchor}` : `置顶 ${entry.anchor}`}
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-40 ${
+                      entry.sort_pinned
+                        ? "text-secondary-strong hover:bg-surface-3"
+                        : "text-faint hover:bg-surface-3 hover:text-accent"
+                    }`}
+                  >
+                    <IconPin className="h-3.5 w-3.5" />
+                  </button>
+                )}
+
                 <button
                   type="button"
                   disabled={pending}
                   onClick={() => onDelete(entry)}
                   aria-label={`删除条目 ${entry.anchor}`}
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-faint transition-colors hover:bg-surface-3 hover:text-red-500 disabled:opacity-40"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-faint transition-colors hover:bg-surface-3 hover:text-danger disabled:opacity-40"
                 >
                   <IconClose className="h-3.5 w-3.5" />
                 </button>
@@ -185,7 +239,7 @@ function EntryForm({ fields, entry, busy, onSubmit, onCancel, onToggleStatus }) 
           <button
             type="submit"
             disabled={busy}
-            className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+            className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium btn-brand disabled:opacity-40"
           >
             {entry ? "保存" : "创建"}
           </button>

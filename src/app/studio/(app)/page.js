@@ -93,7 +93,7 @@ export default async function DashboardPage() {
 
       {!overview && (
         <p className="flex items-start gap-2 rounded-xl border border-border bg-surface px-4 py-3 text-xs text-muted">
-          <IconWarning className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <IconWarning className="mt-0.5 h-4 w-4 shrink-0 text-warn" />
           <span>
             无法读取阅读量。站点统计来自独立的 Umami 数据库，
             请在设置中检查连接。阅读量只在此处显示，不会出现在前台页面。
@@ -212,7 +212,7 @@ function Status({ status }) {
   if (status === "published") {
     return <span className="text-accent">已发布</span>;
   }
-  return <span className="text-amber-600 dark:text-amber-500">草稿</span>;
+  return <span className="text-warn">草稿</span>;
 }
 
 /**

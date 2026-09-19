@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import {
   deleteEntryAction,
   deleteFieldAction,
+  pinEntryAction,
+  reorderEntriesAction,
   saveEntryAction,
   saveFieldAction,
   setEntryStatusAction,
@@ -97,6 +99,63 @@ export default function CollectionEditor({ slug, collection, entries: initialEnt
     run(entryId, () => setEntryStatusAction(slug, entryId, status), null);
   }
 
+  /**
+   * Move an entry one position up or down.
+   *
+   * The whole order is sent, not a pair, because `reorderEntries` assigns
+   * `sort_order = position` from the array it is handed — a swap sent as two
+   * ids would need a second operation on the server and would leave every other
+   * row's position meaningless.
+   *
+   * Optimistic, and the one write here that is. The new order is fully knowable
+   * on the client (it is a splice), and a reorder that waited for a round trip
+   * before the row moved would feel broken on every click. A failure puts the
+   * old array back.
+   */
+  function moveEntry(entryId, delta) {
+    const from = entries.findIndex((e) => e.id === entryId);
+    const to = from + delta;
+    if (from === -1 || to < 0 || to >= entries.length) return;
+
+    const before = entries;
+    const next = [...entries];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+
+    setEntries(next);
+    setBusyId(entryId);
+
+    (async () => {
+      const result = await reorderEntriesAction(slug, next.map((e) => e.id));
+      setBusyId(null);
+      if (result?.ok) {
+        router.refresh();
+      } else {
+        setEntries(before);
+        setError(problem(result?.reason));
+      }
+    })();
+  }
+
+  /**
+   * Pin an entry to the top.
+   *
+   * A visible control rather than a field, because `sort_pinned` is rendered as
+   * a badge on the public page and until now nothing could set it. It only
+   * means anything for a `manual` collection — `date` ordering puts
+   * `published_at` first and pinning would silently do nothing, which is worse
+   * than not offering it.
+   */
+  function togglePin(entry) {
+    const pinned = !entry.sort_pinned;
+    setEntries(entries.map((e) => (e.id === entry.id ? { ...e, sort_pinned: pinned } : e)));
+    run(
+      entry.id,
+      () => pinEntryAction(slug, entry.id, pinned),
+      pinned ? "已置顶。" : "已取消置顶。"
+    );
+  }
+
   function saveField(fieldId, input) {
     run(
       fieldId ?? "new-field",
@@ -143,7 +202,7 @@ export default function CollectionEditor({ slug, collection, entries: initialEnt
       </nav>
 
       {error && (
-        <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-500">
+        <p className="rounded-xl border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
           {error}
         </p>
       )}
@@ -159,9 +218,12 @@ export default function CollectionEditor({ slug, collection, entries: initialEnt
           entries={entries}
           pending={pending}
           busyId={busyId}
+          sortable={collection.ordering === "manual"}
           onSave={saveEntry}
           onDelete={deleteEntry}
           onToggleStatus={toggleStatus}
+          onMove={moveEntry}
+          onTogglePin={togglePin}
         />
       ) : (
         <FieldsTab

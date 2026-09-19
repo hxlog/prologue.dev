@@ -32,7 +32,7 @@ export function FieldInput({ field, value, onChange, disabled }) {
     <div>
       <label htmlFor={id} className="mb-1 flex items-baseline gap-1.5 text-xs font-medium text-muted">
         {field.label}
-        {field.required && <span className="text-red-500">*</span>}
+        {field.required && <span className="text-danger">*</span>}
         <span className="font-normal text-faint">{typeLabel(field.type)}</span>
       </label>
 
@@ -219,7 +219,7 @@ function Gallery({ value, onChange, disabled }) {
             disabled={disabled}
             onClick={() => onChange(rows.filter((_, i) => i !== index))}
             aria-label={`删除第 ${index + 1} 张图片`}
-            className="shrink-0 rounded-lg border border-border px-2 text-xs text-faint transition-colors hover:text-red-500 disabled:opacity-40"
+            className="shrink-0 rounded-lg border border-border px-2 text-xs text-faint transition-colors hover:text-danger disabled:opacity-40"
           >
             ×
           </button>

@@ -96,7 +96,7 @@ export default function HistoryView({
   return (
     <div className="space-y-4">
       {error && (
-        <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-500">
+        <p className="rounded-xl border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
           {error}
         </p>
       )}
@@ -234,7 +234,7 @@ function DiffBody({ diff, canCompare }) {
   if (diff.truncated) {
     return (
       <p className="flex items-start gap-2 px-4 py-8 text-sm text-muted">
-        <IconWarning className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+        <IconWarning className="mt-0.5 h-4 w-4 shrink-0 text-warn" />
         <span>{diff.rows[0]?.text ?? "文档过大，无法逐行比较。"}</span>
       </p>
     );
@@ -252,9 +252,9 @@ function DiffBody({ diff, canCompare }) {
     <div>
       <div className="flex flex-wrap items-center gap-3 border-b border-border px-3 py-2 text-xs">
         <span className="text-accent">+{diff.stats.added}</span>
-        <span className="text-red-500">−{diff.stats.removed}</span>
+        <span className="text-danger">−{diff.stats.removed}</span>
         {diff.stats.moved > 0 && (
-          <span className="text-amber-600 dark:text-amber-500">
+          <span className="text-warn">
             ⇄ {diff.stats.moved} 行移动
           </span>
         )}
@@ -307,9 +307,9 @@ function rowClass(type, moved) {
   // marked "changed" in different places reads as a broken diff — so saying
   // "moved" is the honest answer, and it is only honest because the module
   // proves both sides exist before claiming it.
-  if (moved) return "bg-amber-500/10 text-amber-700 dark:text-amber-300";
+  if (moved) return "bg-warn-soft text-warn";
   if (type === "add") return "bg-accent-soft text-accent-strong dark:text-accent";
-  if (type === "remove") return "bg-red-500/10 text-red-700 dark:text-red-400";
+  if (type === "remove") return "bg-danger-soft text-danger dark:text-danger";
   if (type === "gap")
     return "bg-surface-2 text-[11px] italic text-faint";
   return "text-muted";

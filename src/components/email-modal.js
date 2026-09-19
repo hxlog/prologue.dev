@@ -53,7 +53,7 @@ export default function EmailModal() {
             className={`shrink-0 rounded-md px-2.5 py-1 text-xs font-medium transition-colors duration-150 ${
               state === "copied"
                 ? "bg-accent-soft text-accent"
-                : "bg-accent text-white hover:bg-accent-strong"
+                : "btn-brand bg-accent"
             }`}
           >
             {state === "copied" ? "已复制 ✓" : "复制"}

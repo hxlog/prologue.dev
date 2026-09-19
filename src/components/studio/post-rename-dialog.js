@@ -3,33 +3,32 @@
 import { useState } from "react";
 
 /**
- * Rename a page's path.
+ * Rename a post's slug.
  *
- * A dialog rather than an inline field, because a page's slug is a URL people
- * type and other pages link to. The confirmation states both consequences
- * plainly — the old path gets a permanent redirect and the nav entry moves with
- * it — so that pressing the button is an informed act rather than a guess.
+ * Deliberately a near-copy of `RenamePageDialog` rather than a shared
+ * component. The two are the same SHAPE and differ in every sentence: a page's
+ * path is typed by readers and sits in the nav, a post's path is its identity
+ * in three feeds, in every inbound link, and in the GUID every RSS reader has
+ * already stored. A shared component would need the differences passed in as
+ * strings, and the strings are the part worth writing carefully.
  *
- * ## The preview of what will happen
+ * ## Why the consequences are spelled out
  *
- * Rendered from the typed value as it changes, not as a static paragraph. The
- * interesting part of a rename is not "a redirect will be created" — it is
- * *which* URL now points *where*, and that is only useful if it is spelled out
- * with the author's actual input in it.
- *
- * ## Why the parent owns the action
- *
- * This component never calls the server itself; it calls `onRename` and reports
- * the result. That keeps the revalidation calls in one place — the editor,
- * which also owns the cache tags and the router — and makes the dialog testable
- * by rendering it with a stub.
+ * Renaming a post does three things a reader notices: the old URL starts
+ * redirecting, the "view on GitHub" link at the foot of the page is built from
+ * the source path and does not change, and every feed's `<link>` moves while
+ * its `<guid>` — which is the slug — also moves, so an aggregator that has
+ * seen the post will show it again. That last one is not obvious and is exactly
+ * what the author should know before pressing the button.
  */
-export function RenamePageDialog({ slug, onClose, onRename }) {
+export function PostRenameDialog({ slug, published, onClose, onRename }) {
   const [next, setNext] = useState(slug);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState(null);
 
-  const clean = next.trim().replace(/^\/+/, "");
+  // Slugs are lowercased everywhere — route matching depends on it — and the
+  // preview shows the normalised form so the author is not surprised by it.
+  const clean = next.trim().toLowerCase().replace(/^\/+/, "").replace(/\s+/g, "-");
   const changed = clean !== "" && clean !== slug;
 
   async function submit(e) {
@@ -62,36 +61,41 @@ export function RenamePageDialog({ slug, onClose, onRename }) {
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-md rounded-t-2xl border border-border bg-surface p-4 sm:rounded-2xl"
       >
-        <h2 className="text-sm font-semibold text-foreground">修改页面路径</h2>
-        <p className="mt-1 text-xs text-muted">
-          页面路径是读者直接输入的网址，也可能是其他页面引用的链接。
+        <h2 className="text-sm font-semibold text-foreground">修改文章路径</h2>
+        <p className="mt-1 text-xs leading-5 text-muted">
+          文章路径是读者的网址，也是订阅源里的链接。路径一旦被读者订阅过，改动就会
+          让聚合器把那篇文章当作新内容再显示一次。
         </p>
 
         <label
-          htmlFor="rename-input"
+          htmlFor="rename-post"
           className="mt-4 mb-1 block text-xs font-medium text-muted"
         >
           新路径
         </label>
         <div className="flex items-center gap-1">
-          <span className="font-mono text-sm text-faint">/</span>
+          <span className="font-mono text-sm text-faint">/blog/</span>
           <input
-            id="rename-input"
+            id="rename-post"
             type="text"
             value={next}
             onChange={(e) => setNext(e.target.value)}
             autoFocus
+            autoComplete="off"
+            spellCheck={false}
             className={`${input} font-mono`}
           />
         </div>
 
         {changed && (
-          <div className="mt-3 space-y-1 rounded-lg border border-border bg-surface-2 px-3 py-2 text-[11px] text-muted">
+          <div className="mt-3 space-y-1 rounded-lg border border-border bg-surface-2 px-3 py-2 text-[11px] leading-5 text-muted">
             <p>
-              <span className="font-mono text-faint">/{slug}</span> 会永久跳转到{" "}
-              <span className="font-mono text-accent">/{clean}</span>
+              <span className="font-mono text-faint">/blog/{slug}</span> 会永久跳转到{" "}
+              <span className="font-mono text-accent">/blog/{clean}</span>
             </p>
-            <p>导航栏中的条目会跟着移动。</p>
+            {published && (
+              <p>已发布的文章改路径后，订阅源里的链接会指向新地址。</p>
+            )}
           </div>
         )}
 
@@ -126,11 +130,11 @@ export function RenamePageDialog({ slug, onClose, onRename }) {
 function renameProblem(reason) {
   switch (reason) {
     case "duplicate":
-      return "已经有页面使用了这个路径。";
+      return "已经有文章使用了这个路径。";
     case "invalid":
       return "路径不能为空，且不能与当前路径相同。";
     case "not_found":
-      return "页面不存在，可能已被删除。";
+      return "文章不存在，可能已被删除。";
     default:
       return "重命名失败，请重试。";
   }

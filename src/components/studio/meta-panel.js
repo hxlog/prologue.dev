@@ -94,7 +94,14 @@ export function MetaPanel({ meta, onChange, knownTags = [], slug }) {
           </datalist>
         </Field>
 
-        <div className="grid grid-cols-2 gap-2">
+        {/*
+          Stacked on a phone, two-up from `sm`. A native `<input type="date">`
+          has a browser-defined intrinsic width that does not shrink below its
+          rendered text plus the picker button, so two of them side by side in
+          the ~160px each gets at 375px is where the second one starts clipping
+          its own calendar affordance.
+        */}
+        <div className="grid gap-2 sm:grid-cols-2">
           <Field label="发布日期" htmlFor="meta-publish-date">
             <input
               id="meta-publish-date"

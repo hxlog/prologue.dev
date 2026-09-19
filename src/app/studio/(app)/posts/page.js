@@ -97,7 +97,7 @@ export default async function PostsPage(props) {
 
       {!views && (
         <p className="flex items-start gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-xs text-muted">
-          <IconWarning className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+          <IconWarning className="mt-0.5 h-4 w-4 shrink-0 text-warn" />
           <span>阅读量不可用（分析数据库未连接）。</span>
         </p>
       )}

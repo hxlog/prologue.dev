@@ -24,9 +24,9 @@
  * Same shape as a tag in use, and the same reason: deleting an object that a
  * published post references replaces an image with a broken icon and tells
  * nobody which post to fix. The refusal carries the counts — see `usage.js`,
- * which searches the rendered HTML of posts, the markdown of pages and the JSONB
- * of collection entries, three stores that keep the URL in three different
- * shapes.
+ * which searches the rendered HTML of posts, the markdown of pages, the JSONB
+ * of collection entries and the `posts.cover_image` column, four stores that
+ * keep the URL in four different shapes.
  *
  * ## Why nothing here imports `next/cache`
  *

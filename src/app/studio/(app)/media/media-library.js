@@ -106,8 +106,8 @@ export function MediaLibrary({ initial, total, configured }) {
     }
   }
 
-  async function remove(media) {
-    const result = await run(() => deleteMediaAction(media.id));
+  async function remove(media, { force = false } = {}) {
+    const result = await run(() => deleteMediaAction(media.id, force));
     if (!result) return;
 
     if (result.ok) {
@@ -119,21 +119,57 @@ export function MediaLibrary({ initial, total, configured }) {
     }
 
     if (result.reason === "in_use") {
+      // A refusal is information, not a dead end. The counts are shown, and
+      // then the author is offered the override — because the two cases are
+      // genuinely different and only they can tell them apart:
+      //
+      //   - the file is referenced by a post they intend to keep, in which
+      //     case they should go remove the reference, and
+      //   - the file is referenced by a post they deleted or by a draft that
+      //     will never ship, in which case it is unreachable and they want it
+      //     gone now.
+      //
+      // The server will not do this without `force`, and the button is a
+      // second, explicit act rather than the same one repeated.
+      //
+      // Every count `usageFor` returns has to appear here. A number the server
+      // refuses on but the dialog omits produces the worst of both: a refusal
+      // with no reason shown, which reads as a bug rather than as information.
+      // `covers` was exactly that — the check counted a cover image and the
+      // message did not, so the author was told "in use by ." and blocked.
       const where = [
         result.posts ? `${result.posts} 篇文章` : null,
         result.pages ? `${result.pages} 个页面` : null,
         result.entries ? `${result.entries} 条集合条目` : null,
+        result.covers ? `${result.covers} 篇文章的封面` : null,
       ]
         .filter(Boolean)
         .join("、");
-      setError(
-        `这个文件还在被 ${where} 使用，无法删除。删掉图片会让那些页面出现裂图，` +
-          "先在对应内容里移除引用，再回来删除。"
-      );
+
+      setError({
+        message: `这个文件还在被 ${where} 使用。删掉图片会让那些页面出现裂图。`,
+        force: { media, where },
+      });
       return;
     }
 
     setError("删除失败。");
+  }
+
+  async function forceRemove(media, where) {
+    // The author has been shown where it is used and has chosen anyway. The
+    // decision is theirs; re-asking would just be the same refusal twice.
+    const result = await run(() => deleteMediaAction(media.id, true));
+    if (!result) return;
+    if (!result.ok) {
+      setError("删除失败。");
+      return;
+    }
+    setItems((all) => all.filter((m) => m.id !== media.id));
+    setSelected((current) => (current?.id === media.id ? null : current));
+    setError(null);
+    setNotice(`已删除，${where} 中的引用会变成裂图。`);
+    router.refresh();
   }
 
   async function copy(text, what) {
@@ -149,16 +185,30 @@ export function MediaLibrary({ initial, total, configured }) {
   return (
     <div className="space-y-3">
       {error && (
-        <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-500">
-          {error}
+        <div className="rounded-xl border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
+          <p>{typeof error === "string" ? error : error.message}</p>
+          {typeof error === "object" && error?.force && (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => forceRemove(error.force.media, error.force.where)}
+                className="rounded-lg border border-danger/40 px-2.5 py-1 text-xs text-danger transition-colors hover:bg-danger-soft"
+              >
+                我知道，仍然删除
+              </button>
+              <span className="text-[11px] text-muted">
+                先在这些内容里移除引用，通常才是你想要的。
+              </span>
+            </div>
+          )}
           <button
             type="button"
             onClick={() => setError(null)}
-            className="ml-3 text-xs underline"
+            className="mt-2 text-xs underline"
           >
             知道了
           </button>
-        </p>
+        </div>
       )}
       {notice && (
         <p className="rounded-xl border border-accent/30 bg-accent-soft px-4 py-3 text-sm text-accent">
@@ -194,7 +244,7 @@ export function MediaLibrary({ initial, total, configured }) {
           <button
             type="button"
             onClick={() => fileInput.current?.click()}
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
+            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium btn-brand"
             style={{ background: "var(--gradient-brand)" }}
           >
             <IconPlus className="h-3.5 w-3.5" />
@@ -368,7 +418,7 @@ function Detail({ media, copied, onSave, onDelete, onCopy }) {
             type="button"
             disabled={!dirty}
             onClick={() => onSave({ alt, caption })}
-            className="rounded-lg px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+            className="rounded-lg px-3 py-1.5 text-xs font-medium btn-brand disabled:opacity-40"
             style={{ background: "var(--gradient-brand)" }}
           >
             保存
@@ -398,7 +448,7 @@ function Detail({ media, copied, onSave, onDelete, onCopy }) {
         <button
           type="button"
           onClick={onDelete}
-          className="w-full rounded-lg border border-red-500/40 px-3 py-1.5 text-xs text-red-500 transition-colors hover:bg-red-500/10"
+          className="w-full rounded-lg border border-danger/40 px-3 py-1.5 text-xs text-danger transition-colors hover:bg-danger-soft"
         >
           删除
         </button>

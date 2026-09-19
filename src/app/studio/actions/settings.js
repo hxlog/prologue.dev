@@ -40,6 +40,7 @@ import {
   listRedirects,
   setRedirect,
 } from "../../../lib/studio/redirects";
+import { invalidateRedirects } from "../../../lib/studio/cache-tags";
 
 /* ── the second factor ───────────────────────────────────────────────────── */
 
@@ -170,8 +171,13 @@ export async function saveRedirectAction(source, destination, permanent = true) 
   await requireUser();
   const result = await setRedirect(source, destination, { permanent });
   if (result.ok) {
+    // The table is read through a cached tag, so a redirect saved here is not
+    // live until this runs — the author's next click on the old URL is exactly
+    // when they would notice.
+    invalidateRedirects();
     revalidatePath("/studio/settings");
     revalidatePath("/studio/redirects");
+    revalidatePath(result.source);
   }
   return result;
 }
@@ -180,6 +186,7 @@ export async function deleteRedirectAction(source) {
   await requireUser();
   const result = await deleteRedirect(source);
   if (result.ok) {
+    invalidateRedirects();
     revalidatePath("/studio/settings");
     revalidatePath("/studio/redirects");
   }

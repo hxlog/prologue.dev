@@ -174,7 +174,7 @@ export function MediaPicker({ open, onClose, onPick, configured = true }) {
               <button
                 type="button"
                 onClick={() => fileInput.current?.click()}
-                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
+                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium btn-brand"
                 style={{ background: "var(--gradient-brand)" }}
               >
                 <IconPlus className="h-3.5 w-3.5" />
@@ -194,7 +194,7 @@ export function MediaPicker({ open, onClose, onPick, configured = true }) {
             </div>
 
             {notice && (
-              <p className="border-b border-border bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-500">
+              <p className="border-b border-border bg-warn-soft px-3 py-2 text-xs text-warn">
                 {notice}
               </p>
             )}

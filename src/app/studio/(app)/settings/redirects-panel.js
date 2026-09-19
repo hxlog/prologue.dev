@@ -65,7 +65,7 @@ export default function RedirectsPanel({ initial }) {
   return (
     <div className="space-y-3">
       {error && (
-        <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-500">
+        <p className="rounded-xl border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
           {error}
         </p>
       )}
@@ -112,7 +112,7 @@ export default function RedirectsPanel({ initial }) {
                       disabled={pending}
                       onClick={() => remove(row.source)}
                       aria-label={`删除 ${row.source}`}
-                      className="text-xs text-faint transition-colors hover:text-red-500 disabled:opacity-40"
+                      className="text-xs text-faint transition-colors hover:text-danger disabled:opacity-40"
                     >
                       ×
                     </button>
@@ -146,7 +146,7 @@ export default function RedirectsPanel({ initial }) {
           <button
             type="submit"
             disabled={pending || !draft.source.trim() || !draft.destination.trim()}
-            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+            className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-sm font-medium btn-brand disabled:opacity-40"
           >
             <IconPlus className="h-4 w-4" />
             添加

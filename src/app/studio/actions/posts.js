@@ -31,6 +31,7 @@ import { revalidatePath } from "next/cache";
 
 import { requireUser } from "../../../lib/auth/require";
 import {
+  changeSlug,
   createPost,
   deletePost,
   getPostForEdit,
@@ -42,8 +43,9 @@ import {
   unpublishPost,
 } from "../../../lib/studio/posts-write";
 import { renderMarkdown } from "../../../lib/markdown/render";
-import { invalidatePost } from "../../../lib/studio/cache-tags";
+import { invalidatePost, invalidateRedirects } from "../../../lib/studio/cache-tags";
 import { indexPost, unindex } from "../../../lib/studio/search-write";
+import { setRedirect } from "../../../lib/studio/redirects";
 import { readMeta } from "../../../lib/studio/frontmatter-doc";
 import { diffDocuments } from "../../../lib/studio/diff";
 
@@ -184,6 +186,9 @@ export async function createPostAction({ title }) {
  * of a post, its entire revision history and its search row, with no undo, is
  * the most destructive button in the application, and a confirmation dialog
  * that can be dismissed by reflex is not a confirmation.
+ *
+ * The check is HERE rather than only in the dialog, so a client that skipped it
+ * is refused rather than obeyed. `ConfirmDialog` collects the same string.
  */
 export async function deletePostAction(slug, confirmation) {
   await requireUser();
@@ -198,8 +203,71 @@ export async function deletePostAction(slug, confirmation) {
   invalidatePost(slug);
   await unindex(`post:${slug}`);
   revalidatePath("/studio/posts");
+  revalidatePath(`/blog/${slug}`);
 
-  return { ok: true };
+  return { ok: true, slug };
+}
+
+/**
+ * Rename a post's slug, retiring the old URL.
+ *
+ * ## Three things move and only one of them is the row
+ *
+ *   slug_history     records the old slug so the route can answer 301 — written
+ *                    by `changeSlug`, because it is about the post's identity
+ *   redirects        the author-visible, editable forwarding table. Separate
+ *                    from slug_history on purpose (see migration 0009): history
+ *                    is what the router consults, the table is what the author
+ *                    curates.
+ *   search_index     keyed by `post:<slug>`, so a rename that skipped this
+ *                    leaves the old URL in every search result and the new one
+ *                    missing.
+ *
+ * The GUID in the feeds is the slug, so an aggregator that has already seen
+ * this post will treat the renamed one as new. That is stated in the dialog
+ * rather than worked around: there is no way to change a URL and have a reader
+ * that keyed on it believe nothing happened.
+ */
+export async function renamePostAction(slug, nextSlug) {
+  const session = await requireUser();
+  const result = await changeSlug(slug, nextSlug, { userId: session.user.id });
+  if (!result.ok || result.unchanged) return result;
+
+  await setRedirect(`/blog/${result.previous}`, `/blog/${result.slug}`, {
+    permanent: true,
+  });
+  // A redirect is written and read through a cache tag of its own, so a rename
+  // nobody invalidates keeps answering 404 to the old URL until the entry
+  // expires — which is the exact moment the author is testing it.
+  invalidateRedirects();
+
+  // The search row is keyed by slug, so it is a move rather than an update.
+  await unindex(`post:${result.previous}`);
+  const current = await getPostForEdit(result.slug);
+  if (current && current.status === "published") {
+    await indexPost({
+      postId: current.id,
+      slug: result.slug,
+      title: current.title,
+      description: current.description,
+      html: current.html,
+      tags: current.tags,
+      labels: current.labels,
+      publishedAt: current.published_at,
+    });
+  }
+
+  // Both slugs, because the OLD one is cached under `post:<previous>` and the
+  // new one has never been read.
+  invalidatePost(result.previous);
+  invalidatePost(result.slug);
+  revalidatePath("/studio/posts");
+  revalidatePath(`/studio/posts/${result.slug}`);
+  revalidatePath(`/blog/${result.previous}`);
+  revalidatePath(`/blog/${result.slug}`);
+  revalidatePath("/studio/settings");
+
+  return result;
 }
 
 /**

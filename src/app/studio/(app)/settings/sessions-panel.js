@@ -85,7 +85,7 @@ export default function SessionsPanel({ sessions: initial, currentId }) {
   return (
     <div className="space-y-3">
       {error && (
-        <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-500">
+        <p className="rounded-xl border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
           {error}
         </p>
       )}
@@ -122,7 +122,7 @@ export default function SessionsPanel({ sessions: initial, currentId }) {
                   disabled={pending}
                   onClick={() => end(session.id)}
                   aria-label="注销这个设备"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-faint transition-colors hover:bg-surface-3 hover:text-red-500 disabled:opacity-40"
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-faint transition-colors hover:bg-surface-3 hover:text-danger disabled:opacity-40"
                 >
                   <IconClose className="h-3.5 w-3.5" />
                 </button>
@@ -138,7 +138,7 @@ export default function SessionsPanel({ sessions: initial, currentId }) {
           type="button"
           onClick={endOthers}
           disabled={pending}
-          className="rounded-lg border border-red-500/40 px-3 py-2 text-sm text-red-500 transition-colors hover:bg-red-500/10 disabled:opacity-40"
+          className="rounded-lg border border-danger/40 px-3 py-2 text-sm text-danger transition-colors hover:bg-danger-soft disabled:opacity-40"
         >
           {busyId === "others" ? "注销中…" : `注销其他 ${others} 个设备`}
         </button>

@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect, redirect } from "next/navigation";
 import { Suspense } from "react";
 import dynamic from "next/dynamic";
 import "katex/dist/katex.min.css";
@@ -13,6 +13,7 @@ import RelatedPosts from "../../../../components/related-posts.js";
 import ReadingProgress from "../../../../components/reading-progress.js";
 import { OptimizedHTMLRenderer } from "../../../../components/optimized-html-renderer.js";
 import { formatDate } from "../../../../lib/date.js";
+import { follow, recordHit } from "../../../../lib/studio/redirects.js";
 import {
   getPostBySlug,
   getPostSlugs,
@@ -23,6 +24,48 @@ import { getTagLabels } from "../../../../lib/content/tags.js";
 const Comments = dynamic(() => import("../../../../components/comments.js"), {
   loading: () => <div className="h-32" aria-hidden />,
 });
+
+/**
+ * Where a retired post URL moved to, or null.
+ *
+ * A renamed post is the case this exists for, and without it a rename is
+ * destructive: `renamePostAction` writes the row, the old URL stops matching
+ * any post, and every inbound link — and every `<link>` in an already-delivered
+ * feed — lands on a 404 that says nothing about where the post went.
+ *
+ * The identical lookup is in the MDX catch-all (`src/app/(site)/[...slug]/page.js`)
+ * for pages, and it was there FIRST. This route was missed, so pages redirected
+ * and posts did not — a difference that is invisible from /studio, where both
+ * renames report success. `scripts/studio/journey-test.mjs` asserts both.
+ *
+ * It runs only on the miss path, so a live post never touches the table, and it
+ * answers a cycle with a 404 rather than a loop — a reader who lands in one
+ * cannot get out by clicking Back.
+ *
+ * ## On the duplicated `location` header
+ *
+ * This route is partially prerendered and the redirect is a response HEADER, so
+ * on a cache MISS the header is emitted twice — once by the prerender (where
+ * the lookup legitimately returned null) and once by the request-time render.
+ * Measured on `next start`, and it is not new: the MDX catch-all above has done
+ * the same thing since it was written.
+ *
+ * `await connection()` is the framework's way to declare that a response's
+ * headers depend on request-time data, and it does collapse the header to one —
+ * but inside a partially prerendered page with no Suspense boundary it fails
+ * the blocking-prerender check and turns every unknown slug into a 500. Making
+ * the route `instant = false` instead would fix the header and break the 404,
+ * because a blocking route commits its status line before the render that
+ * discovers there is no post. Both are worse than a duplicated header that
+ * every client resolves the same way, so it is recorded here rather than
+ * worked around.
+ */
+async function movedTo(slug) {
+  const target = await follow(`/blog/${slug}`);
+  if (!target) return null;
+  recordHit(`/blog/${slug}`);
+  return target;
+}
 
 // Non-mutating: the shared array must not be sorted in place.
 function getAdjacentPosts(post, allPosts) {
@@ -88,6 +131,24 @@ export default async function PostPage(props) {
   const params = await props.params;
   const post = await getPostBySlug(params?.slug?.join("/"));
   if (!post || post.draft === true) {
+    // A slug that no longer matches may have been RENAMED rather than removed.
+    // Checked before `notFound()`, and only on the miss path.
+    //
+    // `permanentRedirect` rather than `redirect` when the row says permanent:
+    // the two emit different status codes (308 against 307) and only the 308
+    // tells a search engine to move its index entry. A rename is permanent by
+    // intent, so anything else leaves crawlers on a retired URL.
+    //
+    // Note the ordering against the draft check above. The redirect is only
+    // consulted for a slug that matches nothing at all: an unpublished post
+    // still owns its slug, and answering its URL with a 308 to its old name
+    // would confirm the post exists. See the 404-not-403 rule in
+    // src/app/api/img/[...path]/route.js — the same reasoning.
+    const moved = await movedTo(params?.slug?.join("/"));
+    if (moved) {
+      if (moved.permanent) permanentRedirect(moved.destination);
+      redirect(moved.destination);
+    }
     notFound();
   }
 

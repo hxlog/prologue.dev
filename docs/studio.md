@@ -18,6 +18,26 @@ A 224px rail is most of a 390px viewport, so the phone gets a drawer; a drawer
 on a 10-inch tablet is *worse* than a rail, so tablet gets the rail. The break
 is at `md`, not `sm`.
 
+Content sits inside `<main class="mx-auto max-w-5xl px-4 …">`, so a 375px phone
+has **~343px** of usable width. That is the number every fixed width in the
+studio is measured against, and it is why:
+
+- the posts and redirects lists are a `<table>` behind `sm:` with a separate
+  phone list underneath, rather than a table that scrolls sideways;
+- the editor's source and preview panes are `lg:flex-row` with a sticky
+  `Markdown / 预览` switcher at the bottom on a phone — one pane at a time, the
+  same two panes, not a shrunken side-by-side;
+- the media library is `lg:grid-cols-[1fr_20rem]`, one column below it;
+- the frontmatter panel's two date fields stack until `sm:`. A native
+  `<input type="date">` has a browser-defined intrinsic width that does not
+  shrink below its rendered text plus the picker button, so two side by side in
+  ~160px each clip their own calendar affordance;
+- icon buttons are 28px (`h-7 w-7`). That is under the 36px a thumb wants and
+  it is a deliberate trade: the alternative is a row of controls that reads as
+  buttons rather than as chrome, and every one of them has a text or label path
+  too. The phone-only controls — the drawer, the top bar, the editor's tab
+  switcher — are all ≥32px.
+
 ## Routes
 
 | route | what it is |
@@ -31,9 +51,45 @@ is at `md`, not `sm`.
 | `/studio/collections` | collection CRUD with custom fields |
 | `/studio/media` | the Vercel Blob library |
 | `/studio/tags` | the taxonomy |
-| `/studio/settings` | 2FA, backup codes, sessions |
+| `/studio/settings` | 2FA, backup codes, sessions, the redirect table |
 
-### The two route groups
+### What each screen can do to a thing, and what it cannot
+
+Written down because the gaps are invisible from inside the app: a missing
+button looks the same as a feature nobody wanted.
+
+| | create | edit | rename | publish | delete |
+|---|---|---|---|---|---|
+| post | yes | yes | yes — dialog, writes a redirect | yes | yes — type the slug |
+| page | yes | yes | yes — dialog, writes a redirect | yes | yes — type the slug |
+| collection | no, see below | entries and fields | no | per entry | per entry — type the anchor |
+| media | yes | alt and caption | no, see below | n/a | yes; `force` offered once the references are shown |
+| tag | yes | label | yes — a slug rename leaves an alias | n/a | yes; a second confirmation when posts carry it |
+
+Three entries in that table are deliberate rather than unfinished.
+
+A collection has **no create button** because a collection is data plus a PAGE
+that renders it with components written for its shape — creating a third one
+would produce rows nothing displays. The list screen says so rather than
+implying otherwise.
+
+Media has **no rename** because a pathname is generated on the server and never
+chosen by the client (see the Media section). The searchable, editable name is
+`original_name`.
+
+**Reordering exists only for a `manual` collection.** `sort_pinned` and
+`sort_order` are read in the `manual` branch of the entries query, and a `date`
+collection orders by `published_at` first — so a move would appear to do
+nothing. The arrows are not rendered rather than rendered and inert.
+
+The rename rows in that table are also why the two public catch-all routes
+resolve a retired path: `/blog/[...slug]` for posts and `/[...slug]` for pages,
+both reading the same `redirects` table. Without that lookup a rename is
+destructive rather than cosmetic — every inbound link and every `<link>` in an
+already-delivered feed 404s. The post route was missing it until
+`journey-test.mjs` was written, which is the argument for that test existing.
+
+## The two route groups
 
 `src/app/studio/(auth)/login` and `src/app/studio/(app)/*`.
 
@@ -51,6 +107,46 @@ branch exists where "the user is null" could be forgotten.
 relative import under it needs one more `../`. `.tmp/fix-studio-imports.mjs`
 resolves each specifier against the file's real directory and repairs the ones
 that do not resolve — run it after moving anything under a route group.
+
+## The palette, and why four values in it are surprising
+
+Every colour in /studio is a token from `globals.css` — that is the whole reason
+it does not look like a second application bolted onto the blog. What is worth
+writing down is that those tokens were **measured**, not chosen, and four of
+them read as odd until you know what they are solving:
+
+**`--faint` is the floor.** It carries 174 timestamps, hints, revision numbers
+and counts in the studio, at 10–12px. It was `#a1a1aa`, which is 2.33:1 on
+`--surface-2` — a value nobody picks deliberately, and invisible as a problem
+because dim text looks *intentional*. The grey ramp moved one step in each
+mode; the value that used to be `--muted` is what `--faint` holds now, and the
+two tiers are still 1.5× apart so nothing reads flat.
+
+**`--on-accent` flips.** White in light mode, near-black in dark. This is
+arithmetic, not taste: white on cyan-400 is 1.81:1 and near-black on it is
+11.01:1, while white on cyan-700 is 5.36:1 and near-black on it is only 3.71:1.
+No single label colour is legible on both modes' accent, and the alternative —
+a dark-mode accent dark enough for white — throws away the palette. So the
+token flips, and `--on-accent` is what a brand fill carries.
+
+**The light-mode gradient is darker than the dark-mode one.** As declared,
+`#06b6d4 → #8b5cf6` measured 2.43:1 for white at its cyan end. Every brand
+button in the app was white text over it. Dark mode is fixed by moving the
+*label* and keeping the 400s; light mode had no such latitude, because a
+mid-tone that carries white text has to be dark, so the gradient is now
+cyan-700 → violet-600. The hue is unchanged — the same ramp, one step down.
+
+**A brand button cannot hover with `opacity`.** `opacity` composites the whole
+element, label included, toward the page behind it, so `hover:opacity-90` drags
+a passing button *under* AA while the pointer is on it. `.btn-brand` and
+`.btn-danger` hover with `filter: brightness()` instead, which moves the fill
+and leaves the label where it is.
+
+The last three would each be "fixed" back into failing by anyone reading the
+code without this note, which is why `scripts/studio/contrast-audit.mjs` reads
+the declared values out of `globals.css` and re-derives every ratio. Retune a
+token and it goes red — that is the mechanism, and the audit was verified
+against four deliberate regressions before it was trusted.
 
 ## View counts
 
@@ -169,12 +265,30 @@ Step 3 is the one that is easy to skip. It is the difference between a library
 whose rows are facts and one whose rows are intentions: a row written at step 1
 leaves broken thumbnails the first time a tab is closed mid-upload.
 
-`addRandomSuffix: false` in the presign options is load-bearing and its default
-is not what you would guess. Vercel Blob appends four random characters to a
-pathname at storage time by default — a sane default for public uploads — and
-here it means the object lands somewhere nobody recorded, `head()` on the
-promised pathname says "does not exist", and the commit refuses. Measured, not
-theorised.
+`scripts/studio/blob-signing-probe.mjs` asks the store what a presigned URL
+actually pins, because "the constraint is in the signature" is a claim that has
+to be tested rather than assumed. Four answers, all measured against the real
+store on SDK 2.8.0:
+
+| client tries to | result |
+|---|---|
+| keep a pathname unchanged, no `addRandomSuffix` | kept — the default is **false**, on `put()` and `presignUrl()` alike |
+| swap the pathname in the signed URL | **403** — the path is part of the signed query, so a ticket is a ticket for one object |
+| send a body over `maximumSizeInBytes` | **403** |
+| send a Content-Type outside `allowedContentTypes` | **200**, and the object is stored with the type the *signature* declared |
+
+That last row is the one worth reading twice. The type constraint is enforced by
+OVERWRITING rather than by refusing, which is the safe half of those two options
+and not the half a reader would assume from "refused at storage". It is why
+`commitUpload` re-reads the type with `head()` instead of trusting the request,
+and why the proxy sends `nosniff` — the type a browser sees is the one from our
+own row, never the one a client claimed.
+
+`addRandomSuffix: false` is still passed explicitly at every call site. The
+default is on our side, but a default is not a promise, and the failure it
+guards against is silent: the object lands with four characters appended, the
+server's `head()` on the promised pathname answers "does not exist", the commit
+refuses, and the store holds bytes no row points at.
 
 **A pathname is generated on the server and never chosen by the client.** It is
 `media/<year>/<month>/<8 hex>-<slug>.<ext>`: the date makes the store browsable
@@ -193,11 +307,23 @@ stranger can learn about unpublished work should be empty. Published responses
 carry `immutable`; session-only ones are `no-store`.
 
 **Deleting is refused while anything references the object**, searched across
-`post_revisions.html`, `page_revisions.markdown` and
-`collection_entries.values::text` — three stores that keep the URL in three
-different shapes. Missing one is how a published page ends up with a broken
-image. The refusal carries the counts, and `force` is only reachable from a
-second confirmation that has already shown them.
+`post_revisions.html`, `page_revisions.markdown`,
+`collection_entries.values::text` and the `posts.cover_image` column — four
+stores that keep the URL in four different shapes. Missing one is how a
+published page ends up with a broken image. The refusal carries the counts, and
+`force` is only reachable from a second confirmation that has already shown
+them.
+
+That fourth one is worth a sentence because it was missed. A cover set through
+/studio lives ONLY in `posts.cover_image`; it is never part of the document, so
+it is not in any revision's HTML. A post whose only image was its cover
+therefore had a cover that answered 404 to every reader — `next/image` fetches
+without a cookie and a stranger gets the "not published" answer — while the
+author, who has a session, saw it perfectly. The same omission made the delete
+guard refuse with a count the dialog did not know how to display, so the author
+was told "in use by ." and blocked. `journey-test.mjs` found both on its first
+run against an uploaded cover, which is the argument for a test that drives the
+browser's own three-step upload rather than the module beneath it.
 
 `scripts/studio/media-reconcile.mjs` is the one thing that reads the STORE
 rather than the database. It reports blobs with no row (a commit that failed

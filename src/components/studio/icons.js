@@ -275,3 +275,31 @@ export function IconSearch(props) {
     </Svg>
   );
 }
+
+/** A chevron pointing DOWN; rotate it to point elsewhere. */
+export function IconChevron(props) {
+  return (
+    <Svg {...props}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+    </Svg>
+  );
+}
+
+/**
+ * A pushpin.
+ *
+ * Drawn filled-by-default so `currentColor` reads as "on" when the entry is
+ * pinned; the caller tints it rather than swapping icons, because two icons for
+ * two states of one control is two things to keep in sync.
+ */
+export function IconPin(props) {
+  return (
+    <Svg {...props}>
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M16.5 3.75V4.5m0-0.75h-9m9 0a1.5 1.5 0 0 1 1.5 1.5v.75l1.5 2.25v1.5h-6v6l-1.5 3-1.5-3v-6h-6v-1.5l1.5-2.25V5.25a1.5 1.5 0 0 1 1.5-1.5m0 0V3.75"
+      />
+    </Svg>
+  );
+}
