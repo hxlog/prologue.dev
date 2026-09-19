@@ -410,6 +410,70 @@ try {
 
   await client.query(`DELETE FROM redirects WHERE source = $1`, [retiredPath]);
 
+  // ── the collections screens ──────────────────────────────────────────────
+  //
+  // The screens whose whole purpose is that they are generated from a SCHEMA.
+  // The columns of `collection_fields` become the controls of the entry form at
+  // request time, so a build that compiles proves nothing about whether the two
+  // agree — asserting that the rendered form carries the actual field labels of
+  // the actual collection is what does.
+  const collections = await request("/studio/collections");
+  ok("collection list renders", collections.status === 200, `status ${collections.status}`);
+  ok("collection list shows the microblog", collections.text.includes("微博"));
+  ok("collection list shows the friend links", collections.text.includes("友链"));
+
+  const { rows: mbFields } = await client.query(
+    `SELECT f.label, f.key FROM collection_fields f
+       JOIN collections c ON c.id = f.collection_id
+      WHERE c.slug = 'microblog' ORDER BY f.sort_order`
+  );
+  ok("the microblog collection has fields to render", mbFields.length > 0);
+
+  const mb = await request("/studio/collections/microblog");
+  ok("collection editor renders", mb.status === 200, `status ${mb.status}`);
+  ok("collection editor has both tabs", mb.text.includes("条目") && mb.text.includes("字段"));
+  ok(
+    "collection editor offers a new-entry form",
+    mb.body.includes("新建条目"),
+    "no create button rendered"
+  );
+
+  // Every field's LABEL, from the database, inside the rendered entry form.
+  // `label` for the schema-name case and `aria-label` for the key-input case,
+  // because the field list and the add form are two different renderings of the
+  // same row and either is enough to prove the schema reached the screen.
+  for (const field of mbFields) {
+    ok(
+      `the entry form renders the “${field.key}” field`,
+      mb.body.includes(field.label) || mb.body.includes(`字段 ${field.label}`),
+      "the schema did not reach the form"
+    );
+  }
+
+  // The entry count in the tab label, read from the database rather than
+  // hardcoded — the microblog grows, and a test that breaks when the author
+  // writes a sentence is a test that gets disabled.
+  const { rows: mbEntries } = await client.query(
+    `SELECT count(*)::int AS n FROM collection_entries e
+       JOIN collections c ON c.id = e.collection_id WHERE c.slug = 'microblog'`
+  );
+  ok(
+    "the entry tab reports the entry count",
+    mb.text.includes(`条目 (${mbEntries[0].n})`),
+    `expected 条目 (${mbEntries[0].n})`
+  );
+
+  const links = await request("/studio/collections/links");
+  ok("the friend-links collection renders", links.status === 200, `status ${links.status}`);
+  ok("its entry form carries the name field", links.text.includes("名称"));
+
+  const missingCollection = await request("/studio/collections/no-such-collection");
+  ok(
+    "an unknown collection explains itself",
+    missingCollection.text.includes("找不到这个集合"),
+    `status ${missingCollection.status}`
+  );
+
   // ── sign out clears the session ──────────────────────────────────────────
   const { rows: sessions } = await client.query(
     `SELECT count(*)::int AS n FROM sessions s

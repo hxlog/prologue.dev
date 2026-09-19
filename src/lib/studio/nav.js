@@ -89,13 +89,19 @@ export async function deleteNavItem(id) {
  * row: this runs from a pair of arrow buttons, and N round trips through
  * PgBouncer for an operation whose entire content is "these five ids are now in
  * this order" is the kind of thing that makes an admin feel slow.
+ *
+ * `position - 1` because `WITH ORDINALITY` counts from 1, and the index every
+ * other writer of `sort_order` in this codebase counts from 0 (`createNavItem`
+ * starts at 0; `collection_entries.sort_order` does the same). The two orders
+ * are identical, which is exactly why getting it wrong goes unnoticed until
+ * something else reads the column and assumes a base.
  */
 export async function reorderNavItems(ids) {
   if (!Array.isArray(ids) || ids.length === 0) return { ok: false, reason: "empty" };
 
   await query(
     `UPDATE nav_items AS n
-        SET sort_order = ordered.position
+        SET sort_order = ordered.position - 1
        FROM unnest($1::uuid[]) WITH ORDINALITY AS ordered(id, position)
       WHERE n.id = ordered.id`,
     [ids]
