@@ -308,6 +308,10 @@ export default function PageEditor({ initial }) {
                 setDeleting(true);
               }}
               aria-label="删除页面"
+              // Ghost treatment, matching the post editor: a red destructive
+              // control next to the primary publish button is one it is easier
+              // to hit by accident than to hit on purpose. It turns red on
+              // hover, so the colour arrives with the intent.
               className="flex h-7 w-7 items-center justify-center rounded-full text-faint transition-colors hover:bg-danger-soft hover:text-danger"
             >
               <IconTrash className="h-3.5 w-3.5" />
@@ -361,7 +365,23 @@ export default function PageEditor({ initial }) {
               <span className="text-xs font-medium text-muted">预览</span>
               {compileError && <span className="text-[11px] text-danger">编译失败</span>}
             </div>
-            <div className="p-4">
+            {/*
+              Capped and scrollable, matching `preview-pane.js`.
+
+              Without this the pane is as tall as the compiled page, so a long
+              MDX page produces a preview several screens long with the tab bar
+              stranded at the bottom of it — the author scrolls through the
+              whole rendered document to get back to "Markdown". The post
+              editor's preview has always had this cap; the page editor's did
+              not, which made two controls with the same label behave
+              differently. The number is the same one `preview-pane.js` uses,
+              and for the same reason: both panes sit under the same sticky
+              `Bar`.
+
+              The scroll is INSIDE the pane, so the tab bar below stays where
+              it is rather than floating over the document.
+            */}
+            <div className="max-h-[calc(100vh-12rem)] overflow-y-auto p-4">
               <MdxPreview code={code} error={compileError} />
             </div>
           </div>

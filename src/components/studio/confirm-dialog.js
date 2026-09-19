@@ -77,7 +77,20 @@ export function ConfirmDialog({
       <form
         onSubmit={submit}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-t-2xl border border-border bg-surface p-4 sm:rounded-2xl"
+        // `max-h` + `overflow-y-auto`, and `dvh` rather than `vh`.
+        //
+        // A dialog anchored to the bottom of a phone screen with no height cap
+        // is a dialog whose confirm button the soft keyboard covers. iOS does
+        // not resize the LAYOUT viewport for the keyboard, so `fixed inset-0`
+        // keeps its full height, everything below y≈376 is hidden, and nothing
+        // scrolls because the container has no scrollable content — the author
+        // sees a typed confirmation field and no way to reach 永久删除.
+        //
+        // `dvh` and not `vh` for the same reason a browser toolbar retracting
+        // should not move the cap: `vh` is the LARGE viewport, so `90vh` is
+        // taller than the screen whenever browser chrome is showing, which is
+        // exactly when the field is covered.
+        className="max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-t-2xl border border-border bg-surface p-4 sm:rounded-2xl"
       >
         <h2 className="text-sm font-semibold text-foreground">{title}</h2>
         {intro && <p className="mt-1 text-xs leading-5 text-muted">{intro}</p>}

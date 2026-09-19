@@ -21,9 +21,23 @@ import { IconClose, IconPlus, IconWarning } from "../../../../components/studio/
  * ## Why the order is arrow buttons and not drag
  *
  * Drag-and-drop over a list of five items on a phone is a worse experience than
- * two taps on a 44px target, and the header is the one part of the site that is
- * almost always edited from a phone. The arrows are also keyboard-operable for
- * free, which a drag handle is not.
+ * tapping an arrow, and the header is the one part of the site that is almost
+ * always edited from a phone. The arrows are also keyboard-operable for free,
+ * which a drag handle is not.
+ *
+ * The claim that these are 44px targets was wrong when it was written and is
+ * corrected here rather than quietly deleted: `h-6 w-6` is 24×24, and adding
+ * `hover:` and `disabled:` states around a size that was never applied is how a
+ * measurement turns into a belief. They are 24px, they sit in a vertical pair
+ * so they are 48px tall together with a 2px gap between them, and that is a
+ * real trade rather than an oversight — a 44px pair would be 88px of a 48px-
+ * per-row list and read as two buttons per link instead of as chrome. If a
+ * future round wants thumb-sized reordering, the honest fix is a drag handle
+ * with a larger hit area, not two bigger arrows.
+ *
+ * The same 16×20 pair in the collections entries list is NOT a trade and is
+ * closer to broken; it is noted here because the two got the same treatment and
+ * should not have.
  *
  * ## What is deliberately NOT here
  *

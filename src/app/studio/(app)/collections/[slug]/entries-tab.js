@@ -94,6 +94,21 @@ export default function EntriesTab({
             <li key={entry.id} className="px-3 py-2.5">
               <div className="flex items-start gap-2">
                 {sortable && (
+                  // 16×20 each, so 40px tall as a pair with the gap. Small, and
+                  // honestly so: `h-4 w-5` is a chevron glyph, not a button.
+                  //
+                  // It is left at that size because growing it to a thumb target
+                  // doubles the height of every row in a list where the common
+                  // operation is READING entries and reordering is rare — and a
+                  // row of 88px controls is a list that looks like a control
+                  // panel. What it does have is a correct `aria-label` per entry
+                  // ("上移 <anchor>") and `disabled` at the ends rather than a
+                  // hidden button, so it is reachable and operable by keyboard
+                  // and by screen reader even where it is fiddly by thumb.
+                  //
+                  // Recorded rather than silently accepted: if reordering turns
+                  // out to be used on a phone, the fix is a drag handle with a
+                  // full-row hit area, not two larger chevrons.
                   <div className="flex shrink-0 flex-col">
                     <button
                       type="button"

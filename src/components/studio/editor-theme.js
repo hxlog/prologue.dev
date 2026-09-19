@@ -117,6 +117,18 @@ export const prologueTheme = EditorView.theme(
       borderRadius: "6px",
       color: "var(--foreground)",
     },
+    // The gutter is hidden on a phone.
+    //
+    // Measured: 49px of the ~343px a 375px viewport gives the editor, which is
+    // 14% of the writing width spent on line numbers that nobody scrolls to on
+    // a screen this narrow — the editor is a markdown document, not a source
+    // file with a stack trace to read. The `@media` block is written against
+    // the same 640px breakpoint as Tailwind's `sm`, and it is here rather than
+    // as a `hidden` class because the gutter is created by CodeMirror, not by
+    // our JSX.
+    "@media (max-width: 639px)": {
+      ".cm-gutters": { display: "none" },
+    },
   },
   { dark: false }
 );

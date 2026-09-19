@@ -132,7 +132,12 @@ export function MediaPicker({ open, onClose, onPick, configured = true }) {
         role="dialog"
         aria-modal="true"
         aria-label="媒体库"
-        className="flex max-h-[90vh] w-full max-w-3xl flex-col rounded-t-2xl border border-border bg-surface sm:rounded-2xl"
+        // `dvh`, not `vh`: `vh` is the LARGE viewport, so `90vh` is taller than
+        // the screen whenever browser chrome is showing. This panel is the one
+        // dialog here that already caps its height and scrolls internally —
+        // the other four were fixed to match it — so the unit is the last thing
+        // it needed.
+        className="flex max-h-[90dvh] w-full max-w-3xl flex-col rounded-t-2xl border border-border bg-surface sm:rounded-2xl"
       >
         <header className="flex items-center gap-2 border-b border-border px-3 py-2">
           <h2 className="text-sm font-semibold text-foreground">媒体库</h2>

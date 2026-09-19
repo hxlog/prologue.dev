@@ -440,6 +440,16 @@ function Bar({
             type="button"
             onClick={onDelete}
             aria-label="删除文章"
+            // Deliberately the ghost treatment, not a red one.
+            //
+            // A destructive action rendered in `--danger` sitting 8px from the
+            // primary 发布 button is a delete that is easier to hit while
+            // reaching for publish than publish is — and the icon is 28px, so
+            // the fumble is a plausible one. It stays a quiet grey `h-7 w-7`
+            // that turns red on HOVER only, which means the colour arrives with
+            // the intent. The typed-slug confirmation behind it is the real
+            // guard; this is about not advertising it next to the button people
+            // press most.
             className="flex h-7 w-7 items-center justify-center rounded-full text-faint transition-colors hover:bg-danger-soft hover:text-danger"
           >
             <IconTrash className="h-3.5 w-3.5" />

@@ -59,7 +59,11 @@ export function PostRenameDialog({ slug, published, onClose, onRename }) {
       <form
         onSubmit={submit}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-t-2xl border border-border bg-surface p-4 sm:rounded-2xl"
+        // Capped and scrollable, in `dvh`. See the note in confirm-dialog.js:
+        // an uncapped bottom-anchored dialog on a phone is a dialog whose
+        // submit button the soft keyboard covers, and iOS does not resize the
+        // layout viewport to tell us about it.
+        className="max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-t-2xl border border-border bg-surface p-4 sm:rounded-2xl"
       >
         <h2 className="text-sm font-semibold text-foreground">修改文章路径</h2>
         <p className="mt-1 text-xs leading-5 text-muted">

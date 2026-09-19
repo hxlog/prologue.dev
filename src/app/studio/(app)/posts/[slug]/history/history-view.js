@@ -268,22 +268,39 @@ function DiffBody({ diff, canCompare }) {
         `whitespace-pre-wrap` rather than `pre`: markdown lines are long and a
         horizontal scrollbar across a diff is the fastest way to make one
         unreadable on a phone.
+
+        `break-words` and not `break-all`. The two look interchangeable and are
+        not: `break-all` breaks a word at whatever character the box edge lands
+        on, so about half an English word ends up split across two lines and a
+        diff of prose becomes a column of fragments. `break-words`
+        (`overflow-wrap: break-word`) still breaks a word that genuinely does
+        not fit — a URL, a long identifier — and leaves the rest alone. CJK is
+        unaffected either way, since it has no spaces to break at in the first
+        place.
+
+        The width is worth stating rather than rediscovering: at 375px the two
+        `w-10` line-number cells and the `w-4` marker take 96 of roughly 343,
+        leaving ~231px, which is about 32 characters of 12px mono. That is
+        narrow enough to be a real cost and it is still the right trade. The
+        suggested alternative — hiding the "new" line-number column below `sm`
+        — recovers 44px by no longer showing which line a change landed on,
+        which is the fact the diff exists to report.
       */}
       <div className="max-h-[70vh] overflow-auto">
         <table className="w-full border-collapse font-mono text-[12px] leading-6">
           <tbody>
             {diff.rows.map((row, i) => (
               <tr key={i} className={rowClass(row.type, row.moved)}>
-                <td className="w-10 select-none border-r border-border px-2 text-right align-top text-faint">
+                <td className="w-10 select-none border-r border-border px-1 text-right align-top text-faint sm:px-2">
                   {row.beforeLine ?? ""}
                 </td>
-                <td className="w-10 select-none border-r border-border px-2 text-right align-top text-faint">
+                <td className="w-10 select-none border-r border-border px-1 text-right align-top text-faint sm:px-2">
                   {row.afterLine ?? ""}
                 </td>
                 <td className="w-4 select-none px-1 text-center align-top text-faint">
                   {marker(row.type)}
                 </td>
-                <td className="whitespace-pre-wrap break-all px-2 align-top">
+                <td className="whitespace-pre-wrap break-words px-2 align-top">
                   {row.text || " "}
                 </td>
               </tr>
