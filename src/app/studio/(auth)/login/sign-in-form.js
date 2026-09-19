@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { signIn, verifySecondFactor } from "../actions/auth";
+import { signIn, verifySecondFactor } from "../../actions/auth";
 
 /**
  * The primary submit button.

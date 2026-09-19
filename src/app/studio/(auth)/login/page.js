@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSession } from "../../../lib/auth/sessions";
+import { getSession } from "../../../../lib/auth/sessions";
 import SignInForm, { InsecureCookieNotice } from "./sign-in-form";
 
 /**

@@ -21,13 +21,15 @@ source, and reading it back out.
 | **CodeMirror 6** | **64/64 byte-identical** | **chosen** |
 | ByteMD | 64/64 byte-identical | abandoned upstream — see below |
 | MDX Editor | 7/64 clean; 41 changed, 12 threw | rejected |
-| Milkdown (Crepe) | 1,693 changed lines across the corpus | rejected |
+| Milkdown (best config: full Crepe) | 0/64; 1,209 lines rewritten | rejected |
 | Tiptap | 0/63 byte-identical; 39 content-changed | rejected |
 
 ### Why the three rejected ones failed
 
-**Milkdown** is the most instructive failure. Its *smallest* diff in the entire
-corpus was:
+**Milkdown** is the most instructive failure, and the numbers above are its
+*best* configuration — full Crepe 7.22.1 with code-mirror, latex, list-item and
+table features. Plain commonmark+gfm is worse (1,693 lines). Its *smallest*
+diff in the entire corpus was:
 
 ```
 - ---
@@ -39,10 +41,24 @@ corpus was:
 ```
 
 That is not a rounding error, it is a document model: Milkdown parses markdown
-into ProseMirror nodes and re-serializes. Frontmatter becomes a horizontal rule,
-`[` gets escaped. Every file changes on open, and the change is committed by
-autosave. Milkdown is a fine editor — it is a *WYSIWYG* editor, and the user
-explicitly rejected WYSIWYG.
+into ProseMirror nodes and re-serializes. ProseMirror has no representation for
+frontmatter at all, nor for `---` vs `***` (both are just `thematicBreak`), for
+`-` vs `*` bullets, for `_` vs `*` emphasis, or for a 2-space hard break — so
+each is re-invented from `mdast-util-to-markdown`'s defaults at serialization
+time. Every file changes on open, and autosave commits the change.
+
+There is no `@milkdown/plugin-frontmatter` on npm, and bolting on
+`remark-frontmatter` throws (`Cannot match target parser for node: yaml`) — so
+frontmatter does not merely get reformatted, it is merged into the body as a
+setext heading. `content_hash` over the stored markdown would change on every
+open, which is precisely the signal autosave uses to decide nothing changed.
+
+Milkdown has one real advantage: the damage is **idempotent** — a second
+round-trip is 64/64 stable — so only the first save rewrites a file. That first
+save is the one that would produce a revision diff the author never made.
+
+Milkdown is a fine editor. It is a *WYSIWYG* editor, and WYSIWYG was explicitly
+rejected — the request was to edit markdown source directly.
 
 **MDX Editor** (4.2.5, actively released) round-tripped 7 of 64 cleanly and
 **threw outright on 12** — it could not open them at all. Its strongest
