@@ -48,6 +48,7 @@ studio is measured against, and it is why:
 | `/studio/posts/[slug]` | the editor |
 | `/studio/posts/[slug]/history` | revision list, diff, restore |
 | `/studio/pages` | MDX pages, per-page giscus toggle and custom CSS |
+| `/studio/nav` | the header links, as `nav_items` — not files, since 0012 |
 | `/studio/collections` | collection CRUD with custom fields |
 | `/studio/media` | the Vercel Blob library |
 | `/studio/tags` | the taxonomy |
@@ -58,13 +59,45 @@ studio is measured against, and it is why:
 Written down because the gaps are invisible from inside the app: a missing
 button looks the same as a feature nobody wanted.
 
+This table is the OUTPUT of an audit, not a plan. Before it existed, several
+exported actions had no caller anywhere in `src/` — `deletePostAction`,
+`deletePageAction`, `renamePostAction`, `addAliasAction`,
+`reorderEntriesAction`, `pinEntryAction` — and the media delete's `force`
+argument was never passed by anything. All of it worked on the server and
+none of it was reachable from a browser. Two screens linked somewhere they
+could not go as well: the page list's "view" icon was rendered for drafts, and
+a draft has no public URL, so the icon was a 404 one click from the list.
+
+The audit was mechanical — does anything import this action? — and it is worth
+repeating after any refactor that moves a control, because the server half of
+a feature cannot tell that its caller went away. A missing button and a
+feature nobody wanted look exactly alike from inside the app.
+
 | | create | edit | rename | publish | delete |
 |---|---|---|---|---|---|
 | post | yes | yes | yes — dialog, writes a redirect | yes | yes — type the slug |
 | page | yes | yes | yes — dialog, writes a redirect | yes | yes — type the slug |
-| collection | no, see below | entries and fields | no | per entry | per entry — type the anchor |
+| collection | no, see below | entries and fields | no | per entry | per entry — one click in the list |
 | media | yes | alt and caption | no, see below | n/a | yes; `force` offered once the references are shown |
 | tag | yes | label | yes — a slug rename leaves an alias | n/a | yes; a second confirmation when posts carry it |
+| collection entry | yes | every field | n/a | n/a | yes — one click |
+| nav item | yes | label, href, order | no | n/a | yes — one click |
+
+Deletion is confirmed in proportion to what it takes with it, and the split is
+deliberate rather than inconsistent:
+
+- **A post or a page requires its slug to be typed**, and the SERVER compares
+  the string, so a client that never opens the dialog is refused rather than
+  obeyed. These two take a whole revision history with them and nothing
+  reconstructs it.
+- **Media** asks once, then asks again with the reference counts if the object
+  is in use, because the interesting question is not "are you sure" but "did
+  you know a published post is using this". Both answers are the author's.
+- **A tag** asks twice when posts carry it, for the same reason.
+- **A collection entry and a nav item delete on one click.** They are rows in a
+  list the author is looking at, the list is the confirmation, and adding a
+  dialog to a `×` in a table is what trains someone to dismiss dialogs. This is
+  a judgement call and it is recorded as one, not as an oversight.
 
 Three entries in that table are deliberate rather than unfinished.
 
