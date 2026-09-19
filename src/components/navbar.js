@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import headerNavLinks from "../../data/headerNavLinks";
 import ThemeSwitch from "./themeswitch";
 import MobileNav from "./mobilenav";
 import RssModal from "./rss-modal";
@@ -9,7 +8,23 @@ import Link from "next/link";
 import siteMetadata from "../../data/sitemetadata";
 import { usePathname } from "next/navigation";
 
-export default function Navbar() {
+/**
+ * The header.
+ *
+ * The links come in as a PROP rather than from an import. They were
+ * `data/headerNavLinks.js` — a static array this component and MobileNav both
+ * imported — and they now come from `nav_items`, so that the author can
+ * reorder, rename and hide them from /studio. This component stays a Client
+ * Component (it tracks scroll and the current path) and therefore cannot read
+ * the database itself; `(site)/layout.js` fetches and passes down, which is the
+ * one place on the site that needs to.
+ *
+ * Passing them through rather than having MobileNav fetch its own copy is not
+ * only about the extra query: two fetches could disagree, and a header whose
+ * desktop and mobile menus list different links is a bug nobody would think to
+ * look for.
+ */
+export default function Navbar({ items = [] }) {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
 
@@ -36,20 +51,23 @@ export default function Navbar() {
 
         <nav className="flex items-center leading-6">
           <div className="hidden sm:block">
-            {headerNavLinks.map((link) => {
+            {items.map((link) => {
               const active = pathname === link.href;
               return (
                 <Link
-                  key={link.title}
+                  key={link.id ?? link.href}
                   href={link.href}
                   aria-current={active ? "page" : undefined}
+                  {...(link.external
+                    ? { target: "_blank", rel: "noreferrer" }
+                    : {})}
                   className={`select-none rounded-lg px-3 py-2 text-sm transition-all duration-200 ${
                     active
                       ? "bg-accent-soft font-semibold text-accent"
                       : "text-muted hover:bg-surface-2 hover:text-accent"
                   }`}
                 >
-                  {link.title}
+                  {link.label}
                 </Link>
               );
             })}
@@ -60,7 +78,7 @@ export default function Navbar() {
             so heights and baselines line up on one horizontal axis. */}
         <div className="flex items-center gap-0.5 leading-5">
           <RssModal />
-          <MobileNav />
+          <MobileNav items={items} />
           <ThemeSwitch />
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect, redirect } from "next/navigation";
 import { Suspense } from "react";
 import dynamic from "next/dynamic";
 import siteMetadata from "../../../../data/sitemetadata.js";
@@ -7,10 +7,31 @@ import ScrollTopAndComment from "../../../components/scroll.js";
 import PageTransition from "../../../components/page-transition.js";
 import MDXRenderer from "../../../components/mdx-renderer.js";
 import { getPageBySlug, getPageSlugs } from "../../../lib/content/pages.js";
+import { follow, recordHit } from "../../../lib/studio/redirects.js";
 
 const Comments = dynamic(() => import("../../../components/comments.js"), {
   loading: () => <div className="h-32" aria-hidden />,
 });
+
+/**
+ * A retired path, or null.
+ *
+ * This route is the catch-all: once a page is renamed, its old slug matches no
+ * route and lands here. That makes this the one place in the site that can turn
+ * "no such page" into "that page moved", which is why the redirect lookup lives
+ * here rather than in the proxy — a proxy runs on the edge runtime, where there
+ * is no database to reach.
+ *
+ * Returns null when there is no redirect, and also when a chain does not
+ * terminate (a cycle). A reader who hits a redirect loop cannot get out of it
+ * by clicking Back, so a loop is answered with a 404 instead.
+ */
+async function movedTo(slug) {
+  const target = await follow(`/${slug}`);
+  if (!target) return null;
+  recordHit(`/${slug}`);
+  return target;
+}
 
 export async function generateMetadata(props) {
   const params = await props.params;
@@ -54,12 +75,30 @@ export async function generateStaticParams() {
 
 export default async function PagePage(props) {
   const params = await props.params;
-  const page = await getPageBySlug(params?.slug?.join("/"));
+  const slug = params?.slug?.join("/");
+  const page = await getPageBySlug(slug);
 
-  if (!page || page.draft === true) {
+  // A path that no longer exists may have been renamed rather than removed.
+  // Checked BEFORE notFound(), and only on the miss path, so the common case —
+  // a live page — never touches the redirect table.
+  //
+  // `permanentRedirect` rather than `redirect` when the row says so: the two
+  // emit different status codes (308 against 307) and only the 308 tells a
+  // search engine to move its index entry. A rename is permanent by intent —
+  // the destination is where the page now lives — so anything else would leave
+  // crawlers pointing at a retired URL forever.
+  if (!page) {
+    const moved = await movedTo(slug);
+    if (moved) {
+      if (moved.permanent) permanentRedirect(moved.destination);
+      redirect(moved.destination);
+    }
     notFound();
   }
 
+  if (page.draft === true) {
+    notFound();
+  }
   // Page-level comment switch, on by default. Rendered as a fragment rather
   // than wrapping the whole article so the divider keeps its previous
   // placement relative to the closing prose block.

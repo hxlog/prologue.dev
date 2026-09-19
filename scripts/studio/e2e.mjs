@@ -78,7 +78,41 @@ async function request(pathname, init = {}) {
   }
 
   const body = await res.text();
-  return { status: res.status, location: res.headers.get("location"), body };
+  return {
+    status: res.status,
+    location: res.headers.get("location"),
+    body,
+    // Text as a reader would see it, for assertions about CONTENT rather than
+    // about markup.
+    //
+    // Two transformations, and both are needed. The App Router streams its
+    // markup inside a Flight payload, so CJK arrives escaped as \uXXXX. And
+    // React separates adjacent text nodes with `<!-- -->` — every interpolated
+    // value in a sentence produces one — so "共 {n} 个版本" is in the document
+    // as "共 <!-- -->1<!-- --> 个版本" and a plain substring search for the
+    // rendered sentence fails on a page that renders it correctly.
+    //
+    // That is how this was found: the history screen's revision count asserted
+    // false while the page was visibly right. Asserting against `body` is
+    // correct for markup (href, class names, ids); assert against `text` for
+    // anything a person reads.
+    text: visible(body),
+  };
+}
+
+/**
+ * Body -> the text a reader sees.
+ *
+ * Deliberately crude — it strips tag-shaped things rather than parsing HTML,
+ * because the alternative is pulling a DOM implementation into a script whose
+ * job is to make eight substring assertions.
+ */
+function visible(body) {
+  return body
+    .replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ");
 }
 
 try {
@@ -200,6 +234,181 @@ try {
       !missing.body.includes("next-error-h1"),
     "error boundary rendered"
   );
+
+  // ── the history screen ───────────────────────────────────────────────────
+  //
+  // The one studio screen with two server actions behind it (`diffRevisions`
+  // and `restoreRevisionAction`) and a client component that computes nothing
+  // itself. What is asserted here is that it renders, that it can name the
+  // revisions it is comparing, and that the diff it was handed is a real one —
+  // an empty or truncated diff would otherwise look identical to a page that
+  // simply had nothing to compare.
+  if (slug) {
+    const history = await request(`/studio/posts/${slug}/history`);
+    ok("history renders", history.status === 200, `status ${history.status}`);
+    ok("history names the screen", history.text.includes("历史版本"));
+    ok(
+      "history offers a restore control",
+      history.text.includes("恢复"),
+      "no restore button rendered"
+    );
+    // `body`, not `text`: these are aria-labels on <select> elements, and
+    // `text` strips tags — including the attributes — so the assertion would
+    // fail whether or not the selects were there.
+    ok(
+      "history offers both comparison selects",
+      history.body.includes("起始版本") && history.body.includes("目标版本")
+    );
+    ok(
+      "history reports the revision count",
+      /共 \d+ 个版本/.test(history.text),
+      "the count line is missing"
+    );
+  }
+
+  const missingHistory = await request("/studio/posts/no-such-post-exists/history");
+  ok(
+    "history of an unknown post explains itself",
+    missingHistory.text.includes("找不到这篇文章"),
+    `status ${missingHistory.status}`
+  );
+
+  // ── the page list and the page editor ────────────────────────────────────
+  //
+  // /about is the one page the site has, imported by scripts/db/import-pages.mjs
+  // and rendered from compiled MDX bytecode rather than markup. The editor has
+  // to load its stored source and recompile it for the preview, so this is the
+  // assertion that the whole MDX path works outside a build.
+  const pages = await request("/studio/pages");
+  ok("page list renders", pages.status === 200, `status ${pages.status}`);
+  ok("page list names the screen", pages.text.includes("页面"));
+
+  const { rows: pageRows } = await client.query(
+    `SELECT slug, title FROM pages WHERE status = 'published' ORDER BY slug LIMIT 1`
+  );
+  ok("a published page exists to edit", pageRows.length === 1);
+
+  const pageSlug = pageRows[0]?.slug;
+  if (pageSlug) {
+    const pageEditor = await request(`/studio/pages/${pageSlug}`);
+    ok(
+      "page editor renders",
+      pageEditor.status === 200,
+      `status ${pageEditor.status}`
+    );
+    ok("page editor has the settings panel", pageEditor.text.includes("页面设置"));
+    ok("page editor has the preview pane", pageEditor.text.includes("预览"));
+    ok(
+      "page editor carries the document",
+      pageEditor.text.includes(pageRows[0].title)
+    );
+    ok(
+      "page editor renders the compiled MDX, not a compile error",
+      !pageEditor.text.includes("MDX 无法编译"),
+      "the stored document failed to compile"
+    );
+  }
+
+  const missingPage = await request("/studio/pages/no-such-page-exists");
+  ok(
+    "unknown page explains itself rather than erroring",
+    missingPage.text.includes("找不到这个页面"),
+    `status ${missingPage.status}`
+  );
+  ok(
+    "unknown page offers a way back",
+    missingPage.text.includes("返回页面列表")
+  );
+
+  // ── the navigation editor ────────────────────────────────────────────────
+  //
+  // The header's links are rows now, read through a cached function in the site
+  // LAYOUT. Two things can go wrong and neither is caught by a build: the read
+  // can fail, or it can return rows the header then renders wrongly. The public
+  // page below is the assertion that matters — it is the actual header, fetched
+  // the way a reader fetches it.
+  const nav = await request("/studio/nav");
+  ok("nav editor renders", nav.status === 200, `status ${nav.status}`);
+  ok("nav editor names the screen", nav.text.includes("导航"));
+  ok("nav editor offers an add form", nav.text.includes("添加链接"));
+
+  const { rows: navRows } = await client.query(
+    `SELECT label, href FROM nav_items WHERE visible ORDER BY sort_order, created_at, href`
+  );
+  ok("the nav has entries", navRows.length > 0);
+
+  const home = await request("/");
+  ok("home renders", home.status === 200, `status ${home.status}`);
+  for (const item of navRows) {
+    ok(
+      `the header links ${item.href} as “${item.label}”`,
+      home.body.includes(`href="${item.href}"`),
+      "the rendered header does not carry this link"
+    );
+  }
+  ok(
+    "the header no longer renders the retired English seed",
+    !home.body.includes(">Microblog<"),
+    "a row from the pre-0010 seed is still being rendered"
+  );
+
+  // ── a retired path redirects ─────────────────────────────────────────────
+  //
+  // The redirect table is read from the catch-all page, not from the proxy, so
+  // this asserts the wiring end to end: a slug with no page, a row in
+  // `redirects`, and a 308 out of the public route.
+  //
+  // The source path carries a random suffix so it can never have been rendered
+  // before. That matters for the counter assertion below and is the reason this
+  // does not use a fixed path: the route is cached for 30 days, and a rendered
+  // page is what increments `hits` (see src/lib/studio/redirects.js), so a
+  // second run against the same server would serve the redirect from cache and
+  // find the counter at zero on a server that is working perfectly.
+  // It lands on a page that exists, which is what makes the 308 a real redirect
+  // rather than a redirect to another miss.
+  const retiredPath = `/e2e-retired-${randomBytes(6).toString("hex")}`;
+
+  await client.query(
+    `INSERT INTO redirects (source, destination, permanent)
+     VALUES ($1, '/about', true)`,
+    [retiredPath]
+  );
+
+  const retired = await request(retiredPath);
+  ok(
+    "a retired path permanently redirects",
+    retired.status === 308 || retired.status === 301,
+    `status ${retired.status}`
+  );
+  ok(
+    "the redirect lands where the table says",
+    String(retired.location ?? "").endsWith("/about"),
+    retired.location
+  );
+
+  // Polled rather than read once. `recordHit` is deliberately fire-and-forget —
+  // it is not awaited by the redirect path, because making a reader wait on a
+  // counter UPDATE to be told where a page moved to would be a real cost for a
+  // number that is only a signal. So the increment lands some milliseconds
+  // AFTER the response, and reading once races it.
+  //
+  // Note what is being asserted: that a RENDER records a hit. A response served
+  // from the route cache does not, which is why the path above is unique per
+  // run. That is a real property of the design rather than a defect — the
+  // counter answers "is anything still linking here" and not "how much" — and
+  // it is written down in src/lib/studio/redirects.js.
+  let hitCount = 0;
+  for (let attempt = 0; attempt < 20 && hitCount === 0; attempt++) {
+    const { rows: hits } = await client.query(
+      `SELECT hits FROM redirects WHERE source = $1`,
+      [retiredPath]
+    );
+    hitCount = Number(hits[0]?.hits ?? 0);
+    if (hitCount === 0) await new Promise((r) => setTimeout(r, 100));
+  }
+  ok("the hit was counted", hitCount >= 1, `hits = ${hitCount}`);
+
+  await client.query(`DELETE FROM redirects WHERE source = $1`, [retiredPath]);
 
   // ── sign out clears the session ──────────────────────────────────────────
   const { rows: sessions } = await client.query(

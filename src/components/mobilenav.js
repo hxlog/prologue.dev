@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import headerNavLinks from "../../data/headerNavLinks";
 import {
   Menu,
   Transition,
@@ -11,7 +10,15 @@ import {
 } from "@headlessui/react";
 import { Fragment } from "react";
 
-const MobileNav = () => {
+/**
+ * The phone menu.
+ *
+ * Its items are a prop, from the same read the desktop nav renders — see the
+ * note in navbar.js. A mobile menu with its own copy of the list is the kind of
+ * thing that looks right in development and diverges the first time the author
+ * hides a link from /studio.
+ */
+const MobileNav = ({ items = [] }) => {
   return (
     <Menu as="div" className="relative inline-block text-left sm:hidden">
       <div>
@@ -46,15 +53,18 @@ const MobileNav = () => {
       >
         <MenuItems className="absolute right-0 z-50 mt-2 w-32 rounded-xl border border-border bg-surface p-2 shadow-pop">
           <div className="text-sm text-muted">
-            {headerNavLinks.map((link) => {
+            {items.map((link) => {
               return (
-                <div key={link.title} className="py-0.5">
+                <div key={link.id ?? link.href} className="py-0.5">
                   <MenuItem>
                     <Link
                       href={link.href}
+                      {...(link.external
+                        ? { target: "_blank", rel: "noreferrer" }
+                        : {})}
                       className="block rounded-lg px-3 py-2 transition-colors duration-150 hover:bg-surface-2 hover:text-accent"
                     >
-                      {link.title}
+                      {link.label}
                     </Link>
                   </MenuItem>
                 </div>

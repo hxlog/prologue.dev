@@ -56,6 +56,17 @@ export const TAGS = {
   /** The taxonomy: tag rows, labels, aliases and counts. */
   tags: "tags",
 
+  /**
+   * The header's links.
+   *
+   * Separate from `pages` deliberately. The nav is rendered by the SITE LAYOUT,
+   * which wraps every public route, so an invalidation that reached it would
+   * rebuild the whole site; and `pages` is invalidated by every page autosave,
+   * most of which change nothing about the navigation. Nothing shares a tag with
+   * `nav`.
+   */
+  nav: "nav",
+
   /** The unified search index. Written on every publish, read by /api/search. */
   search: "search",
 };
@@ -82,6 +93,17 @@ export function invalidatePost(slug) {
 export function invalidatePage(slug) {
   updateTag(TAGS.pages);
   if (slug) updateTag(TAGS.page(slug));
+}
+
+/**
+ * Invalidate the header.
+ *
+ * Called from the page write path when `show_in_nav` moved a row, and from the
+ * navigation editor on any change. The read it drops is in
+ * src/lib/content/nav.js; the writes are in src/lib/studio/nav.js.
+ */
+export function invalidateNav() {
+  updateTag(TAGS.nav);
 }
 
 /**

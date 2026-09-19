@@ -265,6 +265,7 @@ const NAV = [
   { href: "/studio", label: "概览", icon: IconDashboard, exact: true },
   { href: "/studio/posts", label: "文章", icon: IconPosts },
   { href: "/studio/pages", label: "页面", icon: IconPages },
+  { href: "/studio/nav", label: "导航", icon: IconMenu },
   { href: "/studio/collections", label: "集合", icon: IconCollections },
   { href: "/studio/media", label: "媒体", icon: IconMedia },
   { href: "/studio/tags", label: "标签", icon: IconTags },
