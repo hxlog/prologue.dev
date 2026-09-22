@@ -1962,9 +1962,9 @@ The template ships **four template posts + two pages**; everything else about it
 
 - [ ] **Step 1: Write the feature tour (Chinese)**
 
-`template/data/content/blog/feature-tour.md`:
+`template/data/content/blog/feature-tour.md` (the outer fence is four backticks because the post itself contains fences):
 
-```markdown
+````markdown
 ---
 title: 功能一览
 description: 一篇把模板的渲染能力全部演示一遍的文章：公式、代码、表格、脚注、图表、图片灯箱。
@@ -2045,7 +2045,7 @@ graph LR
 - [ ] 未完成的任务
 
 > 引用块使用次要强调色，与正文区分。
-```
+````
 
 - [ ] **Step 2: Write the English counterpart**
 
