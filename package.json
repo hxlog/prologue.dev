@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "build:content": "contentlayer2 build && node scripts/build-search-index.mjs",
     "publish:dry": "node scripts/publish-template.mjs",
-    "publish": "node scripts/publish-template.mjs --publish"
+    "publish": "node scripts/publish-template.mjs --publish",
+    "check:slug": "node scripts/check-slug-parity.mjs"
   },
   "dependencies": {
     "@giscus/react": "^3.1.0",
@@ -20,6 +21,8 @@
     "feed": "^6.0.0",
     "framer-motion": "^13.2.0",
     "fuse.js": "^7.5.0",
+    "github-slugger": "^2.0.0",
+    "gray-matter": "^4.0.3",
     "hast-util-whitespace": "^3.0.0",
     "hastscript": "^9.0.1",
     "js-yaml": "^5.4.1",
@@ -40,6 +43,7 @@
     "remark-math": "^6.0.0",
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2",
+    "server-only": "^0.0.1",
     "tailwindcss": "^4.3.3",
     "unist-util-remove": "^4.0.0",
     "unist-util-visit": "^5.1.0",

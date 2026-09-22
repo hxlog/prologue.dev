@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { slugify } from "../lib/content/slug";
 
 export default function TableofContent({ headings }) {
   const [activeId, setActiveId] = useState("");
@@ -41,9 +42,7 @@ export default function TableofContent({ headings }) {
 
   const activeAncestors = useMemo(() => {
     if (!activeId) return new Set();
-    const idx = headings.findIndex(
-      (h) => h.id === activeId || slug(h.text) === activeId
-    );
+    const idx = headings.findIndex((h) => h.id === activeId);
     if (idx === -1) return new Set();
     const active = headings[idx];
     const ancestors = new Set();
@@ -67,8 +66,7 @@ export default function TableofContent({ headings }) {
       aria-label="Table of contents"
     >
       {headings.map((heading) => {
-        const isActive =
-          heading.id === activeId || slug(heading.text) === activeId;
+        const isActive = heading.id === activeId;
         const isAncestor = activeAncestors.has(heading.id);
 
         const indent =
@@ -102,13 +100,13 @@ export default function TableofContent({ headings }) {
               data-level={heading.level}
               data-active={isActive ? "true" : undefined}
               data-ancestor={isAncestor ? "true" : undefined}
-              href={`#${heading.text}`}
+              href={`#${heading.id}`}
               className={`relative block ${indent} leading-7 rounded-md px-3 py-1 text-sm transition-colors duration-200 ${baseColor}`}
               onClick={(e) => {
                 e.preventDefault();
                 const target =
                   document.getElementById(heading.id) ||
-                  document.getElementById(slug(heading.text));
+                  document.getElementById(slugify(heading.text));
                 if (!target) return;
                 ignoreObserverRef.current = true;
                 setActiveId(target.id);
@@ -134,8 +132,4 @@ export default function TableofContent({ headings }) {
       })}
     </nav>
   );
-}
-
-function slug(text) {
-  return text ? text.split(" ").join("-").toLowerCase() : "";
 }
