@@ -31,10 +31,25 @@ export default function rehypeFigure(options = {}) {
 			node.properties = figure.properties;
 		});
 
-		// Add lightbox attributes to images
+		// Add lightbox attributes to images.
+		//
+		// className is an ARRAY here: hastscript converts a space-separated
+		// `class` string into one. Concatenating a string onto an array
+		// stringifies the array with commas, producing a single garbage token
+		// like "rounded-lg,mx-auto,lightbox-image,cursor-zoom-in" that matches
+		// no CSS -- silently stripping rounded corners and centering from 163
+		// images across 36 posts while leaving the lightbox working, so the
+		// breakage was invisible.
 		visit(tree, { tagName: "img" }, (node) => {
 			if (!node.properties) node.properties = {};
-			node.properties.className = (node.properties.className || "") + " lightbox-image cursor-zoom-in";
+			const existing = Array.isArray(node.properties.className)
+				? node.properties.className
+				: String(node.properties.className || "")
+						.split(/\s+/)
+						.filter(Boolean);
+			node.properties.className = Array.from(
+				new Set([...existing, "lightbox-image", "cursor-zoom-in"])
+			);
 			node.properties["data-lightbox"] = "true";
 		});
 	};
@@ -62,7 +77,7 @@ function createFigure(image) {
 			...image.properties,
 			loading: "lazy",
 			decoding: "async",
-			class: "rounded-lg mx-auto lightbox-image cursor-zoom-in",
+			class: ["rounded-lg", "mx-auto", "lightbox-image", "cursor-zoom-in"],
 			"data-lightbox": "true"
 		})
 	]);
