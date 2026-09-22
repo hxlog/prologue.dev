@@ -17,7 +17,8 @@
     "check:render": "node scripts/check-render-equivalence.mjs",
     "check:content": "node scripts/check-content-shape.mjs",
     "check:prerendered": "node scripts/check-prerendered.mjs",
-    "check:feeds": "node scripts/check-feeds.mjs"
+    "check:feeds": "node scripts/check-feeds.mjs",
+    "check:template": "node scripts/check-template.mjs"
   },
   "dependencies": {
     "@giscus/react": "^3.1.0",

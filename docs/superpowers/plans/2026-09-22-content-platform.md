@@ -2665,6 +2665,111 @@ when startViewTransition rejects."
 
 ## Task 11: Final sweep
 
+> **RESULT (executed 2026-09-22).** All five steps done, with two method
+> substitutions and one fix found by the sweep itself.
+>
+> **Step 1 — every gate green.**
+>
+> | Gate | Result |
+> |---|---|
+> | `check:render` | 63 posts, 37 expected-diff, **0 unexpected** |
+> | `check:content` | 63 posts compared, **0 problems** |
+> | `check:slug` | 405 headings, **0 id mismatches, 0 count mismatches** |
+> | `check:prerendered` | 85 pages, 414 in-page anchors, **0 failures** |
+> | `static:verify` | OK (`public/static` → `data/static`) |
+> | `check:template` | 24 files, **0 problems** (new — see below) |
+> | `lint` | clean |
+> | `build` | 95 pages generated, 0 errors |
+>
+> **The sweep found a real bug that nothing else had caught.**
+> `template/data/headerNavLinks.js` — a file this repo never executes, only
+> publishes — had been written with a YAML-style `#` comment header in a `.js`
+> file. `npm run lint` failed to parse it, and because eslint aborts on a parse
+> error, that one file was masking the lint status of the entire `template/`
+> directory. Fixed.
+>
+> That deserved a gate rather than just a fix, so **`npm run check:template`**
+> was added: it parses every file the starter ships as what it is claimed to be
+> (JS as an ES module, YAML to a non-null value, markdown to frontmatter the
+> loader will accept — title present, `publishDate` on posts, `draft`/`featured`
+> actually boolean). 24 files, 0 problems. It was validated against a negative
+> control before being trusted: two deliberately broken files (a JS syntax
+> error, and a post with `draft: "false"`) were dropped in and both were
+> caught, then removed.
+>
+> The first version of this check used `new vm.Script`, which reports `export`
+> as a syntax error — it assumes a script goal. It flagged both legitimate ES
+> modules as broken, i.e. it would have failed on correct input. Now parses
+> with acorn (already in the tree via eslint) in module mode. Worth naming as a
+> class of bug: **the template's files are only ever checked by accident** —
+> `template/` is not in the app's module graph, has no tests, and its JS runs
+> nowhere — so a broken one can sit there until a stranger clones the template
+> and their first `npm run build` fails.
+>
+> **Step 2 — browser audit at three widths, 27 route-loads.** Driven over CDP
+> rather than by hand (same client as Task 10; no browser automation framework
+> is installable here). At 1440×900, 834×1112 and 390×844, across `/`, `/blog`,
+> a long prose post, the 9-image 9-code-block post, the Mermaid post,
+> `/tags/Crypto`, `/microblog`, `/links`, `/about`:
+>
+> - **0 horizontal overflow** at every width (desktop and tablet report the
+>   scrollbar width, −10px; mobile exactly 0)
+> - **CLS 0.0000** on 26 of 27 loads; `/about` peaked at 0.0159, well under the
+>   0.1 threshold
+> - **87 TOC anchors, 0 unresolved** — the F2 fix holds on every page
+> - **36 lightbox images, 0 unrounded, 0 off-centre** — the F1 fix holds
+> - **27 Shiki blocks**; flipping the theme changed a block's computed colour
+>   from `rgb(238,255,255)` to `rgb(144,164,174)`
+> - **Mermaid** renders: the fence becomes `div.mermaid > svg` (0 fences,
+>   1 SVG)
+> - **Lightbox** opens on click, shows its caption, advances on drag, closes
+>   on Escape
+>
+> Two checks in the first version of this audit passed *vacuously* and had to
+> be fixed: it asserted on `.shiki` and `img.lightbox-image` on a prose post
+> that had neither, reporting "skipped" three times while exiting 0; and it
+> measured the lightbox click point **before** scrolling the image into view,
+> so the click landed where the image used to be. The script now fails on a
+> skip, asserts a minimum coverage floor (≥10 images, ≥10 code blocks, ≥20
+> TOC anchors across the run), and scrolls before measuring.
+>
+> **Step 3 — method substituted, same claims checked.** The plan asked to diff
+> feed bodies against the pre-migration build at `/tmp/before-build` on port
+> 3001. That build no longer exists, and rebuilding it would prove nothing that
+> `check:render` does not prove more directly — it compares all 63 posts'
+> rendered HTML against a frozen Contentlayer2 baseline, byte for byte. What a
+> diff *cannot* cover is the rewriting that happens after the pipeline, so that
+> is what the new `npm run check:feeds` checks:
+>
+> | Feed | Items | mermaid fence leaked | mermaid.ink image | katex-html leaked | MathML | relative URLs | shiki vars |
+> |---|---|---|---|---|---|---|---|
+> | `/rss` | 63 | 0 | 1 | 0 | 175 | 0 | 6774 |
+> | `/atomfeed` | 63 | 0 | 1 | 0 | 175 | 0 | 6774 |
+> | `/jsonfeed` | 63 | 0 | 1 | 0 | 175 | 0 | 6774 |
+> | `/microblog/rss` | 26 | 0 | — | 0 | — | 0 | 0 |
+>
+> All four carry `cache-control: public, s-maxage=600, stale-while-revalidate=86400`
+> and the expected content types (`application/rss+xml`, `application/atom+xml`,
+> `application/feed+json`, all `charset=utf-8`). All three main feeds agree on
+> 63 items and are newest-first. JSON Feed has a per-item `image` on all 63,
+> 63 distinct, 56 of them the real cover and 7 the `/og` generator fallback —
+> that fallback path is `coverImageUrl()` working, not failing.
+>
+> **Step 4 — done.** `CLAUDE.md` rewritten: every Contentlayer reference is
+> gone (`contentlayer.config.js`, `.contentlayer/generated`, `withContentlayer`,
+> `.contentlayer` as a generated dir), replaced by `src/lib/content/`, the
+> function-not-constant rationale, the `data/static` ↔ `public/static` link,
+> the loud frontmatter failure, and the template-publish paths and whitelist
+> that both changed. The `<!-- BEGIN:nextjs-agent-rules -->` block is left in
+> place — it is regenerated by `next dev`, so removing it only recreates the
+> change.
+>
+> **Step 5 — commit only, no push.** The user's standing instruction for this
+> work is not to push. The plan's `git push -u origin HEAD` and `gh pr create`
+> are therefore **not run**; the commits live on the local branch.
+>
+> **Status:** `- [ ]` boxes below are left as written; all steps have been run.
+
 - [ ] **Step 1: Run every check**
 
 ```bash

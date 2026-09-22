@@ -19,13 +19,14 @@ npm run check:content  # 63 posts: frontmatter/document shape vs the baseline
 npm run check:slug     # heading ids: anchor ↔ element parity
 npm run check:prerendered  # every prerendered page's anchors resolve
 npm run check:feeds    # all four feeds, against a running server (mermaid.ink, absolute URLs, MathML)
+npm run check:template # every file the starter ships parses and has usable frontmatter
 
 npm run static:link / static:unlink / static:verify   # the public/static ↔ data/static link
 npm run publish:dry    # build the template snapshot locally (no push)
 npm run publish        # force-push template to hxlog/prologue-blog-template
 ```
 
-There is **no test suite**. The `check:*` scripts are the acceptance gate — run them after touching the content layer, the markdown pipeline, or anything that renders. The first four run offline against fixtures; `check:feeds` needs a server (`npm run start`) and covers the feed-specific rewriting that happens after the pipeline. CI (`.github/workflows/ci.yml`) runs `lint` + `build` only. `.contentlayer` no longer exists; `npm run build:content` is now just the search-index generator.
+There is **no test suite**. The `check:*` scripts are the acceptance gate — run them after touching the content layer, the markdown pipeline, or anything that renders. The first four run offline against fixtures; `check:feeds` needs a server (`npm run start`) and `check:template` validates the starter's own files, which nothing else ever executes. CI (`.github/workflows/ci.yml`) runs `lint` + `build` only. `.contentlayer` no longer exists; `npm run build:content` is now just the search-index generator.
 
 ## Content layer
 

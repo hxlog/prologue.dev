@@ -235,12 +235,19 @@ function patchStarterPackageJson(worktreeRoot) {
   // The maintainer's pre-publish gates compare against fixtures under
   // scripts/fixtures/ and data that the template does not ship. A stranger
   // running `npm run check:render` on a clone would get a confusing failure
-  // about a missing baseline, not a useful signal.
-  delete packageJson.scripts["check:render"];
-  delete packageJson.scripts["check:content"];
-  delete packageJson.scripts["check:slug"];
-  delete packageJson.scripts["check:prerendered"];
-  delete packageJson.scripts["check:feeds"];
+  // about a missing baseline, not a useful signal. `check:feeds` needs a
+  // running server, which a clone does not have; `check:template` is about
+  // the template itself and has nothing to check once it *is* the template.
+  for (const script of [
+    "check:render",
+    "check:content",
+    "check:slug",
+    "check:prerendered",
+    "check:feeds",
+    "check:template",
+  ]) {
+    delete packageJson.scripts[script];
+  }
   writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
 }
 
