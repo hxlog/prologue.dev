@@ -2149,6 +2149,36 @@ asset path under public/static."
 > verification the user runs once on their own machine. They are not skipped
 > by oversight; there is no way to do them from this environment.
 >
+> **Follow-up, added after execution: the link-resolution assumptions are now
+> read out of Obsidian's own code, not inferred.** A research pass downloaded
+> the shipped `obsidian-1.13.7.asar`, extracted `app.js`, and read the resolver
+> directly. Two results, both of which change what the docs should say and one
+> of which retroactively vindicates a decision this task made on inference:
+>
+> - **A leading `/` means an exact vault path, with no fallback.**
+>   `getLinkpathDest` strips one leading slash, then requires a
+>   case-insensitive exact `TFile.path` match, and returns `[]` outright if
+>   that fails — the basename and path-suffix searches that handle every other
+>   link form are explicitly short-circuited. So rooting the vault at `data/`
+>   is not merely convenient; it is the only placement where
+>   `/static/images/foo.jpg` resolves, because no closeness heuristic will save
+>   a wrong root. `docs/CONTENT.md` now records this with the consequence
+>   users will actually hit: Obsidian's link updater writes that path without a
+>   leading slash, so **renaming an image can silently break the site** while
+>   Obsidian's own preview keeps working (it resolves either form from the
+>   vault root; a browser does not).
+> - **Junctions inside the vault are ignored, confirming the earlier choice.**
+>   `reconcileSymbolicLinkCreation` realpaths each link and skips it when the
+>   target is the vault root, inside it, or a parent of it. Task 7's draft had
+>   `public/static` junctioned into a repo-rooted vault — precisely the
+>   disallowed case. Had that shipped, Obsidian would have shown an empty
+>   folder and indexed nothing, and the failure would have looked like a
+>   configuration mistake rather than an architectural one.
+>
+> `docs/CONTENT.md` gained a "Why there is no link or junction inside the
+> vault" section recording both, so the next person to reach for a junction to
+> solve an asset problem is told why it will not work before they build it.
+>
 > **The vault root changed from the plan's, on evidence.** The plan chose
 > `data/` only as the *fallback* ("Variant A") if a junction did not index.
 > The junction does index — so the plan's fork would have picked the repo root.
@@ -2441,6 +2471,62 @@ in both languages, so the starter shows what it can do instead of describing it.
 ---
 
 ## Task 10: Theme transition
+
+> **RESULT (executed 2026-09-22).** Steps 1, 2 and 5 done as written. Step 3's
+> *method* could not be used and was replaced by a measurement that actually
+> tests this fix; Step 4 passes.
+>
+> **Why DevTools step 3 was replaced.** This machine has no GPU compositor for
+> headless Chrome, so rAF is throttled and the frame-time floor is both high and
+> noisy: an idle census with **no toggle at all** records the same "frames over
+> 16.7ms" as one during the reveal, and repeated runs of the same code disagree
+> by 3× on frames over 50 ms (0 one run, 9 the next). A frame trace here cannot
+> distinguish the fix from the weather. The plan's success criterion —
+> "no long task over 50ms" — is satisfied (0 long tasks in every scenario,
+> including the idle baseline), but it would also have been satisfied before the
+> fix, so it proves nothing on its own.
+>
+> **What was measured instead.** The fix's actual claim is that the reveal
+> becomes the *only* animation running. `document.getAnimations()` reports
+> exactly that, and it is deterministic. Counted 200 ms into the reveal, split
+> by pseudo-element:
+>
+> | Scenario | CSSTransitions mid-reveal | View-transition animations |
+> |---|---|---|
+> | idle page, no toggle | 0 | 0 |
+> | reveal (fixed) | **0** | new(root) 618 ms + old(root) 250 ms |
+> | reveal, rule deleted from the CSSOM | **561** | new(root) 618 ms + old(root) 250 ms |
+> | `startViewTransition` removed | 371 | 0 |
+>
+> The third row is a true A/B on the production build: the same page, the same
+> click, the same reveal, with only
+> `html.theme-vt * { transition: none !important }` deleted from the stylesheet.
+> Everything else is held constant, so the 0→561 delta is attributable to that
+> one rule. Three ambient animations (`page-enter` ×2, the terminal cursor
+> blink) run permanently on every page — including with no toggle — and are
+> excluded by diffing against the idle census rather than by asserting on a raw
+> count; the fixed run starts **exactly the animations the idle page was already
+> running, and no others**.
+>
+> **Two traps found while building this, both worth keeping.** (a) Overriding
+> the rule with a later `transition: revert !important` — the plan's own
+> reduced-motion idiom — does **not** restore the elements' own transitions:
+> `revert` rolls back to the UA origin, which is no transition at all, so the
+> override silently reproduces the fixed state and measures nothing. Only
+> deleting the declaration neutralises it. (b) Chrome reports an `old(root)`
+> animation at its default 250 ms even with `animation: none` set in CSS; that
+> is why the block pins `mix-blend-mode: normal` as well, and why the assertion
+> checks for the 618 ms `new(root)` rather than trusting the count.
+>
+> **Step 4.** Both hold. With `prefers-reduced-motion: reduce` forced, the
+> reveal is replaced by an instant swap and the ordinary hover transitions are
+> restored (`transition: revert !important` in the media query) — confirmed by
+> the same census. With `document.startViewTransition` removed, the swap is
+> instant and `html.theme-vt` is absent before, during and after; a click-point
+> fallback via `getBoundingClientRect()` keeps keyboard activation working.
+> Across all scenarios the class is never left on `<html>`.
+>
+> **Status:** `- [ ]` boxes below are left as written; all steps have been run.
 
 **Files:**
 - Modify: `src/app/globals.css` (the `html.theme-vt` block, ~lines 359-388)

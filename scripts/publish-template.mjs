@@ -240,6 +240,7 @@ function patchStarterPackageJson(worktreeRoot) {
   delete packageJson.scripts["check:content"];
   delete packageJson.scripts["check:slug"];
   delete packageJson.scripts["check:prerendered"];
+  delete packageJson.scripts["check:feeds"];
   writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
 }
 
