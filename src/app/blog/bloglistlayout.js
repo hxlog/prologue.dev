@@ -4,8 +4,8 @@ import { tagLabel } from "../../../data/tagLabels";
 
 /**
  * Shared archive layout for /blog and /tags/[...slug].
- * Server component: maps full contentlayer docs to slim objects before they
- * cross into the client <SearchGrid>, keeping the RSC payload small.
+ * Server component: maps full content docs to slim objects before they cross
+ * into the client <SearchGrid>, keeping the RSC payload small.
  */
 export default function PostsLayout({
   posts,
