@@ -19,25 +19,37 @@ const ThemeSwitch = () => {
   // click point (falls back to an instant swap where unsupported).
   const toggleTheme = (event) => {
     const next = resolvedTheme === "dark" ? "light" : "dark";
-
     const root = document.documentElement;
-    if (typeof document.startViewTransition !== "function") {
+
+    // Where the reveal starts: the click point, falling back to the button's
+    // centre when the event carries no coordinates (keyboard activation, where
+    // clientX/clientY are both 0).
+    const rect = event.currentTarget?.getBoundingClientRect?.();
+    const x = event.clientX || (rect ? rect.left + rect.width / 2 : window.innerWidth / 2);
+    const y = event.clientY || (rect ? rect.top + rect.height / 2 : window.innerHeight / 2);
+
+    const applyTheme = () => {
+      root.classList.toggle("dark", next === "dark");
+      root.classList.toggle("light", next === "light");
       setTheme(next);
+    };
+
+    if (typeof document.startViewTransition !== "function") {
+      applyTheme();
       return;
     }
 
-    root.style.setProperty("--vt-x", `${event.clientX}px`);
-    root.style.setProperty("--vt-y", `${event.clientY}px`);
+    root.style.setProperty("--vt-x", `${x}px`);
+    root.style.setProperty("--vt-y", `${y}px`);
     root.classList.add("theme-vt");
-    document
-      .startViewTransition(() => {
-        root.classList.toggle("dark", next === "dark");
-        root.classList.toggle("light", next === "light");
-        setTheme(next);
-      })
-      .finished.finally(() => {
-        root.classList.remove("theme-vt");
-      });
+
+    const release = () => root.classList.remove("theme-vt");
+
+    // .finally() alone is not enough: if the transition is skipped or rejects,
+    // .theme-vt would stick and `html.theme-vt * { transition: none }` would
+    // freeze every transition on the site for the rest of the session.
+    // .then(onFulfilled, onRejected) handles both outcomes the same way.
+    document.startViewTransition(applyTheme).finished.then(release, release);
   };
 
   return (
@@ -51,7 +63,7 @@ const ThemeSwitch = () => {
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 20 20"
         fill="currentColor"
-        className="h-5 w-5 transition-all duration-300 hover:scale-110"
+        className="h-5 w-5 transition-transform duration-300 hover:scale-110"
       >
         {mounted && (resolvedTheme === "dark") ? (
           <path

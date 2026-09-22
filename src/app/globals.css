@@ -360,17 +360,44 @@
 }
 
 /* ---------------------------------------------------------------------------
- * Theme toggle — circular View-Transition reveal (danarnoux-style).
- * themeswitch.js sets --vt-x/--vt-y to the click point and wraps the theme
- * swap in document.startViewTransition when available.
+ * Theme toggle — circular View-Transition reveal.
+ *
+ * themeswitch.js sets --vt-x/--vt-y to the click point and wraps the swap in
+ * document.startViewTransition, adding .theme-vt for the duration.
+ *
+ * Two things make this smooth rather than stuttery:
+ *
+ * 1. `clip-path` is NOT composited — it re-rasterizes the whole viewport every
+ *    frame. Nothing can change that, but the cost is bounded by making the
+ *    reveal the ONLY animation running. Tailwind's transition-colors and
+ *    transition-all both include color, background-color and border-color —
+ *    exactly the properties the theme tokens flip — so without the rule below,
+ *    every transition utility on the page crossfades its own colours over
+ *    150ms underneath the reveal. That is what reads as "too fast": the
+ *    per-element fades finish long before the reveal does.
+ *
+ * 2. The sticky glass navbar re-rasterizes its backdrop-filter on every frame.
+ *    Dropping the blur for 618ms is invisible (the header is nearly opaque)
+ *    and is the single largest win on mobile GPUs.
  * ------------------------------------------------------------------------- */
+html.theme-vt *,
+html.theme-vt *::before,
+html.theme-vt *::after {
+  transition: none !important;
+}
+
+html.theme-vt .glass-header {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
 html.theme-vt::view-transition-old(root) {
   animation: none;
   mix-blend-mode: normal;
 }
 html.theme-vt::view-transition-new(root) {
   z-index: 1;
-  animation: theme-reveal 0.55s var(--ease-out-expo) both;
+  animation: theme-reveal 0.618s var(--ease-out-expo) both;
 }
 @keyframes theme-reveal {
   from {
@@ -384,6 +411,14 @@ html.theme-vt::view-transition-new(root) {
   html.theme-vt::view-transition-new(root) {
     animation: none;
     clip-path: none;
+  }
+  /* The blanket `transition: none` above must not outlive this media query:
+     a reader who has asked for reduced motion still gets the site's ordinary
+     hover transitions. */
+  html.theme-vt *,
+  html.theme-vt *::before,
+  html.theme-vt *::after {
+    transition: revert !important;
   }
 }
 
