@@ -1,0 +1,26 @@
+docs: Obsidian vault covering content and all static assets
+
+One vault reaches data/content and data/static, so a post and its images are
+editable in the same window. The vault root is `data/`, and that is load-bearing
+rather than cosmetic: Obsidian has no site root, so a leading-slash image link
+resolves against the vault root, and only a root at `data/` sends
+`/static/images/x.jpg` to the real file. A repo-root vault would point it at
+`<repo>/static/...`, which does not exist -- and the site would keep working,
+which is the worst way for that to fail. It also avoids indexing node_modules.
+
+docs/CONTENT.md is the guide: vault setup, the what-lives-where table, the
+frontmatter field table, the paste-an-image workflow, and the loud failure a
+mis-typed `draft` now produces.
+
+Task 7's junction sits outside the vault (public/static -> data/static), so the
+vault sees a plain directory and Obsidian's junction policy cannot matter here.
+
+Two publish-script fixes were needed on the way:
+- applyStarterTemplate copied back only build-search-index.mjs after deleting
+  scripts/, but the shipped dev/build now also call static-assets.mjs -- a
+  template clone would have failed on its first command.
+- the maintainer check:* scripts are deleted from the template package.json;
+  they read fixtures the template does not ship.
+
+Steps 3 and 5 cannot run here: Obsidian is not installed on this machine and
+has no CLI. Both are documented as one-time manual setup, not skipped silently.

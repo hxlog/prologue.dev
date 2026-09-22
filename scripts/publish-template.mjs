@@ -120,10 +120,15 @@ function applyStarterTemplate(worktreeRoot) {
   rmSync(path.join(worktreeRoot, "data", ".obsidian"), { recursive: true, force: true });
   rmSync(path.join(worktreeRoot, "README.template.md"), { force: true });
   rmSync(path.join(worktreeRoot, "scripts"), { recursive: true, force: true });
-  // The template's npm scripts need the search-index generator; ship it.
+  // `dev` and `build` in the shipped package.json run both of these, so both
+  // must ship or a template clone fails on its first command.
   copyFile(
     path.join(ROOT, "scripts", "build-search-index.mjs"),
     path.join(worktreeRoot, "scripts", "build-search-index.mjs")
+  );
+  copyFile(
+    path.join(ROOT, "scripts", "static-assets.mjs"),
+    path.join(worktreeRoot, "scripts", "static-assets.mjs")
   );
   rmSync(path.join(worktreeRoot, ".github", "workflows", "publish-starter.yml"), { force: true });
   rmSync(path.join(worktreeRoot, ".github", "workflows", "publish-template.yml"), { force: true });
@@ -221,6 +226,14 @@ function patchStarterPackageJson(worktreeRoot) {
   packageJson.scripts = packageJson.scripts || {};
   delete packageJson.scripts.publish;
   delete packageJson.scripts["publish:dry"];
+  // The maintainer's pre-publish gates compare against fixtures under
+  // scripts/fixtures/ and data that the template does not ship. A stranger
+  // running `npm run check:render` on a clone would get a confusing failure
+  // about a missing baseline, not a useful signal.
+  delete packageJson.scripts["check:render"];
+  delete packageJson.scripts["check:content"];
+  delete packageJson.scripts["check:slug"];
+  delete packageJson.scripts["check:prerendered"];
   writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
 }
 

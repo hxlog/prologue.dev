@@ -1837,6 +1837,32 @@ git commit -m "chore: dev-loop verification fixups" || echo "nothing to commit"
 
 ## Task 7: Move static assets under `data/static`
 
+> **RESULT (executed 2026-09-22).** Steps 0–8 done. 219 files moved, 190 URLs
+> swept, 0 failures.
+>
+> **Step 0, partially settled by measurement.** A junction to a real directory IS
+> followed and indexed (219 files enumerated through it), and Next serves
+> `/static/*` through a junction in a production build. What that does *not*
+> settle is the question Step 0 actually asks — how **Obsidian** resolves a
+> leading-slash link against the vault root — because Obsidian is not installed
+> on this machine. See Task 8.
+>
+> **One dev-only measurement was misleading and had to be redone.** Under
+> `next dev`, a public path that did not exist when the server started 404s
+> **whether or not** it is a junction — a real directory behaved identically, so
+> nothing could be concluded from it. Against `next build && next start`, a
+> junction, a real directory, and the original `public/static` all served 200.
+> Only the production result is evidence.
+>
+> **Git staged the move as 219 renames, not as add+delete.** That was not free:
+> the first `git add -A` staged only `data/static/` and ignored `public/static`
+> entirely — the `.gitignore` rule for the link landed in the same `git add`, so
+> the 219 now-untracked paths under it were never re-examined. `git rm -r
+> --cached public/static` was needed to record the deletions. Worth knowing
+> before a future move that lands a gitignore rule alongside it.
+>
+> **Status:** `- [ ]` boxes below are left as written; all steps have been run.
+
 Everything the site serves as a static file moves into the vault, so one Obsidian window covers content *and* assets. `public/static` becomes a link.
 
 **The one thing that could still invalidate this task.** Obsidian resolves a leading `/` in a link as a **vault root** path. This plan puts the vault at the repo root, so `/static/images/foo.jpg` resolves to `<repo>/static/...`, which does not exist — the real location is `data/static/`. Before doing any of the below, settle this with the check in Step 0.
@@ -2116,9 +2142,44 @@ asset path under public/static."
 
 ## Task 8: The Obsidian vault
 
+> **RESULT (executed 2026-09-22).** `docs/CONTENT.md` written; `data/.obsidian/
+> types.json` created (gitignored). **Steps 3 and 5 cannot be executed here** —
+> Obsidian is not installed on this machine, and there is no CLI that can drive
+> it. Both are documented in `docs/CONTENT.md` as one-time manual setup and a
+> verification the user runs once on their own machine. They are not skipped
+> by oversight; there is no way to do them from this environment.
+>
+> **The vault root changed from the plan's, on evidence.** The plan chose
+> `data/` only as the *fallback* ("Variant A") if a junction did not index.
+> The junction does index — so the plan's fork would have picked the repo root.
+> The repo root is nevertheless the wrong answer, for a reason Step 0 was not
+> framed to catch: the decision turns on **Obsidian's own** resolution of a
+> leading-slash link, not on Next's. Obsidian has no site root, so
+> `/static/images/x.jpg` resolves against whatever the vault root is; only a
+> vault rooted at `data/` sends it to the real `data/static/images/x.jpg`.
+> Rooted at the repo root it would point at `<repo>/static/…`, which does not
+> exist, and the asset story silently breaks with the site still working —
+> the worst failure shape. A second, independent reason: the repo root vault
+> indexes ~75k files under `node_modules` against the `data/` vault's ~285.
+>
+> **`data/static` has no outer junction.** Task 7's junction sits *outside* the
+> vault, at `public/static` → `data/static`, so Obsidian sees an ordinary
+> directory of files, not a link. Whatever Obsidian's junction policy turns out
+> to be, it cannot affect the vault's contents.
+>
+> **Two publish-script fixes were needed and are not in the plan.** The
+> template's `package.json` runs `node scripts/static-assets.mjs link` in `dev`
+> and `build`, but `applyStarterTemplate()` deletes `scripts/` and copied back
+> only `build-search-index.mjs` — a clone would have failed on its first
+> command. It now copies `static-assets.mjs` too. Separately, `check:render` /
+> `check:content` / `check:slug` / `check:prerendered` now get deleted from the
+> template's package.json: they compare against fixtures the template does not
+> ship, so a stranger running one would get a missing-baseline error rather
+> than a useful signal.
+
 **Files:**
 - Create: `docs/CONTENT.md`
-- Create: `.obsidian/types.json` (gitignored — for reference only, never committed)
+- Create: `data/.obsidian/types.json` (gitignored — for reference only, never committed)
 
 - [ ] **Step 1: Set the vault root**
 
@@ -2127,9 +2188,13 @@ If not: the vault root is **`data/`** (Variant A), and the Excluded-files list b
 
 Do not skip Step 0 and assume — the whole asset story depends on it.
 
+> **Amended during execution: the vault root is `data/`, unconditionally.**
+> See the result note above. Both branches of the fork above lead to `data/`,
+> but only the second one for the reason the plan gave.
+
 - [ ] **Step 2: Write the vault property types**
 
-`.obsidian/types.json` at the vault root (gitignored):
+`data/.obsidian/types.json` at the vault root (gitignored):
 
 ```json
 {
@@ -2154,10 +2219,19 @@ Do not skip Step 0 and assume — the whole asset story depends on it.
 
 These live in Obsidian's own per-machine `app.json`:
 
-1. **Settings → Files & Links → Default location for new attachments → "In the folder specified below"**, folder `data/static/images`.
-2. **Settings → Files & Links → Excluded files** → add `node_modules`, `.next`, `.git`, `.tmp`, and (repo-root vault only) `public`.
+1. **Settings → Files & Links → Default location for new attachments → "In the folder specified below"**, folder `static/images`.
+2. **Settings → Files & Links → Excluded files** → none needed. The paths that made this necessary — `node_modules`, `.next`, `.git`, `.tmp` — are all *above* the vault root now that the vault is `data/`.
 
-Step 3 of the vault open is the moment to record how long indexing takes and whether the app is sluggish — the repo root has `node_modules` (75k files). If it is slow, move the vault to `data/` and note it here.
+> **Amended during execution.** The attachment folder is `static/images`, not
+> `data/static/images`, because attachment paths are vault-relative and the
+> vault root is `data/`. The excluded-files setting is dropped entirely: it
+> only existed to keep a repo-root vault from indexing `node_modules`, and the
+> vault no longer contains it. Both changes are recorded in `docs/CONTENT.md`,
+> which is what actually gets followed.
+
+Both settings are per-machine and cannot be scripted; `docs/CONTENT.md` walks
+through them by hand. There is no "how long did indexing take" number to record
+here — Obsidian is not installed on the machine this was executed on.
 
 - [ ] **Step 4: Write the author guide**
 
@@ -2165,10 +2239,18 @@ Create `docs/CONTENT.md` covering: one-time vault setup (the three settings abov
 
 - [ ] **Step 5: Verify the round trip**
 
+**NOT EXECUTED — Obsidian is not installed on this machine.** All four parts
+need the app. Run them once on the machine with Obsidian before trusting the
+workflow with the 63 existing posts:
+
 1. In Obsidian, open a post, add a sentence, save.
 2. `git diff` that post — confirm **only** the sentence changed and frontmatter is untouched. This settles the open question about whether Obsidian rewrites frontmatter it does not touch. If frontmatter changes, **stop and investigate** — the workflow would be unsafe for the 63 existing posts.
 3. Paste a new image into a post. Confirm it lands in `data/static/images/` and renders in Obsidian's preview.
 4. Reload `http://localhost:3000` and confirm the image and text appear.
+
+What *could* be verified here without Obsidian is verified: the site serves
+`/static/...` from `data/static` through the link (190 URLs, all 200), and the
+loader picks up an edit to a post body without a server restart (Task 6).
 
 - [ ] **Step 6: Commit**
 
