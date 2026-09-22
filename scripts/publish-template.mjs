@@ -12,6 +12,10 @@ const README_TEMPLATE = path.join(ROOT, "README.template.md");
 const TARGET_BRANCH = readArg("--branch") || "master";
 const PUBLISH = hasFlag("--publish");
 const ALLOW_DIRTY = hasFlag("--allow-dirty");
+// Leaving the snapshot on disk is the only way to inspect what a template user
+// actually receives -- and, with node_modules linked in, the only way to prove
+// a fresh clone builds. The default stays clean-up-on-exit.
+const KEEP_WORKTREE = hasFlag("--keep-worktree");
 
 main();
 
@@ -48,7 +52,11 @@ function main() {
       console.log("Use --publish (npm run publish) to push to hxlog/prologue-blog-template.");
     }
   } finally {
-    safelyRemoveWorktree();
+    if (KEEP_WORKTREE) {
+      console.log(`Keeping the worktree at ${WORKTREE_DIR} (--keep-worktree).`);
+    } else {
+      safelyRemoveWorktree();
+    }
   }
 }
 
