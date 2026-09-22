@@ -386,16 +386,19 @@ process.exit(mismatched === 0 && countMismatch === 0 ? 0 : 1);
 - [ ] **Step 5: Install the dependency, add the script, run it**
 
 ```bash
-npm install github-slugger server-only gray-matter
+npm install github-slugger server-only gray-matter yaml
 ```
 
-Three dependencies, all of which the new code imports directly:
+Four dependencies, all of which the new code imports directly:
 
 - `github-slugger` — the slugger `rehype-slug` uses internally (Task 2).
 - `server-only` — the client-boundary guard (see "Measured facts" for where it may live).
 - `gray-matter` — frontmatter parsing in the loader (Task 4).
+- `yaml` — gray-matter's YAML *engine*, matched to Contentlayer2's. Not optional: it is what keeps a trailing CR on the last frontmatter value of a CRLF file, which 55 of 63 posts depend on. See Task 4 Step 3.
 
-All three are already present in `node_modules` transitively today, but **none is a declared dependency**, so `npm ci` on a clean checkout would not guarantee them without this install. The loader fails with a bare `Cannot find package 'gray-matter'` if this step is skipped — and only on a clean clone, which is the kind of breakage CI catches and local dev does not.
+All four are already present in `node_modules` transitively today, but **none is a declared dependency**, so `npm ci` on a clean checkout would not guarantee them without this install. The loader fails with a bare `Cannot find package 'gray-matter'` if this step is skipped — and only on a clean clone, which is the kind of breakage CI catches and local dev does not.
+
+**`@shikijs/rehype` and `shiki` are currently `devDependencies` and must move to `dependencies`.** `src/lib/content/pipeline.js` imports `@shikijs/rehype` at *runtime*, from shipped server code, and Task 5 deletes Contentlayer2 — the only thing today that pulls Shiki in. A production install (`npm ci --omit=dev`) would then fail to render a single post. Move both; `shiki` is `@shikijs/rehype`'s peer.
 
 `package.json` `"scripts"`:
 
@@ -783,8 +786,18 @@ for (const ref of reference) {
     }
   }
 
-  if (typeof post.body?.raw !== "string" || typeof post.body?.html !== "string") {
-    console.error(`${ref.slug} .body shape wrong`);
+  // body.html is a lazy, throwing getter by design (Task 4 Step 3), so it is
+  // deliberately NOT read here. Reading it for all 63 posts would pay Shiki's
+  // ~13s cold start -- exactly what the lazy design avoids -- and the
+  // equivalence harness is what proves its content. What is asserted instead is
+  // that `body.raw` is a string and that `body` carries an `html` property at
+  // all, so a consumer that reads it gets a real error, not `undefined`.
+  if (typeof post.body?.raw !== "string") {
+    console.error(`${ref.slug} .body.raw is not a string`);
+    problems++;
+  }
+  if (!Object.getOwnPropertyDescriptor(post.body ?? {}, "html")) {
+    console.error(`${ref.slug} .body has no html property`);
     problems++;
   }
   if (!Array.isArray(post.headings)) {
@@ -835,6 +848,7 @@ Expected: FAIL, `Cannot find module .../src/lib/content/standalone.js`.
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
+import yaml from "yaml";
 import readingTime from "reading-time";
 
 import { renderMarkdown, stripFrontmatter } from "./pipeline.js";
@@ -926,9 +940,16 @@ function stringList(file, data, field) {
   });
 }
 
-function buildDocument(file) {
+function buildDocument(file, { requirePublishDate = true } = {}) {
   const raw = readFileSync(file, "utf8");
-  const { data } = matter(raw);
+  // The YAML engine is NOT optional. contentlayer2 passes `yaml.parse` from the
+  // `yaml` package as gray-matter's engine (makeCacheItemFromFilePath.ts:225)
+  // to stop gray-matter coercing date-like strings into Date objects. It also,
+  // as a side effect, keeps a trailing CR on the last frontmatter value on a
+  // CRLF file -- 55 of 63 posts carry `description: "…\r"`. A plain
+  // `matter(raw)` uses js-yaml instead and silently drops that CR, so the shape
+  // check reports 55 differences that are not real. Same engine, same output.
+  const { data } = matter(raw, { engines: { yaml: (str) => yaml.parse(str) } });
   const flattenedPath = path
     .relative(CONTENT_DIR, file)
     .replace(/\.(md|mdx)$/, "")
@@ -939,7 +960,9 @@ function buildDocument(file) {
   const document = {
     title: requiredString(file, data, "title"),
     description: optionalString(file, data, "description"),
-    publishDate: requiredDate(file, data, "publishDate"),
+    publishDate: requirePublishDate
+      ? requiredDate(file, data, "publishDate")
+      : optionalDate(file, data, "publishDate"),
     lastmod: optionalDate(file, data, "lastmod"),
     image: optionalString(file, data, "image"),
     imageDesc: optionalString(file, data, "imageDesc"),
@@ -959,12 +982,19 @@ function buildDocument(file) {
     body: { raw: body, html: "" },
   };
 
-  // body.html is lazy. The getter below makes a synchronous read fail loudly.
+  // body.html is lazy. The getter below makes a synchronous read fail loudly
+  // until the document has been rendered; the cache lives in a closure rather
+  // than as a sibling property so that `getBodyHtml` can test "already
+  // rendered?" without touching the getter -- reading the getter to check is
+  // what it is designed to reject, so a memo check written that way throws
+  // instead of memoizing.
   let htmlPromise = null;
+  let renderedHtml = null;
   Object.defineProperty(document.body, "html", {
     enumerable: true,
     configurable: true,
     get() {
+      if (renderedHtml !== null) return renderedHtml;
       throw new Error(
         `[content] ${flattenedPath}: body.html is async. ` +
           `Use await getAllPostsWithBody() or await getBodyHtml(document).`
@@ -980,17 +1010,26 @@ function buildDocument(file) {
     },
   });
 
+  Object.defineProperty(document, "_setHtml", {
+    enumerable: false,
+    value: (html) => {
+      renderedHtml = html;
+    },
+  });
+
   return document;
 }
 
-function loadDir(dir) {
+function loadDir(dir, options) {
   return walk(dir)
-    .map(buildDocument)
+    .map((file) => buildDocument(file, options))
     .sort((a, b) => (a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0));
 }
 
 export const allPosts = loadDir(path.join(CONTENT_DIR, "blog"));
-export const allPages = loadDir(path.join(CONTENT_DIR, "pages"));
+export const allPages = loadDir(path.join(CONTENT_DIR, "pages"), {
+  requirePublishDate: false,
+});
 
 export function getPost(slugAsParams) {
   return allPosts.find((post) => post.slugAsParams === slugAsParams);
@@ -1002,9 +1041,8 @@ export function getPage(slugAsParams) {
 
 /** Resolve one document's rendered HTML (memoized per document). */
 export async function getBodyHtml(document) {
-  if (document.body.html) return document.body.html;
   const html = await document._renderHtml();
-  document.body.html = html;
+  document._setHtml(html);
   return html;
 }
 
@@ -1022,7 +1060,9 @@ export async function getAllPostsWithBody() {
 }
 ```
 
-`getBodyHtml` is why the getter must be `configurable: true` — the assignment `document.body.html = html` replaces it with a plain value, so the second read is a normal property read. `defineProperty` on a getter-only descriptor defaults `configurable` to `false`, which is why it is set explicitly.
+The two `requirePublishDate` lines mirror `contentlayer.config.js` exactly: `Post` declares `publishDate` as required, `Page` declares only `title` and `description`. Asking a Page for a publishDate throws on the real `about.md`, which has never carried one.
+
+`getBodyHtml` does **not** test `document.body.html` to decide whether it already rendered — reading that getter is exactly what it is built to reject, so the check would throw on the first call and the cache would never populate. The rendered value is held in the `renderedHtml` closure and published through `_setHtml`. The getter stays `configurable: true` so the descriptor remains replaceable, and it is what makes a synchronous `post.body.html` fail with an actionable message instead of returning `""`.
 
 - [ ] **Step 4: Point the consumers that need HTML at the async API**
 
@@ -1171,6 +1211,8 @@ const rendered = await renderAll();
 
 let unexpected = 0;
 let expected = 0;
+// Slugs that differ from the baseline but are missing from render-fixes.json.
+const unexplained = [];
 
 for (const [slug, reference] of Object.entries(baseline)) {
   const actual = rendered[slug];
@@ -1191,12 +1233,24 @@ for (const [slug, reference] of Object.entries(baseline)) {
     continue;
   }
 
+  unexplained.push(slug);
   let i = 0;
   while (i < actual.length && i < reference.length && actual[i] === reference[i]) i++;
   console.error(`DIFF     ${slug}  at char ${i}`);
   console.error(`  baseline: ${JSON.stringify(reference.slice(Math.max(0, i - 60), i + 80))}`);
   console.error(`  actual  : ${JSON.stringify(actual.slice(Math.max(0, i - 60), i + 80))}`);
   unexpected++;
+}
+
+// Fix entries for posts that now match the baseline are stale. A stale entry is
+// not a harmless leftover: it masks a real difference, because the harness
+// would have reported "expected" for a post whose pipeline output silently
+// regressed back to the baseline. Report them as failures.
+const stale = Object.keys(fixes).filter((slug) => rendered[slug] === baseline[slug]);
+if (stale.length) {
+  console.error(`STALE    ${stale.length} render-fixes entry(ies) describe no difference:`);
+  for (const slug of stale) console.error(`  ${slug}`);
+  unexpected += stale.length;
 }
 
 console.log(
@@ -1401,7 +1455,20 @@ module.exports = nextConfig;
 "build": "node scripts/build-search-index.mjs && next build --turbopack",
 ```
 
-Remove the `contentlayer2`, `next-contentlayer2`, and `concurrently` dependencies.
+Remove the `contentlayer2`, `next-contentlayer2`, and `concurrently` dependencies, and move `@shikijs/rehype` and `shiki` from `devDependencies` to `dependencies` (Task 2 Step 5 explains why).
+
+```bash
+npm uninstall contentlayer2 next-contentlayer2 concurrently
+npm install @shikijs/rehype shiki
+```
+
+Then confirm nothing still resolves them, and that the two runtime imports are declared:
+
+```bash
+grep -rn "contentlayer" --include="*.js" --include="*.mjs" --include="*.json" . --exclude-dir=node_modules --exclude-dir=.next --exclude-dir=.contentlayer --exclude-dir=.tmp
+```
+
+Expected: only `docs/` and `CLAUDE.md` prose hits — no source, script, or config still imports Contentlayer.
 
 - [ ] **Step 5: Point the search index at the new loader**
 
