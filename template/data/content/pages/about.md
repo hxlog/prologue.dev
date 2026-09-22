@@ -1,26 +1,24 @@
 ---
-title: About
-description: Starter profile page.
+title: 关于
+description: 模板的个人简介页示例。
 ---
 
-## About
+## 关于
 
-<img
-src="/static/favicons/avatar-template.svg"
-alt="Avatar"
-width="100"
-height="100"
-className="rounded-full max-w-md mx-auto shadow drop-shadow mt-8 hover:shadow-lg hover:ring-2 hover:ring-zinc-400 dark:ring-zinc-700 transition transform duration-500"
-> </img>
+![头像](/static/favicons/avatar-template.svg)
 
-<p className="text-center text-xl">Your Name</p>
+**你的名字** — 写一句自我介绍。这一页是纯 markdown，可以直接改文案，也可以加图片和链接。
 
-<center>Replace this with your own introduction.</center>
+`data/static/favicons/` 下的头像换成你自己的，或者删掉上面这一行。
 
-## Feeds
+## 订阅
 
-[RSS2 Feed](/rss)
+这个站点同时提供三种订阅格式，选一个粘进你的阅读器即可：
 
-[ATOM Feed](/atomfeed)
+- [RSS2 Feed](/rss)
+- [ATOM Feed](/atomfeed)
+- [JSON Feed](/jsonfeed)
 
-[JSON Feed](/jsonfeed)
+## 这个站点是怎么搭的
+
+Next.js App Router + React 19 + Tailwind CSS v4，内容全部是 `data/` 下的 markdown 文件，没有数据库，也没有后台。

@@ -201,6 +201,12 @@ jobs:
     path.join(TEMPLATE_ROOT, "data", "headerNavLinks.js"),
     path.join(worktreeRoot, "data", "headerNavLinks.js")
   );
+  // Not optional: every tag consumer — cards, chips, the search index — reads
+  // this map, and the build fails outright without the file.
+  copyFile(
+    path.join(TEMPLATE_ROOT, "data", "tagLabels.js"),
+    path.join(worktreeRoot, "data", "tagLabels.js")
+  );
 
   // Reset static assets for template. They live under data/static, which the
   // worktree's gitignored public/static links to; removing the link first keeps
@@ -320,6 +326,7 @@ function ensureTemplateInputs() {
     path.join(TEMPLATE_ROOT, "data", "headerNavLinks.js"),
     path.join(TEMPLATE_ROOT, "data", "links.yaml"),
     path.join(TEMPLATE_ROOT, "data", "microblog.yaml"),
+    path.join(TEMPLATE_ROOT, "data", "tagLabels.js"),
     path.join(TEMPLATE_ROOT, "data", "static"),
   ];
 
