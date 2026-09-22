@@ -36,4 +36,7 @@
 !.yarn/sdks
 !.yarn/versions
 
-.envcommit-msg.tmp
+.env
+
+# scratch file used to hold multi-line git commit messages
+commit-msg.tmp
