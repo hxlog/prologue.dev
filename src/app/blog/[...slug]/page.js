@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import dynamic from "next/dynamic";
-import { allPosts } from "contentlayer/generated";
+import { allPosts, getBodyHtml } from "../../../lib/content";
 import "katex/dist/katex.min.css";
 import siteMetadata from "../../../../data/sitemetadata";
 import ScrollTopAndComment from "../../../components/scroll";
@@ -91,6 +91,8 @@ export default async function PostPage(props) {
   }
 
   const adjacentPosts = getAdjacentPosts(post);
+  // body.html is async and lazy: Shiki compiles this one post, not all 63.
+  const bodyHtml = await getBodyHtml(post);
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -168,7 +170,7 @@ export default async function PostPage(props) {
             <p className="text-sm text-faint">{post.imageDesc}</p>
           ) : null}
 
-          <OptimizedHTMLRenderer htmlContent={post.body.html} />
+          <OptimizedHTMLRenderer htmlContent={bodyHtml} />
 
           {post.lastmod ? (
             <p className="mt-6 text-sm text-faint">

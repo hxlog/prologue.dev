@@ -3,20 +3,23 @@
   "version": "1.0.1",
   "license": "MIT",
   "scripts": {
-    "dev": "contentlayer2 build && node scripts/build-search-index.mjs && concurrently -k -n content,next -c blue,green \"contentlayer2 dev\" \"next dev --turbopack\"",
-    "build": "contentlayer2 build && node scripts/build-search-index.mjs && next build --turbopack",
+    "dev": "node scripts/build-search-index.mjs && next dev --turbopack",
+    "build": "node scripts/build-search-index.mjs && next build --turbopack",
     "start": "next start",
     "lint": "eslint .",
-    "build:content": "contentlayer2 build && node scripts/build-search-index.mjs",
+    "build:content": "node scripts/build-search-index.mjs",
     "publish:dry": "node scripts/publish-template.mjs",
     "publish": "node scripts/publish-template.mjs --publish",
-    "check:slug": "node scripts/check-slug-parity.mjs"
+    "check:slug": "node scripts/check-slug-parity.mjs",
+    "check:render": "node scripts/check-render-equivalence.mjs",
+    "check:content": "node scripts/check-content-shape.mjs",
+    "check:prerendered": "node scripts/check-prerendered.mjs"
   },
   "dependencies": {
     "@giscus/react": "^3.1.0",
     "@headlessui/react": "^2.2.10",
+    "@shikijs/rehype": "^4.4.3",
     "@tailwindcss/postcss": "^4.3.3",
-    "contentlayer2": "^0.5.8",
     "date-fns": "^4.4.0",
     "feed": "^6.0.0",
     "framer-motion": "^13.2.0",
@@ -28,7 +31,6 @@
     "js-yaml": "^5.4.1",
     "mermaid": "^11.17.2",
     "next": "^16.3.4",
-    "next-contentlayer2": "^0.5.8",
     "next-themes": "^0.4.6",
     "pako": "^3.0.1",
     "postcss": "^8.5.28",
@@ -44,19 +46,18 @@
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2",
     "server-only": "^0.0.1",
+    "shiki": "^4.4.3",
     "tailwindcss": "^4.3.3",
     "unist-util-remove": "^4.0.0",
     "unist-util-visit": "^5.1.0",
+    "yaml": "^2.9.0",
     "yet-another-react-lightbox": "^3.32.2"
   },
   "devDependencies": {
-    "@shikijs/rehype": "^4.4.3",
     "@tailwindcss/typography": "^0.5.20",
-    "concurrently": "^10.0.5",
     "eslint": "^9.7.0",
     "eslint-config-next": "^16.3.4",
     "eslint-config-prettier": "^10.1.8",
-    "prettier": "^3.9.6",
-    "shiki": "^4.4.3"
+    "prettier": "^3.9.6"
   }
 }

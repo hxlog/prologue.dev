@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { allPosts } from "contentlayer/generated";
+import { allPosts } from "../lib/content";
 import siteMetadata from "../../data/sitemetadata";
 
 const POSTS_NUM = allPosts.filter((p) => p.draft !== true).length;

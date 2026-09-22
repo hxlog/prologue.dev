@@ -10,8 +10,9 @@
 # next.js
 /.next/
 
-# contentlayer
-/.contentlayer
+# Obsidian vault state — local only, never committed, must never reach the template
+/.obsidian/
+/data/.obsidian/
 
 # generated search index (rebuilt on every build; must not ship to the template snapshot)
 /public/search-index.json

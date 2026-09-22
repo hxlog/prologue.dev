@@ -1,4 +1,4 @@
-import { allPosts } from "contentlayer/generated";
+import { allPosts } from "../lib/content";
 import siteMetadata from "../../data/sitemetadata";
 import { sortedTags } from "../lib/tag-counts";
 

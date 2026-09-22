@@ -34,11 +34,13 @@ These are intentional behaviour changes; each must appear in `scripts/render-fix
 | # | Bug | Today | After | Posts affected |
 |---|---|---|---|---|
 | F1 | `rehype-figure.js:37` concatenates a string onto an **array** `className`, producing `"rounded-lg,mx-auto,lightbox-image,cursor-zoom-in lightbox-image cursor-zoom-in"` on most post images | `rounded-lg` and `mx-auto` match nothing — no rounded corners, no centering; lightbox still works | `className` normalised to a deduped array; corners and centering restored | **37 of 63** (36 comma-joined, 1 leading-space) |
-| F2 | `toc.js:105` links `#${heading.text}` while DOM ids come from `rehypeSlug` | **15 of 404** heading anchors point at non-existent ids | heading ids computed by the same slugger `rehypeSlug` uses; `toc.js` links `#${heading.id}` | **9 of 63** |
+| F2 | `toc.js:105` links `#${heading.text}` while DOM ids come from `rehypeSlug` | **15 of 404** compared anchors point at ids that do not exist — and the old extractor found only 404 of the 405 headings Contentlayer2 rendered, so one heading was missing from the TOC entirely | heading ids computed by the same slugger `rehypeSlug` uses; `toc.js` links `#${heading.id}`; count now 405/405 | **9 of 63** |
 | F3 | Malformed frontmatter makes Contentlayer drop the document silently with exit 0 | a post can vanish with a green build | the loader throws, naming file and field | 0 today; a live risk once Obsidian edits frontmatter |
-| F4 | `contentlayer.config.js:110` hands `categories` a `default` **but no `required: false`**, so 34 posts that omit it are dropped from the `Page`/`Post` schema's optional set and carry no `categories` key at all; while `${title,image,description}.trim()` call sites assume a string | `post.categories` is `undefined` on 34 posts; `page.title.trim()` in `src/app/[...slug]/page.js:43` would throw on any page without a title | loader always emits `categories: []` and always emits strings | 34 of 63 lack the key entirely |
+| F4 | `contentlayer.config.js:110` hands `categories` a `default: []` **without** `required: false`. The documented worry was that this drops the key; measurement says it does not — see the note below | no behaviour change today | loader always emits `categories: []` and always emits strings, which is what Contentlayer2 already did | 0 — see note |
 
-F4 is a *convergence* fix, not a rendering change: the loader emits `categories: []` where Contentlayer2 emitted no key. No current consumer reads `categories`, so nothing renders differently — but `scripts/check-content-shape.mjs` must compare `categories` as `(x ?? [])` on both sides, which is exactly what the `${field} ?? null` normalisation in the plan's shape check already does.
+**F4, corrected by measurement.** The plan originally claimed 34 of 63 posts carried no `categories` key. Measuring `.contentlayer/generated/Post/_index.json` directly contradicts that: the key is present on **all 63**, and its value is `[]` on all 63 (0 posts carry a non-empty list; 63 of 63 omit `categories` from their frontmatter). `default: []` did apply. The only field genuinely absent on some posts is `lastmod` — absent on 44 of 63 — and every consumer already guards it with `post.lastmod ? … : …` (`blog/[...slug]/page.js:175`, `sitemap.js:10`, `build-feed.js:88`), so the loader dropping the key when unset matches Contentlayer2 exactly.
+
+F4 therefore reduces to *convergence, not a fix*: the loader emits the same values Contentlayer2 did. It is kept in the table because the loader's unconditional `categories: []` and `description: ""` are what make the shape check pass, and a future reader should not "fix" them away. The `${title,image,description}.trim()` hazard has no live call site — nothing in `src/` calls `.trim()` on `post.title` — so it is a robustness argument, not a present bug.
 
 ---
 
@@ -53,9 +55,10 @@ Everything below was measured against `master @ ec86091` before the plan was wri
 | Post images with a `class` attribute | 179 |
 | Images whose class contains a comma-joined token | **163** (in 36 posts) |
 | Posts affected by F1 | **37** (36 comma, 1 leading-space) |
-| Headings checked | **404** |
-| Heading id mismatches (F2) | **15**, across **9 posts** |
-| Posts with no `categories` key | 34 |
+| Headings rendered by Contentlayer2 | **405** |
+| Headings the OLD extractor found | 404 — it missed one |
+| Heading id mismatches (F2) | **15** of 404 compared, across **9 posts** |
+| Posts with no `categories` key | **0** — the `default: []` did apply; corrected below |
 | Posts with `image` | 14 |
 | Posts with `featured: true` | 16 |
 | Posts with `draft: true` | 0 |
@@ -84,7 +87,9 @@ The way out is structural, not a flag. **`import "server-only"` appears in `src/
 | `scripts/capture-render-baseline.mjs` | One-shot: snapshot Contentlayer2's `body.html` for all 63 posts into a committed fixture. |
 | `scripts/fixtures/render-baseline.json` | Contentlayer2's `body.html`, captured **before** any change. Ground truth. |
 | `scripts/check-render-equivalence.mjs` | Compiles every post with the live pipeline and diffs against the fixture. The gate for every pipeline change. |
-| `scripts/check-content-shape.mjs` | Asserts the loader's document shape matches Contentlayer2's field-for-field. |
+| `scripts/check-content-shape.mjs` | Asserts the loader's document shape matches Contentlayer2's field-for-field, via the committed shape fixture. |
+| `scripts/capture-shape-baseline.mjs` | One-shot: snapshot Contentlayer2's document shape into a committed fixture. |
+| `scripts/fixtures/content-shape-baseline.json` | Contentlayer2's per-post field values, captured **before** any change. The shape check's ground truth. |
 | `scripts/check-slug-parity.mjs` | Asserts TOC heading ids equal the rendered DOM ids (F2 guard). |
 | `scripts/render-fixes.json` | Slug → expected difference, for the F1/F2 fixes. |
 | `src/lib/content/index.js` | Public API: `allPosts`, `allPages`, `getPost`, `getPage`, `getAllPostsWithBody`. Adds `server-only`. |
@@ -107,18 +112,28 @@ The way out is structural, not a flag. **`import "server-only"` appears in `src/
 
 ---
 
-## Task 1: Capture the render baseline
+## Task 1: Capture the baselines
 
-Nothing can be safely replaced until today's output is pinned down. `.contentlayer` is gitignored and regenerated, so the baseline cannot be recovered after the swap. **This is the first task; run it before touching anything else.**
+Nothing can be safely replaced until today's output is pinned down. `.contentlayer` is gitignored and regenerated, so neither baseline can be recovered after the swap. **This is the first task; run it before touching anything else.**
+
+Two things get captured, and both are needed:
+
+- `body.html` per post — the *rendering* ground truth (Task 4 Step 7 diffs against it).
+- the document *shape* per post — the field-level ground truth (`check-content-shape.mjs` diffs against it).
+
+The second matters because Contentlayer2 is about to be uninstalled, and `.contentlayer/generated` is the only artifact either check could otherwise read. A check that reads a file the migration deletes is not a check.
 
 **Files:**
 - Create: `scripts/capture-render-baseline.mjs`
+- Create: `scripts/capture-shape-baseline.mjs`
 - Create: `scripts/fixtures/render-baseline.json` (generated, committed)
+- Create: `scripts/fixtures/content-shape-baseline.json` (generated, committed)
 - Create: `scripts/render-fixes.json`
 - Modify: `package.json`
 
 **Interfaces:**
 - Produces: `scripts/fixtures/render-baseline.json` — `{ "<slug>": "<html>", ... }`, 63 entries, keys sorted.
+- Produces: `scripts/fixtures/content-shape-baseline.json` — `[{ title, description, …, categories, publishDate, lastmod }, ...]`, 63 entries sorted by slug.
 
 - [ ] **Step 1: Write the capture script**
 
@@ -156,16 +171,82 @@ console.log(
 );
 ```
 
-- [ ] **Step 2: Run it and confirm the fixture**
+- [ ] **Step 2: Write the shape capture script**
+
+```js
+// scripts/capture-shape-baseline.mjs
+/**
+ * One-shot: snapshot Contentlayer2's document shape into a committed fixture,
+ * the same way capture-render-baseline.mjs snapshots its body.html.
+ *
+ * check-content-shape.mjs compares the loader's output against this. It has to
+ * be a committed file rather than a live read of .contentlayer/generated,
+ * because .contentlayer is gitignored, is produced only by Contentlayer2, and
+ * stops existing the moment Contentlayer2 is uninstalled -- which is the very
+ * change the check exists to validate.
+ *
+ * Only the fields the check compares are stored, so the fixture stays small:
+ * body.html is deliberately absent (it is the render harness's job, and it is
+ * a throwing getter on the loader side) and body.raw is not copied either.
+ *
+ * Run BEFORE Contentlayer2 is removed:
+ *   node scripts/capture-shape-baseline.mjs
+ */
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const SRC = path.join(ROOT, ".contentlayer", "generated", "Post", "_index.json");
+const OUT_DIR = path.join(ROOT, "scripts", "fixtures");
+const OUT = path.join(OUT_DIR, "content-shape-baseline.json");
+
+const FIELDS = [
+  "title", "description", "image", "imageDesc",
+  "draft", "featured", "tags", "slug", "urlslug", "slugAsParams",
+];
+const DATE_FIELDS = ["publishDate", "lastmod"];
+
+const posts = JSON.parse(readFileSync(SRC, "utf8"));
+
+const baseline = posts
+  .map((post) => {
+    const entry = {};
+    for (const field of FIELDS) entry[field] = post[field] ?? null;
+    for (const field of DATE_FIELDS) entry[field] = post[field] ?? null;
+    // Contentlayer omitted `categories` entirely on posts that had none; keep
+    // that distinction so the fixture records what actually happened.
+    entry.categories = post.categories ?? null;
+    return entry;
+  })
+  .sort((a, b) => a.slug.localeCompare(b.slug));
+
+mkdirSync(OUT_DIR, { recursive: true });
+writeFileSync(OUT, JSON.stringify(baseline, null, 0) + "\n");
+
+console.log(`captured ${baseline.length} post shapes -> ${OUT}`);
+```
+
+- [ ] **Step 3: Run both and confirm the fixtures**
 
 ```bash
 npm run build:content
 node scripts/capture-render-baseline.mjs
+node scripts/capture-shape-baseline.mjs
 ```
 
-Expected: `captured 63 posts, ~1.6 MB -> scripts/fixtures/render-baseline.json`
+Expected: `captured 63 posts, ~1.6 MB` and `captured 63 post shapes`.
 
-- [ ] **Step 3: Write the expected-fixes manifest**
+Then read one entry of each to be sure they hold real data, not an empty shape:
+
+```bash
+node -e "const b=require('./scripts/fixtures/content-shape-baseline.json'); console.log(b.length, JSON.stringify(b[0]).slice(0,160))"
+node -e "const b=require('./scripts/fixtures/render-baseline.json'); const k=Object.keys(b); console.log(k.length, k[0], b[k[0]].length)"
+```
+
+Expected: 63 entries each; the shape entry shows real title/description/tags values; the render entry's HTML is tens of kilobytes.
+
+- [ ] **Step 4: Write the expected-fixes manifest**
 
 ```json
 {}
@@ -173,22 +254,25 @@ Expected: `captured 63 posts, ~1.6 MB -> scripts/fixtures/render-baseline.json`
 
 An empty object. It is populated in Task 4 Step 7, once the real diff set is known — writing speculative entries here would make the harness lie.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add scripts/capture-render-baseline.mjs scripts/fixtures/render-baseline.json scripts/render-fixes.json
-git commit -m "test: capture Contentlayer2 render baseline
+git add scripts/capture-render-baseline.mjs scripts/capture-shape-baseline.mjs scripts/fixtures/render-baseline.json scripts/fixtures/content-shape-baseline.json scripts/render-fixes.json
+git commit -m "test: capture Contentlayer2 render and shape baselines
 
 Contentlayer2 is about to be replaced and .contentlayer is gitignored, so the
-only chance to pin down today's rendered HTML is before the swap. This fixture
-is the ground truth every later pipeline change is diffed against."
+only chance to pin down today's output is before the swap. Two fixtures, both
+ground truth for a later check: body.html for the render-equivalence harness,
+and the document shape for the field-level check. The shape one has to be
+committed rather than read live, because .contentlayer is what the migration
+deletes -- a check that reads a deleted file proves nothing."
 ```
 
 ---
 
 ## Task 2: The slugger and the heading extractor (F2)
 
-`headings[].id` currently comes from a regex in `contentlayer.config.js:38-51` that lowercases and replaces spaces, while DOM ids come from `rehypeSlug`'s GitHub slugger. They disagree on 15 of 404 headings across 9 posts. This task gives the TOC one source of truth.
+`headings[].id` currently comes from a regex in `contentlayer.config.js:38-51` that lowercases and replaces spaces, while DOM ids come from `rehypeSlug`'s GitHub slugger. Replaying that old extractor over the real markdown and diffing against the committed baseline puts the damage at **15 wrong ids out of 404 compared, across 9 posts** — and the old regex found only 404 headings where Contentlayer2 rendered **405**, so one heading never reached the TOC at all. This task gives the TOC one source of truth and fixes the count.
 
 **Files:**
 - Create: `src/lib/content/slug.js`
@@ -215,7 +299,9 @@ A cross-check that this is sound: `github-slugger` strips `#` and `\` from a hea
  * computed field lowercased the raw heading text and joined spaces, while the
  * DOM ids came from rehype-slug's GitHub slugger. Headings ending in a full
  * width question mark, containing full width parentheses, or with trailing
- * whitespace produced dead anchors -- 15 of 404 across 9 posts.
+ * whitespace produced dead anchors -- 15 of 404 compared across 9 posts. The
+ * old regex also found only 404 headings where the DOM had 405, so one heading
+ * was missing from the TOC entirely.
  *
  * rehype-slug@6 exposes no slugger option (its source reads only `prefix`), so
  * the DOM ids are fixed by construction. This module exists to make the
@@ -243,7 +329,7 @@ export function slugify(text) {
  * Walks lines rather than reusing contentlayer.config.js's regex, and tracks
  * fenced code blocks so a `#` inside a fence is not treated as a heading.
  * Verified to produce the same heading COUNT as contentlayer on all 63 posts,
- * and ids equal to the rendered DOM ids on all 404 of them -- including the 9
+ * and ids equal to the rendered DOM ids on all 405 of them -- including the 9
  * posts where contentlayer's own ids were wrong.
  *
  * A fresh slugger per document, matching rehype-slug's per-tree reset, so
@@ -334,15 +420,24 @@ Expected: `404 heading pairs checked, 0 id mismatches, 0 count mismatches`.
 ```js
 // scripts/check-slug-parity.mjs
 /**
- * F2 guard: the ids on rendered <h2>-<h6> elements must equal the ids the TOC
- * links to. Before the fix these disagreed on 15 of 404 headings, across 9
+ * F2 guard: the ids on the rendered <h2>-<h6> elements must equal the ids the
+ * TOC links to. Before the fix these disagreed on 15 of 404 headings, across 9
  * posts, and clicking those entries did nothing.
  *
- * Needs .contentlayer/generated (run `npm run build:content` first). It is
- * replaced by the equivalence harness once the new pipeline exists, but stays
- * useful because it checks heading COUNT as well as ids.
+ * Both sides come from the live code, which is what makes this distinct from
+ * the render harness: that one asks "is this byte-identical to Contentlayer2's
+ * output?", while this one asks "do the pipeline's heading ids and the TOC's
+ * heading ids agree with each other?". They are different questions, and the
+ * latter is the one a reader experiences.
+ *
+ * It also checks heading COUNT, which the render harness cannot: the old
+ * extractor used a `\n#{2,6}\s+` regex that skipped a heading appearing
+ * directly after the frontmatter, so a post could render a heading the TOC
+ * never listed.
+ *
+ * Run: node scripts/check-slug-parity.mjs
+ * Exit: 0 = ids and counts agree, 1 = a TOC entry would not navigate
  */
-import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -350,17 +445,27 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const { extractHeadings } = await import(
   pathToFileURL(path.join(ROOT, "src", "lib", "content", "slug.js")).href
 );
-
-const posts = JSON.parse(
-  readFileSync(path.join(ROOT, ".contentlayer", "generated", "Post", "_index.json"), "utf8")
+const { allPosts } = await import(
+  pathToFileURL(path.join(ROOT, "src", "lib", "content", "standalone.js")).href
 );
+const { renderAll } = await import(
+  pathToFileURL(path.join(ROOT, "src", "lib", "content", "pipeline.js")).href
+);
+
+const rendered = await renderAll();
 
 let pairs = 0;
 let mismatched = 0;
 let countMismatch = 0;
 
-for (const post of posts) {
-  const domIds = [...post.body.html.matchAll(/<h[2-6] id="([^"]+)"/g)].map((m) => m[1]);
+for (const post of allPosts) {
+  const html = rendered[post.slug];
+  if (html === undefined) {
+    console.error(`MISSING ${post.slug}: pipeline produced no HTML`);
+    countMismatch++;
+    continue;
+  }
+  const domIds = [...html.matchAll(/<h[2-6] id="([^"]+)"/g)].map((m) => m[1]);
   const headings = extractHeadings(post.body.raw);
 
   if (domIds.length !== headings.length) {
@@ -373,13 +478,17 @@ for (const post of posts) {
     if (domIds[i] !== headings[i].id) {
       mismatched++;
       if (mismatched <= 10) {
-        console.error(`${post.slug}\n  dom=${JSON.stringify(domIds[i])}\n  toc=${JSON.stringify(headings[i].id)}`);
+        console.error(
+          `${post.slug}\n  dom=${JSON.stringify(domIds[i])}\n  toc=${JSON.stringify(headings[i].id)}`
+        );
       }
     }
   }
 }
 
-console.log(`\n${pairs} headings checked, ${mismatched} id mismatches, ${countMismatch} count mismatches`);
+console.log(
+  `\n${pairs} headings checked, ${mismatched} id mismatches, ${countMismatch} count mismatches`
+);
 process.exit(mismatched === 0 && countMismatch === 0 ? 0 : 1);
 ```
 
@@ -720,10 +829,17 @@ Two deliberate differences from Contentlayer2's object, both verified safe:
 // scripts/check-content-shape.mjs
 /**
  * Asserts the loader produces the same document shape Contentlayer2 did, by
- * comparing against .contentlayer/generated/Post/_index.json. Guards against a
- * field being renamed or dropped during the migration.
+ * comparing field-for-field against the committed fixture
+ * scripts/fixtures/content-shape-baseline.json.
+ *
+ * The fixture, not .contentlayer/generated, is the reference on purpose:
+ * .contentlayer is gitignored, is produced only by Contentlayer2, and is gone
+ * the moment Task 5 uninstalls it -- which is exactly the change this check
+ * exists to validate. Refresh it with capture-shape-baseline.mjs if the
+ * document schema ever legitimately changes.
  *
  * Run: node scripts/check-content-shape.mjs
+ * Exit: 0 = same shape, 1 = a field was renamed, dropped, or retyped
  */
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -731,7 +847,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const reference = JSON.parse(
-  readFileSync(path.join(ROOT, ".contentlayer", "generated", "Post", "_index.json"), "utf8")
+  readFileSync(path.join(ROOT, "scripts", "fixtures", "content-shape-baseline.json"), "utf8")
 );
 const { allPosts } = await import(
   pathToFileURL(path.join(ROOT, "src", "lib", "content", "standalone.js")).href
@@ -759,8 +875,10 @@ for (const ref of reference) {
     continue;
   }
 
-  // categories: contentlayer omits the key on 34 posts (no `required: false`
-  // on the field); the loader always emits []. Compare both as a list.
+  // categories: contentlayer's schema gives the field a `default: []` but no
+  // `required: false`, and the generated output does carry the key on all 63
+  // posts -- so the loader emitting [] as well is a match, not a divergence.
+  // Both sides compare as a list so an absent key would also read as [].
   const cats = JSON.stringify([...(post.categories || [])].sort());
   const refCats = JSON.stringify([...(ref.categories || [])].sort());
   if (cats !== refCats) {
@@ -969,8 +1087,10 @@ function buildDocument(file, { requirePublishDate = true } = {}) {
     draft: booleanField(file, data, "draft"),
     featured: booleanField(file, data, "featured"),
     tags: stringList(file, data, "tags"),
-    // Always a list. Contentlayer's schema declared `default: []` without
-    // `required: false`, so 34 of 63 posts carried NO categories key at all.
+    // Always a list, matching what Contentlayer2 emitted. Its schema declared
+    // `default: []` (without `required: false`), and measurement of the real
+    // generated output confirms the key is present on all 63 posts with value
+    // []. So this is convergence, not a change -- keep it unconditional.
     categories: stringList(file, data, "categories"),
 
     slug: `/${flattenedPath}`.toLowerCase(),
@@ -1100,6 +1220,11 @@ import { OptimizedHTMLRenderer } from "../../components/optimized-html-renderer"
 ```js
 import { getAllPostsWithBody } from "../content";
 
+/**
+ * Async because body.html is: the loader renders lazily, so the feed awaits
+ * every body up front (one pass); the loop then reads post.body.html
+ * synchronously, which is safe only because that await already ran.
+ */
 export async function createFeed() {
   // ...existing `feed` construction...
   const posts = (await getAllPostsWithBody())
@@ -1108,6 +1233,8 @@ export async function createFeed() {
   // ...
 }
 ```
+
+`buildFeedContent(post)` in `src/lib/feed/content.js:181` stays **synchronous** — it is called inside that loop, after `getAllPostsWithBody()` has populated every `body.html`. Its `let html = post.body.html || ""` is now a plain property read rather than a throwing getter, which is the whole point of resolving them up front. Do not make it async and do not give it a `""` fallback for the unpopulated case: an unpopulated read throws with the fix in the message, which is more useful than silently publishing an empty item.
 
 Then each route awaits it — the three feed routes are already `async function GET()`:
 
@@ -1160,7 +1287,14 @@ export {
  *
  * The site must import ./index.js instead.
  */
-export { allPosts, allPages, getPost, getPage } from "./load.js";
+export {
+  allPosts,
+  allPages,
+  getPost,
+  getPage,
+  getBodyHtml,
+  getAllPostsWithBody,
+} from "./load.js";
 ```
 
 Because the guard lives only in `index.js`, `standalone.js` exists for intent and a clear import site rather than to dodge a failure. Keep the two in step when the API grows.
@@ -1339,7 +1473,7 @@ session that opens three posts never pay Shiki's ~13s cold start."
 ## Task 5: Switch the site over and remove Contentlayer2
 
 **Files:**
-- Modify: 10 consumers, `next.config.js`, `jsconfig.json`, `package.json`, `.gitignore`, `scripts/build-search-index.mjs`, `scripts/publish-template.mjs`
+- Modify: 10 consumers, `next.config.js`, `jsconfig.json`, `eslint.config.mjs`, `package.json`, `.gitignore`, `scripts/build-search-index.mjs`, `scripts/publish-template.mjs`
 - Delete: `contentlayer.config.js`, `src/components/mdxcomponent.js`
 - Modify: `data/content/pages/about.md`
 
@@ -1547,57 +1681,52 @@ npm uninstall contentlayer2 next-contentlayer2 concurrently
 grep -rn "contentlayer" src/ next.config.js jsconfig.json package.json scripts/ || echo "clean"
 ```
 
-`jsconfig.json`: remove the `"contentlayer/generated"` path entry.
+`jsconfig.json`: remove the `"contentlayer/generated"` path entry and the `.contentlayer/generated` include entry.
+
+`eslint.config.mjs`: remove `".contentlayer/**"` from `globalIgnores`. It is dead once nothing generates the directory; leaving it would silently ignore a real path if one were ever created there.
 
 - [ ] **Step 8: Full verification**
 
 ```bash
-npm run check:render && npm run check:slug && npm run check:content && npm run lint && npm run build
+npm run check:render && npm run check:slug && npm run check:content && npm run lint && npm run build && npm run check:prerendered
 ```
 
-Expected: all three checks pass, lint clean, build succeeds, and the build log contains **no** Contentlayer warning and **no** `concurrently` output.
+Expected: all four checks pass, lint clean, build succeeds, and the build log contains **no** Contentlayer warning and **no** `concurrently` output.
+
+`check:prerendered` is a *post-build* gate and only meaningful after `npm run build` has produced `.next/server/app`. It reads the prerendered HTML for all 85 pages and asserts:
+
+- **no comma-joined class attribute** anywhere — the F1 defect's signature, which is exactly what a component that re-mangles `className` would reintroduce;
+- every in-page `href="#id"` resolves to a real `id` on that page — the reader-visible form of F2, which the render harness cannot check because it compares against a baseline that had the bug;
+- `/about` renders through the markdown pipeline (its avatar image and its `## 关于作者` heading are both present) — the MDX-to-markdown conversion in Step 2 is otherwise easy to half-finish;
+- one long post contains the F1 class and a `<figure>`.
+
+Why this exists on top of the three node-level checks: those all run *before* Next sees the content, and none of them can observe what `OptimizedHTMLRenderer` does to the HTML. Note the class assertion is a **substring**, not the full attribute value — on the way through the renderer the pipeline's class is prefixed with `drop-shadow-xs rounded-sm`, so the real attribute is `drop-shadow-xs rounded-sm rounded-lg mx-auto lightbox-image cursor-zoom-in`. The four pipeline tokens must be **space**-separated; that is the part the bug broke. (Measured on the actual build output.)
 
 - [ ] **Step 9: Runtime verification against the production build**
 
-Build the pre-migration tree first, so there is something to compare against:
-
-```bash
-git stash list            # ensure the work is committed
-git worktree add /tmp/before-build ec86091
-cd /tmp/before-build && npm install && npm run build && npm run start -- -p 3001 &
-```
-
-Then in the migrated tree:
+Start the migrated build and check the routes and the rendered pages:
 
 ```bash
 npm run start &
 sleep 5
-for p in / /blog /about /tags/Crypto /microblog /links; do
+for p in / /blog /about /tags/Crypto /microblog /links /rss /atomfeed /jsonfeed /microblog/rss; do
   printf "%s %s\n" "$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:3000$p")" "$p"
 done
 curl -s http://localhost:3000/blog/2024-economic-watch-not-wasting-a-crisis | grep -c "rounded-lg mx-auto lightbox-image"
+curl -s http://localhost:3000/rss | grep -c "<item>"
 ```
 
-Expected: `200` for every route, and a non-zero count of the fixed class.
+Expected: `200` for every route; a non-zero count of the fixed class; **63** `<item>` entries in the feed (drafts are absent — there are none today, so it is the full set).
 
-Then diff the rendered text of 10 sampled post pages with tags stripped:
+**The feed is the check that matters most here**, because `buildFeedContent` reads `post.body.html` *synchronously* inside `createFeed`'s loop and only works because `getAllPostsWithBody()` awaited every body first. A mistake there does not throw in the harness — it throws at request time, which is why this step exists. Confirm the item bodies are non-empty, not just that the items exist:
 
 ```bash
-node --input-type=module -e "
-const pages = ['/blog/2024-economic-watch-not-wasting-a-crisis','/blog/2022-review-changes-and-alterations','/about'];
-const strip = async (port, p) => {
-  const r = await fetch('http://localhost:' + port + p);
-  const t = await r.text();
-  return t.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().length;
-};
-for (const p of pages) {
-  const [after, before] = await Promise.all([strip(3000, p), strip(3001, p)]);
-  console.log(p, 'after=' + after, 'before=' + before, 'delta=' + (after - before));
-}
-"
+curl -s http://localhost:3000/rss | grep -c "content:encoded"
 ```
 
-A small negative delta on pages with images is expected (F1 shortens the class string). A large delta means content is missing.
+Expected: 63 — one per item. A `0` means the bodies resolved to nothing.
+
+Comparing against a pre-migration server is no longer possible in this repo (Task 1 replaced the baseline with a committed fixture precisely because the tool that generated it is being deleted), so the comparison is against the fixture, which `check:render` already did. What is left for a live server to prove is that the *wiring* works end to end.
 
 - [ ] **Step 10: Commit**
 

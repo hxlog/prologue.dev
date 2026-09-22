@@ -9,7 +9,6 @@ const ROOT = path.resolve(__dirname, "..");
 const WORKTREE_DIR = path.join(ROOT, ".tmp", "template-worktree");
 const TEMPLATE_ROOT = path.join(ROOT, "template");
 const README_TEMPLATE = path.join(ROOT, "README.template.md");
-const MERMAID_MANIFEST_PATH = "src/lib/feed/mermaid-manifest.json";
 const TARGET_BRANCH = readArg("--branch") || "master";
 const PUBLISH = hasFlag("--publish");
 const ALLOW_DIRTY = hasFlag("--allow-dirty");
@@ -38,11 +37,6 @@ function main() {
     }
 
     applyStarterTemplate(WORKTREE_DIR);
-
-    const mermaidManifest = path.join(WORKTREE_DIR, MERMAID_MANIFEST_PATH);
-    if (existsSync(path.dirname(mermaidManifest))) {
-      writeFileSync(mermaidManifest, "{}\n");
-    }
 
     commitSnapshot(WORKTREE_DIR);
 
@@ -120,6 +114,10 @@ function applyStarterTemplate(worktreeRoot) {
   rmSync(path.join(worktreeRoot, "template"), { recursive: true, force: true });
   rmSync(path.join(worktreeRoot, "docs"), { recursive: true, force: true });
   rmSync(path.join(worktreeRoot, ".idea"), { recursive: true, force: true });
+  // Obsidian vault state must never reach the public template: it can carry
+  // plugin data and, with plugins like Livesync, credentials.
+  rmSync(path.join(worktreeRoot, ".obsidian"), { recursive: true, force: true });
+  rmSync(path.join(worktreeRoot, "data", ".obsidian"), { recursive: true, force: true });
   rmSync(path.join(worktreeRoot, "README.template.md"), { force: true });
   rmSync(path.join(worktreeRoot, "scripts"), { recursive: true, force: true });
   // The template's npm scripts need the search-index generator; ship it.
@@ -127,7 +125,6 @@ function applyStarterTemplate(worktreeRoot) {
     path.join(ROOT, "scripts", "build-search-index.mjs"),
     path.join(worktreeRoot, "scripts", "build-search-index.mjs")
   );
-  rmSync(path.join(worktreeRoot, ".contentlayer"), { recursive: true, force: true });
   rmSync(path.join(worktreeRoot, ".github", "workflows", "publish-starter.yml"), { force: true });
   rmSync(path.join(worktreeRoot, ".github", "workflows", "publish-template.yml"), { force: true });
 

@@ -2,12 +2,13 @@
  * Build-time generation of public/search-index.json — a slim search index
  * (title/description/slug/tags/labels/date) used by the site-wide Fuse.js
  * search. Keeps the FULL post bodies out of the client bundle (previously
- * the search component imported contentlayer's generated module and shipped
+ * the search component imported the generated content module and shipped
  * ~2MB of HTML to anyone focusing the search box).
  *
- * Runs after `contentlayer2 build`, before `next build` (see package.json).
+ * Reads the loader directly rather than a generated JSON file: there is no
+ * codegen step in front of `next build` any more.
  */
-import { readFileSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -16,13 +17,13 @@ const ROOT = path.resolve(__dirname, "..");
 const { default: tagLabels } = await import(
   pathToFileURL(path.join(ROOT, "data", "tagLabels.js"))
 );
+const { allPosts } = await import(
+  pathToFileURL(path.join(ROOT, "src", "lib", "content", "standalone.js"))
+);
 
-const GENERATED = path.join(ROOT, ".contentlayer", "generated", "Post", "_index.json");
 const OUT = path.join(ROOT, "public", "search-index.json");
 
-const posts = JSON.parse(readFileSync(GENERATED, "utf8"));
-
-const index = posts
+const index = allPosts
   .filter((post) => post.draft !== true)
   .map((post) => {
     const tags = post.tags || [];

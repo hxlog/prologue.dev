@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { load } from "js-yaml";
-import { allPosts } from "contentlayer/generated";
+import { allPosts } from "../lib/content";
 import { compareDesc } from "date-fns";
 import siteMetadata from "../../data/sitemetadata";
 import AboutMe from "../components/aboutme";

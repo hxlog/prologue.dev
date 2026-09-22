@@ -1,7 +1,7 @@
 import { statSync } from "node:fs";
 import path from "node:path";
 import { Feed } from "feed";
-import { allPosts } from "contentlayer/generated";
+import { getAllPostsWithBody } from "../content";
 import { compareDesc } from "date-fns";
 import siteMetadata from "../../../data/sitemetadata";
 import { buildFeedContent } from "./content";
@@ -49,8 +49,13 @@ function coverEnclosure(post) {
  * Build a single `Feed` instance shared by the RSS, Atom and JSON Feed
  * routes. The routes only choose the serializer (`rss2`/`atom1`/`json1`),
  * which keeps the three formats perfectly consistent.
+ *
+ * Async because body.html is: the loader renders lazily, so the feeds await
+ * every body up front (one pass, then synchronous reads inside the loop).
+ * Reading post.body.html without that await throws rather than emitting an
+ * empty item, which is the failure mode this replaced.
  */
-export function createFeed() {
+export async function createFeed() {
   const site = siteUrl();
 
   const feed = new Feed({
@@ -73,7 +78,7 @@ export function createFeed() {
     author: AUTHOR,
   });
 
-  const posts = allPosts
+  const posts = (await getAllPostsWithBody())
     .filter((post) => post.draft === false)
     .sort((a, b) => compareDesc(new Date(a.publishDate), new Date(b.publishDate)));
 

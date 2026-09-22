@@ -8,7 +8,7 @@
  *     emit it from item.image, but that field also drives the RSS enclosure
  *     (forcing length=0), so we attach the JSON thumbnail here instead.
  */
-import { allPosts } from "contentlayer/generated";
+import { allPosts } from "../content";
 import siteMetadata from "../../../data/sitemetadata";
 import { coverImageUrl, postUrl } from "./urls";
 

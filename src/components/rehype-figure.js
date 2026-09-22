@@ -40,6 +40,13 @@ export default function rehypeFigure(options = {}) {
 		// no CSS -- silently stripping rounded corners and centering from 163
 		// images across 36 posts while leaving the lightbox working, so the
 		// breakage was invisible.
+		//
+		// data-lightbox is written through the camelCase key for the same
+		// reason: hastscript lowercases `data-*` names into camelCase
+		// properties, so setting the literal "data-lightbox" here created a
+		// SECOND key alongside the one createFigure already set, and the
+		// serialiser emitted `data-lightbox="true" data-lightbox="true"` on
+		// all 163 images.
 		visit(tree, { tagName: "img" }, (node) => {
 			if (!node.properties) node.properties = {};
 			const existing = Array.isArray(node.properties.className)
@@ -50,7 +57,8 @@ export default function rehypeFigure(options = {}) {
 			node.properties.className = Array.from(
 				new Set([...existing, "lightbox-image", "cursor-zoom-in"])
 			);
-			node.properties["data-lightbox"] = "true";
+			delete node.properties["data-lightbox"];
+			node.properties.dataLightbox = "true";
 		});
 	};
 }

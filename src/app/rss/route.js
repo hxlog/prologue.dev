@@ -7,7 +7,7 @@ import { finalizeRss } from "../../lib/feed/finalize";
 const CACHE_CONTROL = "public, s-maxage=600, stale-while-revalidate=86400";
 
 export async function GET() {
-  const feed = createFeed();
+  const feed = await createFeed();
 
   return new Response(finalizeRss(feed.rss2().trim()), {
     headers: {

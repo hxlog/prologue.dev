@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation"
 import { Suspense } from "react"
 import dynamic from "next/dynamic"
-import { allPages } from "contentlayer/generated"
-import { MDXComponent } from "../../components/mdxcomponent"
+import { allPages, getBodyHtml } from "../../lib/content"
+import { OptimizedHTMLRenderer } from "../../components/optimized-html-renderer"
 import siteMetadata from "../../../data/sitemetadata"
 import TableofContent from "../../components/toc"
 import ScrollTopAndComment from "../../components/scroll"
@@ -73,6 +73,10 @@ export default async function PagePage(props) {
     notFound()
   }
 
+  // Pages go through the same markdown pipeline as posts; body.html is async
+  // and lazy, so this compiles one page rather than every document.
+  const bodyHtml = await getBodyHtml(page)
+
   return (
     <><div className="relative mx-auto max-w-5xl gap-8 xl:grid xl:grid-cols-8">
       <PageTransition className="col-span-6">
@@ -85,7 +89,7 @@ export default async function PagePage(props) {
               {page.description}
             </p>
           )}
-          <MDXComponent code={page.body.code} />
+          <OptimizedHTMLRenderer htmlContent={bodyHtml} />
           <hr />
           <Suspense fallback={<div className="h-32" aria-hidden />}>
             <Comments />

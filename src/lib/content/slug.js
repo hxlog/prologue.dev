@@ -5,7 +5,9 @@
  * computed field lowercased the raw heading text and joined spaces, while the
  * DOM ids came from rehype-slug's GitHub slugger. Headings ending in a full
  * width question mark, containing full width parentheses, or with trailing
- * whitespace produced dead anchors -- 15 of 404 across 9 posts.
+ * whitespace produced dead anchors -- 15 of 404 compared across 9 posts. The
+ * old regex also found only 404 headings where the DOM had 405, so one heading
+ * was missing from the TOC entirely.
  *
  * rehype-slug@6 exposes no slugger option (its source reads only `prefix`), so
  * the DOM ids are fixed by construction. This module exists to make the
@@ -15,7 +17,7 @@
  * KNOWN LIMIT: rehype-slug slugs a heading's rendered text content, while this
  * reads raw markdown. A heading containing inline code or emphasis would
  * therefore diverge -- `## `foo`` renders as `foo` but reads as `` `foo` ``.
- * No post in this corpus has such a heading (measured: 0 of 404). If one is
+ * No post in this corpus has such a heading (measured: 0 of 405). If one is
  * ever added, this is the function to fix, and scripts/check-slug-parity.mjs is
  * the check that will catch it.
  */
@@ -32,9 +34,9 @@ export function slugify(text) {
  *
  * Walks lines rather than reusing contentlayer.config.js's regex, and tracks
  * fenced code blocks so a `#` inside a fence is not treated as a heading.
- * Verified to produce the same heading COUNT as contentlayer on all 63 posts,
- * and ids equal to the rendered DOM ids on all 404 of them -- including the 9
- * posts where contentlayer's own ids were wrong.
+ * Verified to produce the same heading COUNT as Contentlayer2 on all 63 posts
+ * (405), and ids equal to the rendered DOM ids on all 405 of them -- including
+ * the 9 posts where Contentlayer2's own ids were wrong.
  *
  * A fresh slugger per document, matching rehype-slug's per-tree reset, so
  * duplicate headings get the same -1/-2 suffixes.
