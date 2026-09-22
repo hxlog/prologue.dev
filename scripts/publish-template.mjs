@@ -197,10 +197,13 @@ jobs:
     path.join(worktreeRoot, "data", "headerNavLinks.js")
   );
 
-  // Reset static assets for template.
+  // Reset static assets for template. They live under data/static, which the
+  // worktree's gitignored public/static links to; removing the link first keeps
+  // the cpSync from writing through it into the maintainer's asset tree.
   rmSync(path.join(worktreeRoot, "public", "static"), { recursive: true, force: true });
-  mkdirSync(path.join(worktreeRoot, "public", "static"), { recursive: true });
-  cpSync(path.join(TEMPLATE_ROOT, "public", "static"), path.join(worktreeRoot, "public", "static"), {
+  rmSync(path.join(worktreeRoot, "data", "static"), { recursive: true, force: true });
+  mkdirSync(path.join(worktreeRoot, "data", "static"), { recursive: true });
+  cpSync(path.join(TEMPLATE_ROOT, "data", "static"), path.join(worktreeRoot, "data", "static"), {
     recursive: true,
   });
 
@@ -304,6 +307,7 @@ function ensureTemplateInputs() {
     path.join(TEMPLATE_ROOT, "data", "headerNavLinks.js"),
     path.join(TEMPLATE_ROOT, "data", "links.yaml"),
     path.join(TEMPLATE_ROOT, "data", "microblog.yaml"),
+    path.join(TEMPLATE_ROOT, "data", "static"),
   ];
 
   for (const target of required) {

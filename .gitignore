@@ -14,6 +14,13 @@
 /.obsidian/
 /data/.obsidian/
 
+# public/static is a link to data/static, created by npm run static:link.
+# Committing it would stage every asset a second time under public/static;
+# on a platform that checks links out as plain files it would also break.
+# No trailing slash: `public/static/` matches the directory CONTENTS and would
+# leave the link itself untracked-but-not-ignored.
+/public/static
+
 # generated search index (rebuilt on every build; must not ship to the template snapshot)
 /public/search-index.json
 

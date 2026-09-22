@@ -2,5 +2,5 @@
   <rect width="1600" height="900" fill="#111827"/>
   <rect x="60" y="60" width="1480" height="780" fill="none" stroke="#374151" stroke-width="2"/>
   <text x="120" y="430" font-size="72" fill="#f9fafb" font-family="system-ui, sans-serif">Starter Post Cover</text>
-  <text x="120" y="500" font-size="36" fill="#9ca3af" font-family="system-ui, sans-serif">Replace /public/static/photos/template-cover.svg</text>
+  <text x="120" y="500" font-size="36" fill="#9ca3af" font-family="system-ui, sans-serif">Replace data/static/photos/template-cover.svg</text>
 </svg>

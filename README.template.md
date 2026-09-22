@@ -20,9 +20,9 @@ Live demo: https://prologue-blog-demo.prologue.dev/
 - 轻量级的搜索引擎，Fuse.js 实现全文搜索和模糊搜索
 - 支持 mermaid 渲染
 
-![Index Screenshot](./public/static/images/Index-Screenshot.jpg)
+![Index Screenshot](./data/static/images/Index-Screenshot.jpg)
 
-![Post Screenshot](./public/static/images/Post-Screenshot.jpg)
+![Post Screenshot](./data/static/images/Post-Screenshot.jpg)
 
 ## Quick Start
 
@@ -39,9 +39,9 @@ npm run dev
 
 Open `http://localhost:3000`.
 
-You can customize this site by editing `/data` (config + posts) and `/public` (static files).
+You can customize this site by editing `/data` — config and posts, plus every static asset under `/data/static`.
 
-你可以很容易自定义网站：配置与文章在 `/data`，静态文件在 `/public`。
+你可以很容易自定义网站：配置与文章，以及全部静态资源，都在 `/data` 下。
 
 ## 5 Things To Change First
 
