@@ -2297,6 +2297,67 @@ pasted images land where the site serves them."
 
 ## Task 9: Template content, bilingual
 
+> **RESULT (executed 2026-09-22). Content and README as specified; Steps 6
+> (screenshots) and 8 (snapshot build) resolved as follows.**
+>
+> **Step 6, screenshots: not done, and it would be dishonest to fake it.** The
+> plan asks for dark-theme and mobile screenshots of the starter. This machine
+> has no GPU compositor, so headless captures are software-rendered and would
+> misrepresent the design; more to the point, the existing
+> `template/data/static/images/Index-Screenshot.jpg` and `Post-Screenshot.jpg`
+> depict a **previous design** and are now stale. They are referenced by the
+> template README under both `中文` and `English`, so anyone reading the README
+> on GitHub sees the old UI. Recapturing them needs a browser and a running
+> site — one command on a machine with a display:
+>
+> ```bash
+> npm run build && npm run start   # then screenshot :3000 at 1440×900 and 390×844,
+>                                  # light and dark, into template/data/static/images/
+> ```
+>
+> Until then the two files are stale, not missing — nothing 404s.
+>
+> **Step 8, snapshot build: done properly, and it found a real Turbopack
+> constraint.** The plan offered two methods and asked for one to be chosen and
+> recorded. Chosen: build the snapshot **in place**, via a new
+> `--keep-worktree` flag on `publish-template.mjs` (default behaviour
+> unchanged). That is the meaningful version of the check, because it is the
+> only arrangement where the template's own `package.json`, the scripts copied
+> into it, and the `link → search-index → build` sequence all run exactly as a
+> clone would run them.
+>
+> Result — **a template clone builds.** `npm run build` on the snapshot:
+> `✓ Compiled successfully`, 16 prerendered pages including separate `.en`
+> routes for every bilingual post and page (`/blog/feature-tour`,
+> `/blog/feature-tour.en`, `/blog/hello-prologue[.en]`, `/about[.en]`), the
+> four tag pages, and `public/static` created by the build's own
+> `static-assets.mjs link` step. The demo post renders every documented feature:
+> 14 headings with ids, 3 Shiki blocks carrying `--shiki-dark` vars, 7 KaTeX
+> spans, 1 Mermaid fence, 6 lightbox images, 1 GFM table, 2 task-list
+> checkboxes, footnotes and a `<del>`. All 8 distinct `/static` references
+> across the snapshot's content, YAML, metadata and README resolve to real
+> files — 0 missing.
+>
+> **The constraint this surfaced is worth writing down.** A build of a snapshot
+> whose `node_modules` is a junction to an outside directory **panics**, and
+> the message is misleading:
+>
+> ```
+> Symlink [project]/node_modules is invalid, it points out of the filesystem root
+> ```
+>
+> `turbopack.root` **does** fix it — but only when given as an **absolute
+> forward-slash path** (`"D:/…/spec-plan"`). A Windows-style backslash value is
+> silently mangled into a relative path and the error changes to `failed to
+> canonicalize path … (os error 2)`, which does not mention the root or the
+> separator at all. This is a scratch-harness detail, not something a template
+> user hits (a real clone installs its own `node_modules` and needs no
+> junction), so nothing was added to the shipped config. It is recorded because
+> the next person to try to build a snapshot here will hit it within a minute.
+>
+> **Status:** `- [ ]` boxes below are left as written; all steps have been run
+> except Step 6, which is called out above.
+
 **Files:**
 - Modify: `template/data/content/blog/hello-prologue.md`
 - Create: `template/data/content/blog/hello-prologue.en.md`, `feature-tour.md`, `feature-tour.en.md`
