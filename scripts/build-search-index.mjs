@@ -17,13 +17,13 @@ const ROOT = path.resolve(__dirname, "..");
 const { default: tagLabels } = await import(
   pathToFileURL(path.join(ROOT, "data", "tagLabels.js"))
 );
-const { allPosts } = await import(
+const { getPosts } = await import(
   pathToFileURL(path.join(ROOT, "src", "lib", "content", "standalone.js"))
 );
 
 const OUT = path.join(ROOT, "public", "search-index.json");
 
-const index = allPosts
+const index = getPosts()
   .filter((post) => post.draft !== true)
   .map((post) => {
     const tags = post.tags || [];

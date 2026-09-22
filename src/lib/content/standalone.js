@@ -6,8 +6,8 @@
  * The site must import ./index.js instead.
  */
 export {
-  allPosts,
-  allPages,
+  getPosts,
+  getPages,
   getPost,
   getPage,
   getBodyHtml,

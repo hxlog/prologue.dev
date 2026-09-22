@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import dynamic from "next/dynamic";
-import { allPosts, getBodyHtml } from "../../../lib/content";
+import { getPosts, getBodyHtml } from "../../../lib/content";
 import "katex/dist/katex.min.css";
 import siteMetadata from "../../../../data/sitemetadata";
 import ScrollTopAndComment from "../../../components/scroll";
@@ -21,12 +21,13 @@ const Comments = dynamic(() => import("../../../components/comments"), {
 
 async function getPostFromParams(params) {
   const slug = params?.slug?.join("/");
-  return allPosts.find((post) => post.slugAsParams === slug);
+  return getPosts().find((post) => post.slugAsParams === slug);
 }
 
-// Non-mutating: allPosts is shared module state and must not be sorted in place.
+// Non-mutating: getPosts() returns the shared snapshot, which must not be
+// sorted in place.
 function getAdjacentPosts(post) {
-  const sortedPosts = [...allPosts].sort(
+  const sortedPosts = [...getPosts()].sort(
     (a, b) => new Date(a.publishDate) - new Date(b.publishDate),
   );
 
@@ -78,7 +79,7 @@ export async function generateMetadata(props) {
 }
 
 export async function generateStaticParams() {
-  return allPosts.map((post) => ({
+  return getPosts().map((post) => ({
     slug: post.slugAsParams.split("/"),
   }));
 }
@@ -203,7 +204,7 @@ export default async function PostPage(props) {
           <div className="not-prose">
             <RelatedPosts
               post={post}
-              allPosts={allPosts}
+              allPosts={getPosts()}
               excludeSlugs={[
                 adjacentPosts.previousPostSlug,
                 adjacentPosts.nextPostSlug,

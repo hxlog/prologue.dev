@@ -1,14 +1,17 @@
 import Link from "next/link";
 import Image from "next/image";
-import { allPosts } from "../lib/content";
+import { getPosts } from "../lib/content";
 import siteMetadata from "../../data/sitemetadata";
 
-const POSTS_NUM = allPosts.filter((p) => p.draft !== true).length;
-const TOTAL_WORDS = allPosts
-  .reduce((sum, post) => sum + (post.readingTime?.words ?? 0), 0)
-  .toLocaleString();
-
 export default function AboutMe() {
+  // Computed per render, not at module scope: a module constant would freeze
+  // the first count it saw and keep showing it after a content edit.
+  const allPosts = getPosts();
+  const POSTS_NUM = allPosts.filter((p) => p.draft !== true).length;
+  const TOTAL_WORDS = allPosts
+    .reduce((sum, post) => sum + (post.readingTime?.words ?? 0), 0)
+    .toLocaleString();
+
   return (
     <>
       <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted">

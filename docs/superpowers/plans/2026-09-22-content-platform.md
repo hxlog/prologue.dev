@@ -1146,6 +1146,28 @@ function loadDir(dir, options) {
     .sort((a, b) => (a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0));
 }
 
+// AMENDED DURING EXECUTION (Task 6). The `allPosts` / `allPages` constants that
+// stood here were implemented and are WRONG. Markdown read with `fs` is not in
+// the module graph, so a module-scope constant freezes at first evaluation and
+// `next dev` then serves stale HTML after every content edit until restart.
+// The plan's remedy -- `turbopack: { root: __dirname }` -- does not apply:
+// `data/` is already inside the root, and `turbopack.root` governs module
+// resolution, not the invalidation of `fs` reads.
+//
+// Both documented escapes were then measured on Turbopack 16.3.4 and BOTH FAIL:
+// `import.meta.glob("/data/content/blog/**/*.md", { eager: true, query: "?raw" })`
+// and its parent-relative form each match 0 files; and
+// `import.meta.turbopackHot.invalidate()` exists but does NOT re-evaluate its
+// calling module -- verified by appending a line to a file from module scope
+// and watching the count stay at 1 across an invalidate + reload.
+//
+// What shipped instead is a snapshot keyed on the mtime+size signature of the
+// tree, re-parsed only when that signature changes (~1.2 ms to check across 64
+// files vs ~103 ms to re-parse), skipped under NODE_ENV=production where the
+// tree cannot change. No bundler API is involved, which is also what keeps
+// load.js importable from a plain `node scripts/...` run. The exports are
+// `getPosts()` / `getPages()`; read load.js for the shipped version. The block
+// below is the step as originally written, kept for the record.
 export const allPosts = loadDir(path.join(CONTENT_DIR, "blog"));
 export const allPages = loadDir(path.join(CONTENT_DIR, "pages"), {
   requirePublishDate: false,
@@ -1745,6 +1767,23 @@ npm run dev is now a single process."
 ---
 
 ## Task 6: Dev-loop verification
+
+> **RESULT (executed 2026-09-22).** Steps 1–4 all pass, after Step 1's first
+> run failed and drove the loader rework recorded under Task 4.
+>
+> - **Step 1.** Failed as written: an edit left `MARKER-ONE` on the page while
+>   disk said `MARKER-BETA`. The `turbopack.root` remedy does not apply (see the
+>   amendment under Task 4). After the snapshot rework: appending a line and
+>   reloading serves it; rewriting the marker in place serves the new value.
+> - **Step 2.** Failed as written once a route was warm — a *second* new file
+>   404'd until a cold compile. After the rework: a new file 200s immediately and
+>   shows in `/blog`; deleting it 404s.
+> - **Step 3.** Passes in both `build` and `dev`. `dev` returns 500 with
+>   `[content] data/content/blog/zzz-bad-frontmatter.md: "draft" must be a
+>   boolean, got "false". In Obsidian, set this property's type to Checkbox.`
+> - **Step 4.** `Ready in 477ms` cold (`.next` removed), against 9.6s / 25.1s
+>   observed on the same machine. The honest claim remains *one process instead
+>   of two*, not "faster": this number is dominated by clearing `.next`.
 
 - [ ] **Step 1: Confirm hot content updates**
 

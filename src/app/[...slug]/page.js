@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation"
 import { Suspense } from "react"
 import dynamic from "next/dynamic"
-import { allPages, getBodyHtml } from "../../lib/content"
+import { getPages, getBodyHtml } from "../../lib/content"
 import { OptimizedHTMLRenderer } from "../../components/optimized-html-renderer"
 import siteMetadata from "../../../data/sitemetadata"
 import TableofContent from "../../components/toc"
@@ -17,7 +17,7 @@ const Comments = dynamic(() => import("../../components/comments"), {
 
 async function getPageFromParams(params) {
   const slug = params?.slug?.join("/")
-  const page = allPages.find((page) => page.slugAsParams === slug)
+  const page = getPages().find((page) => page.slugAsParams === slug)
 
   if (!page) {
     null
@@ -60,7 +60,7 @@ export async function generateMetadata(props) {
 }
 
 export async function generateStaticParams() {
-  return allPages.map((page) => ({
+  return getPages().map((page) => ({
     slug: page.slugAsParams.split("/"),
   }))
 }

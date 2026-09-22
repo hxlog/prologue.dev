@@ -20,9 +20,10 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const reference = JSON.parse(
   readFileSync(path.join(ROOT, "scripts", "fixtures", "content-shape-baseline.json"), "utf8")
 );
-const { allPosts } = await import(
+const { getPosts } = await import(
   pathToFileURL(path.join(ROOT, "src", "lib", "content", "standalone.js")).href
 );
+const allPosts = getPosts();
 
 const FIELDS = [
   "title", "description", "image", "imageDesc",

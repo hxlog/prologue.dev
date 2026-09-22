@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { load } from "js-yaml";
-import { allPosts } from "../lib/content";
+import { getPosts } from "../lib/content";
 import { compareDesc } from "date-fns";
 import siteMetadata from "../../data/sitemetadata";
 import AboutMe from "../components/aboutme";
@@ -9,7 +9,7 @@ import Articles from "../components/articles";
 import MicroblogSnippet from "../components/microblog-snippet";
 import TerminalQuotes from "../components/terminal-quotes";
 import PageTransition from "../components/page-transition";
-import { sortedTags } from "../lib/tag-counts";
+import { getSortedTags } from "../lib/tag-counts";
 
 function getMicroblogQuotes() {
   try {
@@ -30,8 +30,9 @@ function getMicroblogQuotes() {
 }
 
 export default function Home() {
-  // Copy before sorting — allPosts is shared module state.
-  const posts = [...allPosts]
+  // getPosts() re-reads when the content files change; copy before sorting,
+  // since the array it returns is the shared snapshot.
+  const posts = [...getPosts()]
     .sort((a, b) => compareDesc(new Date(a.publishDate), new Date(b.publishDate)))
     .map((post) => ({
       title: post.title,
@@ -45,7 +46,7 @@ export default function Home() {
     }));
 
   // Top-3 tags by post count (sortedTags desc); fewer if the taxonomy is small.
-  const topTags = sortedTags.slice(0, 3);
+  const topTags = getSortedTags().slice(0, 3);
 
   const quotes = getMicroblogQuotes();
 

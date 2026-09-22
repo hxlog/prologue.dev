@@ -24,9 +24,10 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const { extractHeadings } = await import(
   pathToFileURL(path.join(ROOT, "src", "lib", "content", "slug.js")).href
 );
-const { allPosts } = await import(
+const { getPosts } = await import(
   pathToFileURL(path.join(ROOT, "src", "lib", "content", "standalone.js")).href
 );
+const allPosts = getPosts();
 const { renderAll } = await import(
   pathToFileURL(path.join(ROOT, "src", "lib", "content", "pipeline.js")).href
 );

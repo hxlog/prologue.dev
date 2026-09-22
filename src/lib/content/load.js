@@ -44,7 +44,11 @@ function walk(dir, out = []) {
  * Obsidian, so that failure mode is a live risk and is now a hard error.
  */
 function fail(file, message) {
-  throw new Error(`[content] ${path.relative(process.cwd(), file)}: ${message}`);
+  // Forward slashes, not the platform's: the message is compared verbatim in
+  // verification steps and quoted in the docs, and a Windows path prints as
+  // `data\content\blog\x.md`, which no reader recognizes as a file on the site.
+  const rel = path.relative(process.cwd(), file).split(path.sep).join("/");
+  throw new Error(`[content] ${rel}: ${message}`);
 }
 
 function optionalString(file, data, field) {
@@ -211,17 +215,85 @@ function loadDir(dir, options) {
     .sort((a, b) => (a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0));
 }
 
-export const allPosts = loadDir(path.join(CONTENT_DIR, "blog"));
-export const allPages = loadDir(path.join(CONTENT_DIR, "pages"), {
-  requirePublishDate: false,
-});
+/**
+ * The content snapshot, refreshed when the files on disk change.
+ *
+ * WHY THIS IS NOT A MODULE CONSTANT. Markdown read with readFileSync is not in
+ * the module graph, and every bundler watches the module graph -- so a
+ * `const allPosts = loadDir(...)` at module scope freezes at first evaluation
+ * and a content edit in `next dev` keeps serving the stale HTML until the
+ * server is restarted. Measured on Turbopack 16.3.4, both documented escapes
+ * fail: `import.meta.glob` matches 0 files for the root-absolute AND the
+ * parent-relative pattern with `query: "?raw"`, and
+ * `import.meta.turbopackHot.invalidate()` does not re-evaluate its caller.
+ *
+ * So the refresh happens here, off the mtime+size signature of the tree:
+ * ~1.2 ms to check over 64 files, against ~103 ms to re-parse. A changed tree
+ * is re-parsed once and cached again; an unchanged one costs the signature.
+ * That price is paid on access rather than per request, and there is no
+ * bundler-specific code anywhere in it -- which also keeps this file loadable
+ * from a plain `node scripts/...` run, where no bundler exists at all.
+ *
+ * The signature is skipped under NODE_ENV=production. There the tree is fixed
+ * for the life of the process: `next build` reads it, prerenders, and exits,
+ * and a running `next start` is not expected to pick up edits to files inside
+ * its own deployment. Checking would stat 64 files per access to detect a
+ * change that cannot happen.
+ */
+const RECHECK = process.env.NODE_ENV !== "production";
+
+function signatureOf(dir) {
+  let signature = "";
+  for (const file of walk(dir)) {
+    const stats = statSync(file);
+    signature += `${file} ${stats.mtimeMs} ${stats.size}\n`;
+  }
+  return signature;
+}
+
+let snapshot = null;
+
+function current() {
+  try {
+    const signature = RECHECK ? signatureOf(CONTENT_DIR) : null;
+    if (snapshot && snapshot.signature === signature) return snapshot;
+    snapshot = {
+      signature,
+      posts: loadDir(path.join(CONTENT_DIR, "blog")),
+      pages: loadDir(path.join(CONTENT_DIR, "pages"), {
+        requirePublishDate: false,
+      }),
+    };
+  } catch (error) {
+    // An editor saving a file replaces it atomically: for a few milliseconds
+    // the path does not exist. That is not a content error, and rethrowing
+    // would 500 a page that reloads cleanly a moment later. Only ENOENT/EBUSY
+    // are tolerated, and only while a previous snapshot is in hand. The failed
+    // load leaves that snapshot's OLD signature in place, so the next access
+    // sees the mismatch and tries again -- the state cannot stick. Malformed
+    // frontmatter does not qualify: `fail()` and `yaml.parse` raise errors
+    // carrying no `code`, and rethrow immediately, which is the point of
+    // `fail()`.
+    const transient = error.code === "ENOENT" || error.code === "EBUSY";
+    if (!snapshot || !transient) throw error;
+  }
+  return snapshot;
+}
+
+export function getPosts() {
+  return current().posts;
+}
+
+export function getPages() {
+  return current().pages;
+}
 
 export function getPost(slugAsParams) {
-  return allPosts.find((post) => post.slugAsParams === slugAsParams);
+  return getPosts().find((post) => post.slugAsParams === slugAsParams);
 }
 
 export function getPage(slugAsParams) {
-  return allPages.find((page) => page.slugAsParams === slugAsParams);
+  return getPages().find((page) => page.slugAsParams === slugAsParams);
 }
 
 /** Resolve one document's rendered HTML (memoized per document). */
@@ -237,7 +309,7 @@ export async function getBodyHtml(document) {
  */
 export async function getAllPostsWithBody() {
   return Promise.all(
-    allPosts.map(async (post) => {
+    getPosts().map(async (post) => {
       await getBodyHtml(post);
       return post;
     })

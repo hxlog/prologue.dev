@@ -1,9 +1,9 @@
-import { allPosts } from "../lib/content";
+import { getPosts } from "../lib/content";
 import siteMetadata from "../../data/sitemetadata";
-import { sortedTags } from "../lib/tag-counts";
+import { getSortedTags } from "../lib/tag-counts";
 
 export default async function sitemap() {
-  const blogs = allPosts
+  const blogs = getPosts()
     .filter((post) => post.draft === false)
     .map((post) => ({
       url: `${siteMetadata.siteUrl}${post.slug}`,
@@ -15,7 +15,7 @@ export default async function sitemap() {
     lastModified: new Date().toISOString().split('T')[0],
   }));
 
-  const tags = sortedTags.map((tag) => ({
+  const tags = getSortedTags().map((tag) => ({
     url: `${siteMetadata.siteUrl}/tags/${tag}`,
     lastModified: new Date().toISOString().split('T')[0],
   }));

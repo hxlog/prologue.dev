@@ -1,20 +1,21 @@
-import { allPosts } from "../../lib/content";
+import { getPosts } from "../../lib/content";
 import { compareDesc } from "date-fns";
 import PostsLayout from "./bloglistlayout";
 import siteMetadata from "../../../data/sitemetadata";
-import { tagCounts, sortedTags } from "../../lib/tag-counts";
+import { getTagCounts, getSortedTags } from "../../lib/tag-counts";
 
 export default function Blog() {
-  // Copy before sorting — allPosts is shared module state.
-  const posts = [...allPosts].sort((a, b) =>
+  // getPosts() re-reads when the content files change; copy before sorting,
+  // since the array it returns is the shared snapshot.
+  const posts = [...getPosts()].sort((a, b) =>
     compareDesc(new Date(a.publishDate), new Date(b.publishDate))
   );
 
   return (
     <PostsLayout
       posts={posts}
-      tagCounts={tagCounts}
-      sortedTags={sortedTags}
+      tagCounts={getTagCounts()}
+      sortedTags={getSortedTags()}
       title="归档"
       subtitle={`共 ${posts.filter((p) => p.draft !== true).length} 篇文章`}
     />

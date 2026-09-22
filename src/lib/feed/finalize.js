@@ -8,19 +8,26 @@
  *     emit it from item.image, but that field also drives the RSS enclosure
  *     (forcing length=0), so we attach the JSON thumbnail here instead.
  */
-import { allPosts } from "../content";
+import { getPosts } from "../content";
 import siteMetadata from "../../../data/sitemetadata";
 import { coverImageUrl, postUrl } from "./urls";
 
 const CREATOR = siteMetadata.author;
 
-const IMAGE_BY_URL = (() => {
+/**
+ * Cover URL per post URL, for the JSON Feed thumbnails.
+ *
+ * A function rather than a module constant: `next dev` re-reads the content
+ * tree when it changes, and a module-scope map built from the first snapshot
+ * would keep answering with it. Called once per feed serialization.
+ */
+function imageByUrl() {
   const map = {};
-  for (const post of allPosts) {
+  for (const post of getPosts()) {
     if (post.draft === false) map[postUrl(post.slug)] = coverImageUrl(post);
   }
   return map;
-})();
+}
 
 /** Inject <dc:creator> into every RSS <item> (Folo author source). */
 export function finalizeRss(xml) {
@@ -32,9 +39,10 @@ export function finalizeRss(xml) {
 export function finalizeJson(jsonString) {
   const feed = JSON.parse(jsonString);
   if (Array.isArray(feed.items)) {
+    const images = imageByUrl();
     feed.items = feed.items.map((item) => {
-      if (!item.image && IMAGE_BY_URL[item.id]) {
-        return { ...item, image: IMAGE_BY_URL[item.id] };
+      if (!item.image && images[item.id]) {
+        return { ...item, image: images[item.id] };
       }
       return item;
     });

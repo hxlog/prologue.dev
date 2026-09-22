@@ -97,3 +97,13 @@ Tags: canonical slugs are English (15-tag taxonomy), Chinese display labels live
 - Dates are formatted with `src/lib/date.js` (Intl, zh-CN long form; Beijing time when a clock time is involved) and sorted with `date-fns` (`compareDesc`). Never reintroduce moment.
 - Shiki emits only `--shiki-light`/`--shiki-dark` vars (`defaultColor: false` in `contentlayer.config.js`); the active color is applied by CSS in globals.css.
 - `.contentlayer`, `.next`, and `.tmp` are generated — never edit by hand.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

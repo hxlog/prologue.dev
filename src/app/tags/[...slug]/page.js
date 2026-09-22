@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
-import { allPosts } from "../../../lib/content";
+import { getPosts } from "../../../lib/content";
 import { compareDesc } from "date-fns";
 import PostsLayout from "../../blog/bloglistlayout";
-import { tagCounts, sortedTags } from "../../../lib/tag-counts";
+import { getTagCounts, getSortedTags } from "../../../lib/tag-counts";
 import { tagLabel } from "../../../../data/tagLabels";
 import siteMetadata from "../../../../data/sitemetadata";
 
@@ -13,7 +13,7 @@ import siteMetadata from "../../../../data/sitemetadata";
  * request time and 404 via notFound().
  */
 export function generateStaticParams() {
-  return sortedTags.map((tag) => ({ slug: [tag] }));
+  return getSortedTags().map((tag) => ({ slug: [tag] }));
 }
 
 export async function generateMetadata(props) {
@@ -36,7 +36,7 @@ export default async function Tag(props) {
   const params = await props.params;
   const slug = params?.slug?.join("/");
 
-  const filtered = allPosts.filter(
+  const filtered = getPosts().filter(
     (post) => post.draft !== true && (post.tags || []).includes(slug)
   );
   if (filtered.length === 0) {
@@ -50,8 +50,8 @@ export default async function Tag(props) {
   return (
     <PostsLayout
       posts={posts}
-      tagCounts={tagCounts}
-      sortedTags={sortedTags}
+      tagCounts={getTagCounts()}
+      sortedTags={getSortedTags()}
       activeTag={slug}
       title="标签"
       subtitle={`「${tagLabel(slug)}」下共有 ${posts.length} 篇文章`}
