@@ -54,7 +54,7 @@ npm run dev
 2. **`data/headerNavLinks.js`** — 导航栏链接
 3. **`data/content/pages/about.md`** — 关于页
 4. **`data/content/blog/hello-prologue.md`** — 第一篇文章
-5. **`data/microblog.yaml`** 和 **`data/links.yaml`** — 微博与友链
+5. **`data/microblog.md`** 和 **`data/links.md`** — 微博与友链
 
 配色、圆角、阴影都在 `src/app/globals.css` 的 `@theme inline` 里，改 CSS 变量即可换主题色。
 
@@ -145,7 +145,7 @@ Editing content does not need a server restart: save the file and reload.
 2. **`data/headerNavLinks.js`** — navigation links
 3. **`data/content/pages/about.md`** — the about page
 4. **`data/content/blog/hello-prologue.md`** — your first post
-5. **`data/microblog.yaml`** and **`data/links.yaml`** — microblog and friend links
+5. **`data/microblog.md`** and **`data/links.md`** — microblog and friend links
 
 Colours, radii and shadows are tokens in `src/app/globals.css` under `@theme inline` — change the CSS variables to re-theme the whole site.
 

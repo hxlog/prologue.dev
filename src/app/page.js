@@ -1,6 +1,3 @@
-import fs from "fs";
-import path from "path";
-import { load } from "js-yaml";
 import { getPosts } from "../lib/content";
 import { compareDesc } from "date-fns";
 import siteMetadata from "../../data/sitemetadata";
@@ -10,23 +7,20 @@ import MicroblogSnippet from "../components/microblog-snippet";
 import TerminalQuotes from "../components/terminal-quotes";
 import PageTransition from "../components/page-transition";
 import { getSortedTags } from "../lib/tag-counts";
+import { getMicroblog } from "../lib/vault";
 
+/**
+ * Short quotes for the terminal block. Reads through the same vault loader as
+ * the microblog page and feed -- this used to be a second, independent reader
+ * of the same YAML file that swallowed its own errors, so a broken entry
+ * silently emptied the block instead of failing.
+ */
 function getMicroblogQuotes() {
-  try {
-    const raw = fs.readFileSync(
-      path.join(process.cwd(), "data", "microblog.yaml"),
-      "utf8"
-    );
-    const entries = load(raw) || [];
-    return [...entries]
-      .sort((a, b) => new Date(b.date) - new Date(a.date))
-      .map((e) => String(e.content || ""))
-      .filter((c) => c.length >= 8)
-      .slice(0, 8)
-      .map((c) => (c.length > 64 ? c.slice(0, 64) + "…" : c));
-  } catch {
-    return [];
-  }
+  return getMicroblog()
+    .map((entry) => entry.paragraphs[0] || "")
+    .filter((text) => text.length >= 8)
+    .slice(0, 8)
+    .map((text) => (text.length > 64 ? text.slice(0, 64) + "…" : text));
 }
 
 export default function Home() {

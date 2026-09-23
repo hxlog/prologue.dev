@@ -40,6 +40,8 @@ There is **no Contentlayer**. `src/lib/content/` reads `data/content/**` with `f
 
 Frontmatter is validated **loudly**: a mistyped `draft: "false"` (which is what Obsidian's Properties UI writes when the property type is Text) fails the build naming the file and field, where Contentlayer2 warned and silently skipped the document. Pages (`data/content/pages/`) need only `title` and `description`; posts also need `publishDate`.
 
+`src/lib/vault.js` reads the two non-post datasets, which are markdown notes so the vault can edit them: `data/microblog.md` (`## <date>` sections with a `<!-- id: … -->` anchor line) and `data/links.md` (a GFM table). It parses with remark-parse + remark-gfm — the same parser the post pipeline uses — and returns `getMicroblog()` / `getLinks()`. Entry ids are **stored, not derived**: the old loader computed `mb-<date>-<array index>`, so inserting one entry renumbered every later one and broke `/microblog#…` anchors and RSS guids at once. `getLinks()` and `getMicroblog()` are functions for the same staleness reason as the loader.
+
 `data/static/` holds the site's static assets; `public/static` is a **link** to it (created by `scripts/static-assets.mjs link`, which `dev`/`build` run and `npm run check` re-asserts). This arrangement is what lets one Obsidian vault reach every asset — see `docs/CONTENT.md`, and read its "Why there is no link or junction inside the vault" before proposing a junction to solve an asset problem.
 
 ## Markdown pipeline & Mermaid

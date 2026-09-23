@@ -110,18 +110,54 @@ directory inside the vault; `public/static` is the link, and it points
 | `data/content/pages/*.md` | Standalone pages, e.g. `about.md` → `/about`. |
 | `data/static/images/` | Illustrations referenced from posts. **Pasted images land here.** |
 | `data/static/photos/` | Cover images. |
-| `data/static/avatars/` | Avatars, e.g. for `data/links.yaml`. |
+| `data/static/avatars/` | Avatars, e.g. for `data/links.md`. |
 | `data/static/favicons/` | Site icon, author avatar, default cover. |
-| `data/microblog.yaml` | Microblog entries. |
-| `data/links.yaml` | Friend links. |
+| `data/microblog.md` | Microblog entries. |
+| `data/links.md` | Friend links. |
 | `data/sitemetadata.js` | Site title, author, URL, Giscus and analytics IDs. |
 | `data/headerNavLinks.js` | Navigation bar links. |
 | `data/tagLabels.js` | Chinese display labels for the English tag slugs. |
 
+The last three are `.js` because client components import them directly and a
+browser cannot import markdown; Obsidian shows them under *Show all file
+types* but cannot open or edit them. Edit those in an editor.
+
 `public/static` is a **link**, not a folder — it points at `data/static` so
-Next can serve those files at `/static/*`. It is created by `npm run
-static:link`, which `dev` and `build` run for you. Never edit through it; edit
-`data/static` and the link follows.
+Next can serve those files at `/static/*`. It is created by
+`scripts/static-assets.mjs link`, which `dev` and `build` run for you, and
+re-asserted by `npm run check`. Never edit through it; edit `data/static` and
+the link follows.
+
+## The two markdown datasets
+
+`data/microblog.md` and `data/links.md` are ordinary notes — edit them in
+Obsidian like any other.
+
+**`data/links.md` is a GFM table**, one row per friend. Obsidian has a table
+editor for it. A `|` inside a cell must be written `\|`.
+
+**`data/microblog.md` is a series of `##` sections.** The heading is the date,
+the section body is the entry, and paragraphs and images are ordinary markdown
+— which is why an image caption shows up in the lightbox:
+
+```markdown
+## 2026-03-14
+<!-- id: mb-20260314-23 -->
+
+正文第一段。
+
+![配图说明](/static/photos/a.jpg)
+```
+
+The `<!-- id: … -->` line is the entry's **permanent anchor**: it is what
+`/microblog#mb-…` and the RSS `<guid>` point at. Do not edit or delete one, and
+when you move an entry, move the whole section, id included. (The id is stored
+rather than computed on purpose: a computed id derived from a date plus
+position renumbers every later entry the moment you insert one, silently
+breaking every anchor and every feed reader's unread state.)
+
+The heading must be exactly `YYYY-MM-DD`, and a missing or duplicate id fails
+the build naming the section.
 
 ## Adding an image
 

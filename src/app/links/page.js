@@ -1,8 +1,6 @@
-import fs from "fs";
-import path from "path";
-import { load } from "js-yaml";
 import FriendLinks from "../../components/friendlinks";
 import PageTransition from "../../components/page-transition";
+import { getLinks } from "../../lib/vault";
 
 export async function generateMetadata() {
   return {
@@ -12,9 +10,7 @@ export async function generateMetadata() {
 }
 
 export default async function LinksPage() {
-  const filePath = path.join(process.cwd(), "data", "links.yaml");
-  const links = fs.readFileSync(filePath, "utf8");
-  const data = load(links);
+  const data = getLinks();
 
   return (
     <PageTransition>

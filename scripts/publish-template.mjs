@@ -199,12 +199,12 @@ jobs:
   );
 
   copyFile(
-    path.join(TEMPLATE_ROOT, "data", "microblog.yaml"),
-    path.join(worktreeRoot, "data", "microblog.yaml")
+    path.join(TEMPLATE_ROOT, "data", "microblog.md"),
+    path.join(worktreeRoot, "data", "microblog.md")
   );
   copyFile(
-    path.join(TEMPLATE_ROOT, "data", "links.yaml"),
-    path.join(worktreeRoot, "data", "links.yaml")
+    path.join(TEMPLATE_ROOT, "data", "links.md"),
+    path.join(worktreeRoot, "data", "links.md")
   );
   copyFile(
     path.join(TEMPLATE_ROOT, "data", "sitemetadata.js"),
@@ -337,8 +337,8 @@ function ensureTemplateInputs() {
     path.join(TEMPLATE_ROOT, "data", "content", "pages", "about.md"),
     path.join(TEMPLATE_ROOT, "data", "sitemetadata.js"),
     path.join(TEMPLATE_ROOT, "data", "headerNavLinks.js"),
-    path.join(TEMPLATE_ROOT, "data", "links.yaml"),
-    path.join(TEMPLATE_ROOT, "data", "microblog.yaml"),
+    path.join(TEMPLATE_ROOT, "data", "links.md"),
+    path.join(TEMPLATE_ROOT, "data", "microblog.md"),
     path.join(TEMPLATE_ROOT, "data", "tagLabels.js"),
     path.join(TEMPLATE_ROOT, "data", "static"),
   ];

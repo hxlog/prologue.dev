@@ -5,8 +5,8 @@
 # different machines. The content layer reads those bytes directly
 # (`readFileSync` in src/lib/content/load.js), and the two baseline fixtures
 # under scripts/fixtures/ pin the exact strings it produces -- so a CRLF
-# checkout produced different output than a Linux one, and check:content /
-# check:render disagreed with CI on ~60 of 63 posts.
+# checkout produced different output than a Linux one, and both of the
+# equivalence gates disagreed with CI on ~60 of 63 posts.
 #
 # `eol=lf` makes the working tree match the index on every platform, which is
 # what Obsidian, VS Code, and git all handle without surprise. `text=auto`
