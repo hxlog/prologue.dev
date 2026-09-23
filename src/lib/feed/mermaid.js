@@ -36,6 +36,3 @@ export function transformMermaidDiagrams(html) {
     }
   });
 }
-
-/** @deprecated Use transformMermaidDiagrams */
-export const transformMermaidSvgs = transformMermaidDiagrams;

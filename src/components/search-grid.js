@@ -8,8 +8,8 @@ const PAGE_SIZE = 8;
 
 /**
  * Shared search + card grid for /blog and /tags/* (and pagination).
- * Receives SLIM post objects from a server component (never full contentlayer
- * docs) so the RSC payload stays small. Search runs over the build-time
+ * Receives SLIM post objects from a server component (never full content
+ * documents) so the RSC payload stays small. Search runs over the build-time
  * Fuse index (src/lib/use-post-search.js) — identical behavior site-wide.
  */
 export default function SearchGrid({ posts, className = "" }) {
@@ -96,7 +96,6 @@ export default function SearchGrid({ posts, className = "" }) {
                 publishDate={post.publishDate || post.date}
                 tags={post.tags}
                 readingTime={post.readingTime}
-                featured={post.featured}
               />
             ))}
           </div>

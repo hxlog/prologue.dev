@@ -20,12 +20,10 @@ export default function Card({
   publishDate,
   tags,
   readingTime,
-  featured = false,
-  className = "",
 }) {
   return (
     <article
-      className={`card card-interactive card-spotlight group relative flex flex-col p-5 ${className}`}
+      className="card card-interactive card-spotlight group relative flex flex-col p-5"
     >
       <div className="flex items-center gap-2 text-xs text-faint">
         <time dateTime={publishDate}>{formatDate(publishDate)}</time>
@@ -35,14 +33,6 @@ export default function Card({
             <span>{readingTime}</span>
           </>
         ) : null}
-        {/* {featured ? (
-          <span
-            className="ml-auto rounded-full px-2 py-0.5 text-[10px] font-semibold text-white"
-            style={{ background: "var(--gradient-brand)" }}
-          >
-            精选
-          </span>
-        ) : null} */}
       </div>
 
       <h3 className="card-title mt-2.5 text-lg font-semibold leading-7 tracking-tight text-foreground transition-colors duration-200">

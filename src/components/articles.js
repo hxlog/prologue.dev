@@ -252,6 +252,5 @@ function cardProps(article) {
     publishDate: article.publishDate || article.date,
     tags: article.tags,
     readingTime: article.readingTime,
-    featured: article.featured,
   };
 }

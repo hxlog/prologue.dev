@@ -24,7 +24,6 @@ export default function PostsLayout({
       publishDate: post.publishDate,
       tags: post.tags || [],
       readingTime: post.readingTime?.text,
-      featured: Boolean(post.featured),
     }));
 
   return (

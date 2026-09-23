@@ -6,8 +6,9 @@
  * The fixture, not .contentlayer/generated, is the reference on purpose:
  * .contentlayer is gitignored, is produced only by Contentlayer2, and is gone
  * the moment Task 5 uninstalls it -- which is exactly the change this check
- * exists to validate. Refresh it with capture-shape-baseline.mjs if the
- * document schema ever legitimately changes.
+ * exists to validate. The fixtures were captured once, from Contentlayer2,
+ * before it was removed; there is no longer a script that can regenerate them,
+ * so a legitimate schema change means editing the JSON deliberately.
  *
  * Run: node scripts/check-content-shape.mjs
  * Exit: 0 = same shape, 1 = a field was renamed, dropped, or retyped

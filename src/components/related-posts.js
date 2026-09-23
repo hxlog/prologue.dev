@@ -31,7 +31,6 @@ export default function RelatedPosts({ post, allPosts, excludeSlugs = [] }) {
             publishDate={relatedPost.publishDate}
             tags={relatedPost.tags}
             readingTime={relatedPost.readingTime?.text}
-            featured={relatedPost.featured}
           />
         ))}
       </div>

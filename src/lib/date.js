@@ -3,17 +3,13 @@
  *
  * Uses the built-in Intl API — zero bundle cost, locale-correct, and works
  * identically in server components (Node ships full ICU) and the browser.
- * Policy: all dates render in Chinese long form (2022年11月21日); anything
- * that includes a clock time renders Beijing time (UTC+8) explicitly.
+ * Policy: dates render in Chinese long form (2022年11月21日). A frontmatter
+ * value that carries a clock time is pinned to Beijing time (UTC+8) upstream,
+ * in `canonicalDate()` (src/lib/content/load.js), so the instant itself is
+ * host-independent rather than merely displayed in one zone here.
  */
 
 const longDate = new Intl.DateTimeFormat("zh-CN", { dateStyle: "long" });
-
-const longDateTime = new Intl.DateTimeFormat("zh-CN", {
-  dateStyle: "long",
-  timeStyle: "short",
-  timeZone: "Asia/Shanghai",
-});
 
 function toDate(dateLike) {
   return dateLike instanceof Date ? dateLike : new Date(dateLike);
@@ -24,13 +20,6 @@ export function formatDate(dateLike) {
   const date = toDate(dateLike);
   if (Number.isNaN(date.getTime())) return "";
   return longDate.format(date);
-}
-
-/** 2022年11月21日 20:30（北京时间） */
-export function formatDateTime(dateLike) {
-  const date = toDate(dateLike);
-  if (Number.isNaN(date.getTime())) return "";
-  return `${longDateTime.format(date)}（北京时间）`;
 }
 
 /** Current year, e.g. for the footer copyright. */
