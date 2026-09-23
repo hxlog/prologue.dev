@@ -1,0 +1,14 @@
+# Normalize every text file to LF in the repository AND in the working tree.
+#
+# Without this, `core.autocrlf=true` checks the tree out as CRLF on Windows
+# while the committed blobs stay LF, so the same file has different bytes on
+# different machines. The content layer reads those bytes directly
+# (`readFileSync` in src/lib/content/load.js), and the two baseline fixtures
+# under scripts/fixtures/ pin the exact strings it produces -- so a CRLF
+# checkout produced different output than a Linux one, and check:content /
+# check:render disagreed with CI on ~60 of 63 posts.
+#
+# `eol=lf` makes the working tree match the index on every platform, which is
+# what Obsidian, VS Code, and git all handle without surprise. `text=auto`
+# keeps git's own binary detection, so images and fonts are untouched.
+* text=auto eol=lf

@@ -71,12 +71,53 @@ function requiredString(file, data, field) {
   return value;
 }
 
+/**
+ * Canonicalize the date strings the vault actually contains.
+ *
+ * The YAML engine keeps dates as strings (see the note in buildDocument), and
+ * /data is hand-edited in Obsidian, so both `2025-04-13` and `2023-6-19` and
+ * `2026-3-7 12:00` occur in the same tree.
+ *
+ * Passing those straight to `new Date()` is a bug, because the two shapes
+ * resolve in different zones: ES2015+ requires the zero-padded `YYYY-MM-DD`
+ * form to be read as UTC, while a loose `2023-6-19` misses that grammar and
+ * falls back to LOCAL time -- so the same post resolved to a different instant
+ * (and, west of UTC+8, a different calendar day) depending on the machine
+ * running the build. Padding the components makes every form UTC-midnight.
+ *
+ * A clock time is different: the site's policy is that a time is Beijing time
+ * (`src/lib/date.js`), so the offset is stated explicitly instead of being
+ * inherited from the host.
+ */
+function canonicalDate(value) {
+  const dateOnly = /^(\d{4})-(\d{1,2})-(\d{1,2})$/;
+  const dateTime = /^(\d{4})-(\d{1,2})-(\d{1,2})[T ](\d{1,2}):(\d{2})(?::(\d{2}))?$/;
+
+  const only = dateOnly.exec(value);
+  if (only) {
+    const [, y, m, d] = only;
+    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+
+  const timed = dateTime.exec(value);
+  if (timed) {
+    const [, y, m, d, hh, mm, ss = "00"] = timed;
+    return (
+      `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}` +
+      `T${hh.padStart(2, "0")}:${mm}:${ss}+08:00`
+    );
+  }
+
+  return value;
+}
+
 function optionalDate(file, data, field) {
   const value = data[field];
   if (value === undefined || value === null || value === "") return undefined;
   // gray-matter's default YAML engine keeps dates as strings, which is what
   // Contentlayer configured a custom engine to achieve; accept a Date too.
-  const date = value instanceof Date ? value : new Date(value);
+  const date =
+    value instanceof Date ? value : new Date(canonicalDate(String(value)));
   if (Number.isNaN(date.getTime())) {
     fail(file, `"${field}" is not a valid date: ${JSON.stringify(value)}`);
   }
@@ -128,11 +169,15 @@ function buildDocument(file, { requirePublishDate = true } = {}) {
   const raw = readFileSync(file, "utf8");
   // The YAML engine is NOT optional. contentlayer2 passes `yaml.parse` from the
   // `yaml` package as gray-matter's engine (makeCacheItemFromFilePath.ts:225)
-  // to stop gray-matter coercing date-like strings into Date objects. It also,
-  // as a side effect, keeps a trailing CR on the last frontmatter value on a
-  // CRLF file -- 55 of 63 posts carry `description: "…\r"`. A plain
-  // `matter(raw)` uses js-yaml instead and silently drops that CR, so the shape
-  // check reports 55 differences that are not real. Same engine, same output.
+  // to stop gray-matter coercing date-like strings into Date objects -- and the
+  // shape check compares what that engine produces. A plain `matter(raw)` uses
+  // js-yaml instead, which yields Date objects for `publishDate`/`lastmod` and
+  // would differ from the baseline on every dated post. Same engine, same
+  // output.
+  //
+  // Dates therefore arrive here as STRINGS in whatever shape the vault holds
+  // them (`2025-04-13`, `2023-6-19`, `2026-3-7 12:00`); canonicalDate is what
+  // makes those parse the same on every machine.
   const { data } = matter(raw, { engines: { yaml: (str) => yaml.parse(str) } });
   const flattenedPath = path
     .relative(CONTENT_DIR, file)
