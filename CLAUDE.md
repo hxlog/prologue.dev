@@ -14,19 +14,18 @@ npm run build          # same prep, then next build --turbopack
 npm run start          # serve production build
 npm run lint           # eslint (flat config in eslint.config.mjs)
 
-npm run check:render   # 63 posts: rendered HTML vs the frozen baseline (37 expected diffs)
-npm run check:content  # 63 posts: frontmatter/document shape vs the baseline
-npm run check:slug     # heading ids: anchor ↔ element parity
-npm run check:prerendered  # every prerendered page's anchors resolve
-npm run check:feeds    # all four feeds, against a running server (mermaid.ink, absolute URLs, MathML)
-npm run check:template # every file the starter ships parses and has usable frontmatter
+npm run check          # the offline gates (see below)
+node scripts/check.mjs prerendered   # every prerendered page's anchors resolve
+node scripts/check.mjs feeds         # all four feeds, against a running server
+node scripts/check.mjs all           # all three groups
 
-npm run static:link / static:unlink / static:verify   # the public/static ↔ data/static link
-npm run publish:dry    # build the template snapshot locally (no push)
-npm run publish        # force-push template to hxlog/prologue-blog-template
+npm run publish        # build the template snapshot locally (dry run — no push)
+npm run publish -- --push            # force-push template to hxlog/prologue-blog-template
 ```
 
-There is **no test suite**. The `check:*` scripts are the acceptance gate — run them after touching the content layer, the markdown pipeline, or anything that renders. The first four run offline against fixtures; `check:feeds` needs a server (`npm run start`) and `check:template` validates the starter's own files, which nothing else ever executes. CI (`.github/workflows/ci.yml`) runs `lint` + `build` only. `.contentlayer` no longer exists; `npm run build:content` is now just the search-index generator.
+`npm run check` runs five gates as separate child processes and prints a PASS/FAIL table: the `public/static` link (`link verify`), heading-id parity, render equivalence (63 posts, 37 expected diffs), document shape (63 posts), and the starter template's own files.
+
+There is **no test suite**. These gates are the acceptance gate — run them after touching the content layer, the markdown pipeline, or anything that renders. They are **not** part of `build`, and three of them cannot be: the `prerendered` group reads the output in `.next/server/app/**`, `feeds` needs a running server (`npm run start`), and the `template` gate inspects starter files this site never uses. Folding them into `build` would also break the public template, whose clones carry no `scripts/fixtures/` to compare against. CI (`.github/workflows/ci.yml`) runs `lint`, `check` and `build`.
 
 ## Content layer
 
@@ -41,7 +40,7 @@ There is **no Contentlayer**. `src/lib/content/` reads `data/content/**` with `f
 
 Frontmatter is validated **loudly**: a mistyped `draft: "false"` (which is what Obsidian's Properties UI writes when the property type is Text) fails the build naming the file and field, where Contentlayer2 warned and silently skipped the document. Pages (`data/content/pages/`) need only `title` and `description`; posts also need `publishDate`.
 
-`data/static/` holds the site's static assets; `public/static` is a **link** to it (`npm run static:link`, run automatically by `dev`/`build`). This arrangement is what lets one Obsidian vault reach every asset — see `docs/CONTENT.md`, and read its "Why there is no link or junction inside the vault" before proposing a junction to solve an asset problem.
+`data/static/` holds the site's static assets; `public/static` is a **link** to it (created by `scripts/static-assets.mjs link`, which `dev`/`build` run and `npm run check` re-asserts). This arrangement is what lets one Obsidian vault reach every asset — see `docs/CONTENT.md`, and read its "Why there is no link or junction inside the vault" before proposing a junction to solve an asset problem.
 
 ## Markdown pipeline & Mermaid
 
@@ -71,7 +70,7 @@ This repo is mirrored to a public template (`hxlog/prologue-blog-template`) **wi
 - Anything new added for the template must be placed under `template/` (or whitelisted in `applyStarterTemplate`), or it won't ship. `ensureTemplateInputs()` asserts the required ones exist, so a missing file fails the publish rather than shipping a broken clone.
 - Template-critical files that live in `src/` or `scripts/` are copied explicitly by `applyStarterTemplate`: `scripts/build-search-index.mjs` and `scripts/static-assets.mjs`. **Anything the shipped `dev`/`build` scripts invoke must be in that list**, or a fresh clone fails on its first command.
 - `template/data/tagLabels.js` and `template/data/static/` are both required inputs; five `src/` files import the former, so a template without it does not build.
-- Locally, use `npm run publish:dry` to preview the snapshot (written under `.tmp/`, which is gitignored); only `npm run publish` pushes.
+- Locally, `npm run publish` builds and inspects the snapshot under `.tmp/` (gitignored) and stops; `npm run publish -- --push` is what force-pushes. CI passes `--push`.
 
 ## Design system
 
