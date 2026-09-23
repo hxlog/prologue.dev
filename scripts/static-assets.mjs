@@ -14,7 +14,11 @@
  * checks links out as plain files when core.symlinks=false, so on Windows the
  * junction is created explicitly rather than relying on checkout.
  *
- * Usage: node scripts/static-assets.mjs <link|unlink|verify>
+ * Usage: node scripts/static-assets.mjs <link|unlink|verify> [...]
+ *
+ * Multiple subcommands may be given; they run in order. `scripts/check.mjs`
+ * passes `link verify`, so the gate works on a fresh clone where the link has
+ * not been created yet.
  */
 import { existsSync, lstatSync, mkdirSync, rmSync, symlinkSync } from "node:fs";
 import path from "node:path";
@@ -75,7 +79,7 @@ function unlink() {
  */
 function verify() {
   if (!existsSync(TARGET)) throw new Error(`missing ${TARGET}`);
-  if (!existsSync(LINK)) throw new Error(`missing ${LINK} — run: npm run static:link`);
+  if (!existsSync(LINK)) throw new Error(`missing ${LINK} — run: npm run check`);
   if (!lstatSync(LINK).isSymbolicLink()) throw new Error(`${LINK} is not a link`);
   const probe = path.join(LINK, "favicons", "avatar.png");
   if (!existsSync(probe)) {
@@ -84,11 +88,22 @@ function verify() {
   console.log(`static: OK (${LINK} -> ${TARGET})`);
 }
 
-const cmd = process.argv[2];
-if (cmd === "link") link();
-else if (cmd === "unlink") unlink();
-else if (cmd === "verify") verify();
-else {
-  console.error("usage: node scripts/static-assets.mjs <link|unlink|verify>");
+const commands = process.argv.slice(2);
+if (commands.length === 0) {
+  console.error("usage: node scripts/static-assets.mjs <link|unlink|verify> [...]");
   process.exit(1);
+}
+
+// Commands run in the order given, so `link verify` both creates the link and
+// asserts it resolves -- which is how scripts/check.mjs uses it on a fresh
+// clone, where public/static does not exist yet.
+for (const cmd of commands) {
+  if (cmd === "link") link();
+  else if (cmd === "unlink") unlink();
+  else if (cmd === "verify") verify();
+  else {
+    console.error(`unknown command: ${cmd}`);
+    console.error("usage: node scripts/static-assets.mjs <link|unlink|verify> [...]");
+    process.exit(1);
+  }
 }

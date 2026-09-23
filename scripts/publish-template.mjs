@@ -10,7 +10,12 @@ const WORKTREE_DIR = path.join(ROOT, ".tmp", "template-worktree");
 const TEMPLATE_ROOT = path.join(ROOT, "template");
 const README_TEMPLATE = path.join(ROOT, "README.template.md");
 const TARGET_BRANCH = readArg("--branch") || "master";
-const PUBLISH = hasFlag("--publish");
+// Dry run by default. This script force-pushes to a public repository, and a
+// destructive action should not be the one you get by typing the obvious
+// command -- `npm run publish` builds and inspects the snapshot locally, and
+// pushing is the explicit extra step. CI passes --push (see
+// .github/workflows/publish-template.yml).
+const PUBLISH = hasFlag("--push");
 const ALLOW_DIRTY = hasFlag("--allow-dirty");
 // Leaving the snapshot on disk is the only way to inspect what a template user
 // actually receives -- and, with node_modules linked in, the only way to prove
@@ -49,7 +54,7 @@ function main() {
       console.log(`Published template repo: hxlog/prologue-blog-template (${TARGET_BRANCH})`);
     } else {
       console.log(`Template snapshot prepared locally at ${WORKTREE_DIR}`);
-      console.log("Use --publish (npm run publish) to push to hxlog/prologue-blog-template.");
+      console.log("Re-run with --push to force-push it to hxlog/prologue-blog-template.");
     }
   } finally {
     if (KEEP_WORKTREE) {
@@ -238,22 +243,14 @@ function patchStarterPackageJson(worktreeRoot) {
 
   const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
   packageJson.scripts = packageJson.scripts || {};
-  delete packageJson.scripts.publish;
-  delete packageJson.scripts["publish:dry"];
-  // The maintainer's pre-publish gates compare against fixtures under
-  // scripts/fixtures/ and data that the template does not ship. A stranger
-  // running `npm run check:render` on a clone would get a confusing failure
-  // about a missing baseline, not a useful signal. `check:feeds` needs a
-  // running server, which a clone does not have; `check:template` is about
-  // the template itself and has nothing to check once it *is* the template.
-  for (const script of [
-    "check:render",
-    "check:content",
-    "check:slug",
-    "check:prerendered",
-    "check:feeds",
-    "check:template",
-  ]) {
+  // Maintainer-only entry points. `publish` force-pushes to this repo's
+  // template; `check` drives the six gates under scripts/check-*.mjs, which are
+  // not shipped -- applyStarterTemplate wipes scripts/ and copies back only
+  // build-search-index.mjs and static-assets.mjs. A stranger running
+  // `npm run check` on a clone would get "cannot find module", and
+  // `npm run build` must not depend on gates that compare against
+  // scripts/fixtures/, which the template does not carry either.
+  for (const script of ["publish", "check"]) {
     delete packageJson.scripts[script];
   }
   writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);

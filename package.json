@@ -7,18 +7,8 @@
     "build": "node scripts/static-assets.mjs link && node scripts/build-search-index.mjs && next build --turbopack",
     "start": "next start",
     "lint": "eslint .",
-    "build:content": "node scripts/build-search-index.mjs",
-    "static:link": "node scripts/static-assets.mjs link",
-    "static:unlink": "node scripts/static-assets.mjs unlink",
-    "static:verify": "node scripts/static-assets.mjs verify",
-    "publish:dry": "node scripts/publish-template.mjs",
-    "publish": "node scripts/publish-template.mjs --publish",
-    "check:slug": "node scripts/check-slug-parity.mjs",
-    "check:render": "node scripts/check-render-equivalence.mjs",
-    "check:content": "node scripts/check-content-shape.mjs",
-    "check:prerendered": "node scripts/check-prerendered.mjs",
-    "check:feeds": "node scripts/check-feeds.mjs",
-    "check:template": "node scripts/check-template.mjs"
+    "check": "node scripts/check.mjs",
+    "publish": "node scripts/publish-template.mjs"
   },
   "dependencies": {
     "@giscus/react": "^3.1.0",

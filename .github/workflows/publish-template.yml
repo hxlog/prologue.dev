@@ -36,4 +36,6 @@ jobs:
       - name: Publish to prologue-blog-template
         env:
           TEMPLATE_REPO_TOKEN: ${{ secrets.TEMPLATE_REPO_TOKEN }}
-        run: npm run publish
+        # `npm run publish` is a dry run (it builds the snapshot and stops);
+        # --push is what actually force-pushes to the template repo.
+        run: npm run publish -- --push
