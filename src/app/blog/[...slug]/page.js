@@ -13,6 +13,7 @@ import TagChips from "../../../components/tag-chips";
 import RelatedPosts from "../../../components/related-posts";
 import ReadingProgress from "../../../components/reading-progress";
 import { OptimizedHTMLRenderer } from "../../../components/optimized-html-renderer";
+import RouteTransition from "../../../components/route-transition";
 import { formatDate } from "../../../lib/date";
 
 const Comments = dynamic(() => import("../../../components/comments"), {
@@ -118,6 +119,7 @@ export default async function PostPage(props) {
 
   return (
     <>
+      <RouteTransition>
       <ReadingProgress />
       <section>
         <script
@@ -264,6 +266,7 @@ export default async function PostPage(props) {
           </div>
         </div>
       </div>
+      </RouteTransition>
 
       <ScrollTopAndComment />
     </>

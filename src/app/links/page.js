@@ -1,5 +1,6 @@
 import FriendLinks from "../../components/friendlinks";
 import PageTransition from "../../components/page-transition";
+import RouteTransition from "../../components/route-transition";
 import { getLinks } from "../../lib/vault";
 
 export async function generateMetadata() {
@@ -13,8 +14,10 @@ export default async function LinksPage() {
   const data = getLinks();
 
   return (
-    <PageTransition>
-      <FriendLinks friends={data} />
-    </PageTransition>
+    <RouteTransition>
+      <PageTransition>
+        <FriendLinks friends={data} />
+      </PageTransition>
+    </RouteTransition>
   );
 }

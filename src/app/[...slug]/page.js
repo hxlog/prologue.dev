@@ -7,6 +7,7 @@ import siteMetadata from "../../../data/sitemetadata"
 import TableofContent from "../../components/toc"
 import ScrollTopAndComment from "../../components/scroll"
 import PageTransition from "../../components/page-transition"
+import RouteTransition from "../../components/route-transition"
 
 const Comments = dynamic(() => import("../../components/comments"), {
   loading: () => <div className="h-32" aria-hidden />,
@@ -78,7 +79,7 @@ export default async function PagePage(props) {
   const bodyHtml = await getBodyHtml(page)
 
   return (
-    <><div className="relative mx-auto max-w-5xl gap-8 xl:grid xl:grid-cols-8">
+    <><RouteTransition><div className="relative mx-auto max-w-5xl gap-8 xl:grid xl:grid-cols-8">
       <PageTransition className="col-span-6">
         <article className="prose dark:prose-invert mx-auto max-w-2xl py-8">
           <h1 className="mb-2 py-4 text-3xl font-semibold leading-tight tracking-tight text-foreground">
@@ -103,6 +104,6 @@ export default async function PagePage(props) {
         <p className="py-4 text-sm font-medium text-muted">目录</p>
         <TableofContent headings={page.headings} />
       </div>
-    </div><ScrollTopAndComment /></>
+    </div></RouteTransition><ScrollTopAndComment /></>
   )
 }

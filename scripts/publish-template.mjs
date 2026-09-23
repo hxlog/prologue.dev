@@ -146,7 +146,11 @@ function applyStarterTemplate(worktreeRoot) {
   rmSync(path.join(worktreeRoot, ".github", "workflows", "publish-starter.yml"), { force: true });
   rmSync(path.join(worktreeRoot, ".github", "workflows", "publish-template.yml"), { force: true });
 
-  // Keep CI but only for master.
+  // Keep CI but only for master. The body is written out from scratch rather
+  // than copied, because the maintainer's ci.yml drives `npm run check` and the
+  // prerendered/feeds checks -- all of which read scripts/ and scripts/fixtures/,
+  // which applyStarterTemplate wipes. Only the steps a bare clone can actually
+  // run belong here: install, lint, build.
   const ciPath = path.join(worktreeRoot, ".github", "workflows", "ci.yml");
   if (existsSync(ciPath)) {
     writeFileSync(
@@ -174,6 +178,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Lint
+        run: npm run lint
 
       - name: Build
         run: npm run build

@@ -464,6 +464,51 @@ html.theme-vt::view-transition-new(root) {
 }
 
 /* ---------------------------------------------------------------------------
+ * Route transitions — the outgoing half of a navigation.
+ *
+ * RouteTransition (src/components/route-transition.js) wraps page content in
+ * a <ViewTransition exit="page-exit">, so React names the outgoing snapshot
+ * `.page-exit` and the browser animates it here. The incoming page does not
+ * need a rule: it already runs .page-enter (above), which starts at paint, so
+ * the old page fading out under it reads as one crossfade.
+ *
+ * The 0.45s fade is deliberately shorter than the 0.618s theme reveal: a
+ * route change is a thing the reader asked for and is waiting on, so it
+ * should resolve briskly rather than draw attention to itself.
+ *
+ * `pointer-events: none` on the overlay matters because the snapshot sits on
+ * top of the live page for the duration and would otherwise swallow the first
+ * click a fast reader makes.
+ * ------------------------------------------------------------------------- */
+::view-transition {
+  pointer-events: none;
+}
+::view-transition-old(.page-exit) {
+  animation: page-fade 0.45s var(--ease-out-expo) reverse both;
+}
+/* The incoming page has no snapshot of its own here — .page-enter covers it —
+   so the group must not also cross-fade it. */
+::view-transition-new(.page-exit) {
+  animation: none;
+}
+/* The UA gives the document root its own 250 ms cross-fade on *every* view
+   transition. Everything that visibly changes across a route change sits
+   inside .page-exit and already fades, so the root fade is a second animation
+   doing the same job at a different speed — and it is what makes the sticky
+   navbar and the page background shimmer against the incoming page. Cancel
+   it. The theme toggle cancels its own root fade under `html.theme-vt`
+   (above), so it is excluded here rather than double-handled. */
+html:not(.theme-vt)::view-transition-old(root) {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(.page-exit) {
+    animation: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
  * Prose rhythm — less academic, more readable. CJK-friendly.
  * ------------------------------------------------------------------------- */
 .prose {

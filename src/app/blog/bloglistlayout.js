@@ -1,5 +1,6 @@
 import Link from "next/link";
 import SearchGrid from "../../components/search-grid";
+import RouteTransition from "../../components/route-transition";
 import { tagLabel } from "../../../data/tagLabels";
 
 /**
@@ -27,7 +28,8 @@ export default function PostsLayout({
     }));
 
   return (
-    <div className="page-enter max-w-6xl">
+    <RouteTransition>
+      <div className="page-enter max-w-6xl">
       <header className="pt-12">
         <p className="eyebrow">Archive</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">
@@ -77,6 +79,7 @@ export default function PostsLayout({
           <SearchGrid posts={slimPosts} />
         </div>
       </div>
-    </div>
+      </div>
+    </RouteTransition>
   );
 }
