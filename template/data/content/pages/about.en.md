@@ -10,7 +10,7 @@ description: The starter's profile page example.
 **Your Name** — one sentence about yourself. This page is plain markdown, so
 edit the copy directly and add images or links as you like.
 
-Swap the avatar in `data/static/favicons/` for your own, or delete the line
+Swap the avatar in `public/static/favicons/` for your own, or delete the line
 above.
 
 ## Subscribe

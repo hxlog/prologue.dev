@@ -1,6 +1,6 @@
 import Link from "next/link";
 import MicroblogCard from "./microblog-card";
-import { getMicroblog } from "../lib/vault";
+import { getMicroblog } from "../lib/microblog";
 
 /**
  * Home-sidebar microblog block: the three latest entries as compact cards

@@ -1,7 +1,7 @@
 import PageTransition from "../../components/page-transition";
 import RouteTransition from "../../components/route-transition";
 import MicroblogCard from "../../components/microblog-card";
-import { getMicroblog } from "../../lib/vault";
+import { getMicroblog } from "../../lib/microblog";
 
 export async function generateMetadata() {
   return {

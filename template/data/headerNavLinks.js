@@ -1,7 +1,7 @@
 // Navigation bar links. `href` is a route on this site; `title` is the label.
 //
 // The starter ships English labels to match `language: "en-US"` in
-// data/site.md. Translating them is enough to localise the whole navbar:
+// sitemetadata.js. Translating them is enough to localise the whole navbar:
 //
 //   { href: "/about", title: "关于作者" },
 //   { href: "/microblog", title: "微博" },

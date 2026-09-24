@@ -14,23 +14,8 @@
 /.obsidian/
 /data/.obsidian/
 
-# public/static is a link to data/static, created by scripts/static-assets.mjs
-# (via `npm run dev`/`build`, or `npm run check`).
-# Committing it would stage every asset a second time under public/static;
-# on a platform that checks links out as plain files it would also break.
-# No trailing slash: `public/static/` matches the directory CONTENTS and would
-# leave the link itself untracked-but-not-ignored.
-/public/static
-
 # generated search index (rebuilt on every build; must not ship to the template snapshot)
 /public/search-index.json
-
-# NOTE: data/sitemetadata.js and data/tagLabels.js are ALSO generated (from
-# data/site.md and data/tags.md, by scripts/build-site-data.mjs) but are
-# deliberately COMMITTED -- the one exception to this file's rule. They are
-# imported by client components, so they have to be in the module graph; a
-# clone must build without the generator having run; and `npm run check`
-# fails if they drift from their notes.
 
 # publish worktree
 /.tmp/

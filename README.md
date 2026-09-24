@@ -58,7 +58,7 @@ You can easily customize the template site: all configurations are in `/data`, s
 
 - 博客文章和页面的Markdown静态文件分别存放在`/data/content/blog`和`/data/content/pages`。
 
-- 站点元数据、tag 标签显示名存放在`site.md`, `tags.md`（改完运行`npm run site-data`重新生成对应的`.js`）；友链、微博存放在`links.md`, `microblog.md`
+- 博客的基本元数据、友链、微博、tag标签关联存放在`sitemetadata.js`, `links.yaml`, `microblog.yaml`, `tagLabels.js`
 
 
 ## Configuration

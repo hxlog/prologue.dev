@@ -8,13 +8,13 @@ import TerminalQuotes from "../components/terminal-quotes";
 import PageTransition from "../components/page-transition";
 import RouteTransition from "../components/route-transition";
 import { getSortedTags } from "../lib/tag-counts";
-import { getMicroblog } from "../lib/vault";
+import { getMicroblog } from "../lib/microblog";
 
 /**
- * Short quotes for the terminal block. Reads through the same vault loader as
- * the microblog page and feed -- this used to be a second, independent reader
- * of the same YAML file that swallowed its own errors, so a broken entry
- * silently emptied the block instead of failing.
+ * Short quotes for the terminal block. Reads through the same loader as the
+ * microblog page and feed -- this used to be a second, independent reader of
+ * the same YAML file that swallowed its own errors, so a broken entry silently
+ * emptied the block instead of failing.
  */
 function getMicroblogQuotes() {
   return getMicroblog()

@@ -26,10 +26,9 @@ jobs:
         run: npm run lint
 
       - name: Check
-        # Five offline gates: the public/static link, heading-id parity, render
-        # equivalence, document shape, and the starter template's own files.
-        # They compare against scripts/fixtures/, which is why they belong here
-        # and not in `build`.
+        # Four offline gates: heading-id parity, render equivalence, document
+        # shape, and the starter template's own files. They compare against
+        # scripts/fixtures/, which is why they belong here and not in `build`.
         run: npm run check
 
       - name: Build

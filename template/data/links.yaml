@@ -1,0 +1,22 @@
+# Friend links, rendered on /links.
+#
+# Each entry: `name`, `blog_url`, and optionally `description` and `avatar`.
+# `avatar` may be a local path under public/static/avatars/ or a full URL.
+# Avatars render in a square crop, so any roughly square image works.
+
+- name: "Example One"
+  description: "Replace these four with your own friends."
+  blog_url: "https://example.com/"
+  avatar: "/static/avatars/template-friend-1.svg"
+- name: "Example Two"
+  description: "Avatars live in public/static/avatars/"
+  blog_url: "https://example.org/"
+  avatar: "/static/avatars/template-friend-2.svg"
+- name: "Example Three"
+  description: "A local path or a full URL both work."
+  blog_url: "https://example.net/"
+  avatar: "/static/avatars/template-friend-3.svg"
+- name: "Example Four"
+  description: "换成本站自己的图标也是一种用法。"
+  blog_url: "https://example.edu/"
+  avatar: "/static/avatars/template-friend-4.svg"

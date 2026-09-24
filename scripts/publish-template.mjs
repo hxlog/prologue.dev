@@ -133,19 +133,11 @@ function applyStarterTemplate(worktreeRoot) {
   rmSync(path.join(worktreeRoot, "data", ".obsidian"), { recursive: true, force: true });
   rmSync(path.join(worktreeRoot, "README.template.md"), { force: true });
   rmSync(path.join(worktreeRoot, "scripts"), { recursive: true, force: true });
-  // `dev` and `build` in the shipped package.json run all three of these, so
-  // all three must ship or a template clone fails on its first command.
+  // `dev` and `build` in the shipped package.json run this one, so it must ship
+  // or a template clone fails on its first command.
   copyFile(
     path.join(ROOT, "scripts", "build-search-index.mjs"),
     path.join(worktreeRoot, "scripts", "build-search-index.mjs")
-  );
-  copyFile(
-    path.join(ROOT, "scripts", "static-assets.mjs"),
-    path.join(worktreeRoot, "scripts", "static-assets.mjs")
-  );
-  copyFile(
-    path.join(ROOT, "scripts", "build-site-data.mjs"),
-    path.join(worktreeRoot, "scripts", "build-site-data.mjs")
   );
   rmSync(path.join(worktreeRoot, ".github", "workflows", "publish-starter.yml"), { force: true });
   rmSync(path.join(worktreeRoot, ".github", "workflows", "publish-template.yml"), { force: true });
@@ -210,20 +202,12 @@ jobs:
   );
 
   copyFile(
-    path.join(TEMPLATE_ROOT, "data", "microblog.md"),
-    path.join(worktreeRoot, "data", "microblog.md")
+    path.join(TEMPLATE_ROOT, "data", "microblog.yaml"),
+    path.join(worktreeRoot, "data", "microblog.yaml")
   );
   copyFile(
-    path.join(TEMPLATE_ROOT, "data", "links.md"),
-    path.join(worktreeRoot, "data", "links.md")
-  );
-  copyFile(
-    path.join(TEMPLATE_ROOT, "data", "site.md"),
-    path.join(worktreeRoot, "data", "site.md")
-  );
-  copyFile(
-    path.join(TEMPLATE_ROOT, "data", "tags.md"),
-    path.join(worktreeRoot, "data", "tags.md")
+    path.join(TEMPLATE_ROOT, "data", "links.yaml"),
+    path.join(worktreeRoot, "data", "links.yaml")
   );
   copyFile(
     path.join(TEMPLATE_ROOT, "data", "sitemetadata.js"),
@@ -240,17 +224,12 @@ jobs:
     path.join(worktreeRoot, "data", "tagLabels.js")
   );
 
-  // Reset static assets for template. They live under data/static, which the
-  // worktree's gitignored public/static links to; removing the link first keeps
-  // the cpSync from writing through it into the maintainer's asset tree.
+  // Reset static assets for template.
   rmSync(path.join(worktreeRoot, "public", "static"), { recursive: true, force: true });
-  rmSync(path.join(worktreeRoot, "data", "static"), { recursive: true, force: true });
-  mkdirSync(path.join(worktreeRoot, "data", "static"), { recursive: true });
-  cpSync(path.join(TEMPLATE_ROOT, "data", "static"), path.join(worktreeRoot, "data", "static"), {
+  mkdirSync(path.join(worktreeRoot, "public", "static"), { recursive: true });
+  cpSync(path.join(TEMPLATE_ROOT, "public", "static"), path.join(worktreeRoot, "public", "static"), {
     recursive: true,
   });
-
-  rmSync(path.join(worktreeRoot, "src", "public"), { recursive: true, force: true });
 
   copyFile(README_TEMPLATE, path.join(worktreeRoot, "README.md"));
   patchStarterPackageJson(worktreeRoot);
@@ -263,12 +242,11 @@ function patchStarterPackageJson(worktreeRoot) {
   const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
   packageJson.scripts = packageJson.scripts || {};
   // Maintainer-only entry points. `publish` force-pushes to this repo's
-  // template; `check` drives the six gates under scripts/check-*.mjs, which are
+  // template; `check` drives the gates under scripts/check-*.mjs, which are
   // not shipped -- applyStarterTemplate wipes scripts/ and copies back only
-  // build-search-index.mjs and static-assets.mjs. A stranger running
-  // `npm run check` on a clone would get "cannot find module", and
-  // `npm run build` must not depend on gates that compare against
-  // scripts/fixtures/, which the template does not carry either.
+  // build-search-index.mjs. A stranger running `npm run check` on a clone would
+  // get "cannot find module", and `npm run build` must not depend on gates that
+  // compare against scripts/fixtures/, which the template does not carry either.
   for (const script of ["publish", "check"]) {
     delete packageJson.scripts[script];
   }
@@ -354,14 +332,12 @@ function ensureTemplateInputs() {
     README_TEMPLATE,
     path.join(TEMPLATE_ROOT, "data", "content", "blog", "hello-prologue.md"),
     path.join(TEMPLATE_ROOT, "data", "content", "pages", "about.md"),
-    path.join(TEMPLATE_ROOT, "data", "site.md"),
-    path.join(TEMPLATE_ROOT, "data", "tags.md"),
     path.join(TEMPLATE_ROOT, "data", "sitemetadata.js"),
     path.join(TEMPLATE_ROOT, "data", "headerNavLinks.js"),
-    path.join(TEMPLATE_ROOT, "data", "links.md"),
-    path.join(TEMPLATE_ROOT, "data", "microblog.md"),
+    path.join(TEMPLATE_ROOT, "data", "links.yaml"),
+    path.join(TEMPLATE_ROOT, "data", "microblog.yaml"),
     path.join(TEMPLATE_ROOT, "data", "tagLabels.js"),
-    path.join(TEMPLATE_ROOT, "data", "static"),
+    path.join(TEMPLATE_ROOT, "public", "static"),
   ];
 
   for (const target of required) {

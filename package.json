@@ -3,11 +3,10 @@
   "version": "1.0.1",
   "license": "MIT",
   "scripts": {
-    "dev": "node scripts/build-site-data.mjs && node scripts/static-assets.mjs link && node scripts/build-search-index.mjs && next dev --turbopack",
-    "build": "node scripts/build-site-data.mjs && node scripts/static-assets.mjs link && node scripts/build-search-index.mjs && next build --turbopack",
+    "dev": "node scripts/build-search-index.mjs && next dev --turbopack",
+    "build": "node scripts/build-search-index.mjs && next build --turbopack",
     "start": "next start",
     "lint": "eslint .",
-    "site-data": "node scripts/build-site-data.mjs",
     "check": "node scripts/check.mjs",
     "publish": "node scripts/publish-template.mjs"
   },

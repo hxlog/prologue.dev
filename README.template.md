@@ -8,7 +8,7 @@
 
 一个内容优先的博客模板，基于 **Next.js 16 App Router + React 19 + Tailwind CSS v4**。
 
-这不是作者本人的站点，而是一个可以直接用的起点：内容、配置和所有静态资源都在 `data/` 下，用 Obsidian 或任何编辑器都能改。
+这不是作者本人的站点，而是一个可以直接用的起点：内容与配置在 `data/` 下，静态资源在 `public/static/` 下，用 Obsidian 或任何编辑器都能改。
 
 在线示例：https://prologue-blog-demo.prologue.dev/
 
@@ -44,30 +44,30 @@ npm run dev
 
 改内容不需要重启开发服务器：保存文件，刷新页面即可。
 
-![首页](./data/static/images/Index-Screenshot.jpg)
+![首页](./public/static/images/Index-Screenshot.jpg)
 
-![文章页](./data/static/images/Post-Screenshot.jpg)
+![文章页](./public/static/images/Post-Screenshot.jpg)
 
-### 先改这六处
+### 先改这五处
 
-1. **`data/site.md`** — `title`、`author`、`description`、`siteUrl`；以及 `github`、`siteRepo`、`repoid`、`categoryid`（Giscus 评论）。改完运行 `npm run site-data` 重新生成 `data/sitemetadata.js`
-2. **`data/tags.md`** — 标签的中文显示名（同样运行 `npm run site-data`）
-3. **`data/headerNavLinks.js`** — 导航栏链接
-4. **`data/content/pages/about.md`** — 关于页
-5. **`data/content/blog/hello-prologue.md`** — 第一篇文章
-6. **`data/microblog.md`** 和 **`data/links.md`** — 微博与友链
+1. **`data/sitemetadata.js`** — `title`、`author`、`description`、`siteUrl`；以及 `github`、`siteRepo`、`repoid`、`categoryid`（Giscus 评论）
+2. **`data/headerNavLinks.js`** — 导航栏链接
+3. **`data/content/pages/about.md`** — 关于页
+4. **`data/content/blog/hello-prologue.md`** — 第一篇文章
+5. **`data/microblog.yaml`** 和 **`data/links.yaml`** — 微博与友链
 
 配色、圆角、阴影都在 `src/app/globals.css` 的 `@theme inline` 里，改 CSS 变量即可换主题色。
 
 ### 用 Obsidian 写作
 
-`data/` 目录本身就是一个 Obsidian vault：文章、页面、YAML 数据和**全部静态资源**都在里面，一个窗口就能编辑文章和它引用的图片。
+`data/` 目录本身可以当作一个 Obsidian vault：文章、页面和 YAML 数据都在里面，一个窗口就能编辑。
 
 设置方式见 [docs/CONTENT.md](https://github.com/hxlog/prologue.dev/blob/master/docs/CONTENT.md)。要点：
 
-- 把 vault 根目录设为 **`data/`**（不是仓库根目录），这样 `/static/images/x.jpg` 这类链接才能解析到真实文件
-- 附件目录设为 `static/images`
+- 把 vault 根目录设为 **`data/`**，这样笔记之间的链接都能解析
 - **`draft` 和 `featured` 两个属性必须是 Checkbox 类型**，否则会写成字符串 `"false"`，构建会直接报错并指出文件和字段
+
+静态资源（图片、封面、头像）在 `public/static/` 下，不在 vault 里；在笔记中按 `/static/images/x.jpg` 这样的绝对路径引用即可。
 
 不用 Obsidian 也完全没问题，VS Code、vim 编辑同一批文件效果一样。
 
@@ -100,7 +100,7 @@ git merge upstream/master
 
 A content-first blog template built on **Next.js 16 App Router + React 19 + Tailwind CSS v4**.
 
-This is not the author's personal site — it is a starting point you can use as-is. All content, configuration and static assets live under `data/`, and are editable in Obsidian or any text editor.
+This is not the author's personal site — it is a starting point you can use as-is. Content and configuration live under `data/`, static assets under `public/static/`, and all of it is editable in Obsidian or any text editor.
 
 Live demo: https://prologue-blog-demo.prologue.dev/
 
@@ -136,30 +136,30 @@ Open `http://localhost:3000`.
 
 Editing content does not need a server restart: save the file and reload.
 
-![Index Screenshot](./data/static/images/Index-Screenshot.jpg)
+![Index Screenshot](./public/static/images/Index-Screenshot.jpg)
 
-![Post Screenshot](./data/static/images/Post-Screenshot.jpg)
+![Post Screenshot](./public/static/images/Post-Screenshot.jpg)
 
-### 6 Things To Change First
+### 5 Things To Change First
 
-1. **`data/site.md`** — `title`, `author`, `description`, `siteUrl`; and `github`, `siteRepo`, `repoid`, `categoryid` (Giscus comments). Run `npm run site-data` to regenerate `data/sitemetadata.js`
-2. **`data/tags.md`** — the labels the UI shows for each tag slug (also via `npm run site-data`)
-3. **`data/headerNavLinks.js`** — navigation links
-4. **`data/content/pages/about.md`** — the about page
-5. **`data/content/blog/hello-prologue.md`** — your first post
-6. **`data/microblog.md`** and **`data/links.md`** — microblog and friend links
+1. **`data/sitemetadata.js`** — `title`, `author`, `description`, `siteUrl`; and `github`, `siteRepo`, `repoid`, `categoryid` (Giscus comments)
+2. **`data/headerNavLinks.js`** — navigation links
+3. **`data/content/pages/about.md`** — the about page
+4. **`data/content/blog/hello-prologue.md`** — your first post
+5. **`data/microblog.yaml`** and **`data/links.yaml`** — microblog and friend links
 
 Colours, radii and shadows are tokens in `src/app/globals.css` under `@theme inline` — change the CSS variables to re-theme the whole site.
 
 ### Writing with Obsidian
 
-The `data/` directory is itself an Obsidian vault: posts, pages, the YAML data files and **every static asset** live inside it, so a post and the images it references are edited in one window.
+The `data/` directory can be opened as an Obsidian vault: posts, pages and the YAML data files all live inside it, so one window reaches all of them.
 
 Setup is documented in [docs/CONTENT.md](https://github.com/hxlog/prologue.dev/blob/master/docs/CONTENT.md). The essentials:
 
-- Set the vault root to **`data/`** (not the repository root), so links like `/static/images/x.jpg` resolve to the real file
-- Point the attachment folder at `static/images`
+- Set the vault root to **`data/`**, so links between notes resolve
 - **`draft` and `featured` must be Checkbox properties** — typed as text, Obsidian writes the string `"false"`, which fails the build with a message naming the file and the field
+
+Static assets (images, covers, avatars) live under `public/static/`, outside the vault; reference them from a note with an absolute path like `/static/images/x.jpg`.
 
 Obsidian is optional. Editing the same files in VS Code or vim works identically.
 

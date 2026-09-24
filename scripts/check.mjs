@@ -14,8 +14,8 @@
  * missing baseline instead of producing a site.
  *
  * Usage:
- *   node scripts/check.mjs                 offline gates: static link, slug,
- *                                          render, content, template
+ *   node scripts/check.mjs                 offline gates: slug, render,
+ *                                          content, template
  *   node scripts/check.mjs prerendered     anchors in the built output
  *   node scripts/check.mjs feeds [port]    the four feeds, against `npm run start`
  *   node scripts/check.mjs all             offline, then prerendered, then feeds
@@ -32,9 +32,6 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // a formatting regression and an equivalence regression are different problems
 // and seeing both beats re-running the whole suite to find the second.
 const OFFLINE = [
-  ["static", "scripts/static-assets.mjs", ["link", "verify"]],
-  ["site-data", "scripts/build-site-data.mjs", ["--check"]],
-  ["site-data-template", "scripts/build-site-data.mjs", ["--check", "--template"]],
   ["slug", "scripts/check-slug-parity.mjs", []],
   ["render", "scripts/check-render-equivalence.mjs", []],
   ["content", "scripts/check-content-shape.mjs", []],
@@ -72,9 +69,6 @@ function buildPlan(command, rest) {
   const prerendered = ["prerendered", "scripts/check-prerendered.mjs", []];
   const feeds = ["feeds", "scripts/check-feeds.mjs", rest.slice(0, 1)];
 
-  // `static` runs `link` before `verify`: the link is what `dev`/`build` create,
-  // and both subcommands are idempotent, so this works on a fresh clone instead
-  // of failing on a missing public/static.
   switch (command) {
     case "offline":
       return OFFLINE;

@@ -8,7 +8,7 @@ draft: false
 tags: ["starter", "hello"]
 categories: ["guide"]
 image: /static/photos/template-cover.svg
-imageDesc: Cover image — replace this one in data/static/photos/
+imageDesc: Cover image — replace this one in public/static/photos/
 ---
 
 This is your first post.
@@ -20,7 +20,7 @@ appears on the site.
 
 - **[Feature Tour](/blog/feature-tour.en)** — math, code, tables, footnotes, diagrams and the image lightbox, all in one post.
 - **[About page](/about.en)** — replace `data/content/pages/about.md` with your own introduction.
-- **[Configuration](/about.en)** — site title, author, URL, comment and analytics IDs all live in `data/site.md`; run `npm run site-data` after editing it.
+- **[Configuration](/about.en)** — site title, author, URL, comment and analytics IDs all live in `data/sitemetadata.js`.
 
 ## After you write
 

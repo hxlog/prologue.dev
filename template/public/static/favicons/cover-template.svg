@@ -7,5 +7,5 @@
   </defs>
   <rect width="1200" height="630" fill="url(#g)"/>
   <text x="84" y="280" font-size="72" fill="#f8fafc" font-family="system-ui, sans-serif">Prologue Starter</text>
-  <text x="84" y="350" font-size="36" fill="#cbd5e1" font-family="system-ui, sans-serif">Replace this cover in data/site.md</text>
+  <text x="84" y="350" font-size="36" fill="#cbd5e1" font-family="system-ui, sans-serif">Replace this cover in data/sitemetadata.js</text>
 </svg>

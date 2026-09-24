@@ -9,7 +9,7 @@ description: 模板的个人简介页示例。
 
 **你的名字** — 写一句自我介绍。这一页是纯 markdown，可以直接改文案，也可以加图片和链接。
 
-`data/static/favicons/` 下的头像换成你自己的，或者删掉上面这一行。
+`public/static/favicons/` 下的头像换成你自己的，或者删掉上面这一行。
 
 ## 订阅
 

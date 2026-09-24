@@ -1,7 +1,9 @@
+import fs from "fs";
+import path from "path";
+import { parse } from "yaml";
 import FriendLinks from "../../components/friendlinks";
 import PageTransition from "../../components/page-transition";
 import RouteTransition from "../../components/route-transition";
-import { getLinks } from "../../lib/vault";
 
 export async function generateMetadata() {
   return {
@@ -11,7 +13,9 @@ export async function generateMetadata() {
 }
 
 export default async function LinksPage() {
-  const data = getLinks();
+  const filePath = path.join(process.cwd(), "data", "links.yaml");
+  const links = fs.readFileSync(filePath, "utf8");
+  const data = parse(links);
 
   return (
     <RouteTransition>

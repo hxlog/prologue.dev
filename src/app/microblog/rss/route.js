@@ -2,7 +2,7 @@ import { statSync } from "node:fs";
 import path from "node:path";
 import { Feed } from "feed";
 import siteMetadata from "../../../../data/sitemetadata";
-import { getMicroblog, entryToHtml } from "../../../lib/vault";
+import { getMicroblog, entryToHtml } from "../../../lib/microblog";
 
 const SITE = String(siteMetadata.siteUrl || "").replace(/\/+$/, "");
 

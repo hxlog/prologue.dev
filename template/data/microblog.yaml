@@ -1,0 +1,48 @@
+# Microblog entries. Short, dated notes that render in the home-page sidebar
+# and on /microblog.
+#
+# Each entry: a `date` (YYYY-MM-DD) and `content`.
+#
+# `content` may span several paragraphs — separate them with a blank line and
+# use YAML's `|` block to keep the newlines:
+#
+#   - date: 2026-05-31
+#     content: |
+#       First paragraph.
+#
+#       Second paragraph.
+#
+# Add `images` for a picture entry. Each item is `{src, desc}`; `desc` becomes
+# the lightbox caption. Plain strings are allowed as shorthand for `{src}`.
+#
+#   - date: 2026-05-31
+#     content: Two photos from today.
+#     images:
+#       - src: /static/photos/01.jpg
+#         desc: Morning
+#       - src: /static/photos/02.jpg
+#
+# Images live under public/static, next to the posts that use them.
+
+- date: 2026-05-31
+  content: 欢迎使用这个模板。编辑 `data/microblog.yaml` 就能发短动态。
+- date: 2026-05-31
+  content: |
+    一条可以有多段的动态。
+
+    段落之间用空行分开，YAML 的 `|` 会保留换行。
+- date: 2026-05-31
+  content: 一条带两张图的动态，图注会显示在灯箱里。
+  images:
+    - src: /static/photos/template-photo-1.svg
+      desc: 第一张
+    - src: /static/photos/template-photo-2.svg
+      desc: 第二张
+- date: 2026-05-31
+  content: 单图动态，省掉 desc 也可以。
+  images:
+    - /static/photos/template-photo-3.svg
+- date: 2026-05-31
+  content: Welcome to this starter. Edit `data/microblog.yaml` to post short updates.
+- date: 2026-05-31
+  content: Keep writing and keep shipping.
