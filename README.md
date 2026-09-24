@@ -1,15 +1,15 @@
 # Prologue Blog
 
-Next.js 16 + React 19 + Tailwindcss V4 + Contentlayer2 + Markdown/MDX Blog
+Next.js 16 + React 19 + Tailwindcss V4 + Markdown/MDX Blog
 
-A content-first blog starter built with Next.js 16, Contentlayer2, and Markdown.
+A content-first blog built with Next.js 16 and an in-repo filesystem content layer.
 
 **Prologue Blog 是一个面向内容创作者与开发者的现代博客模板：支持 Markdown/MDX、公式、Mermaid、Feed、SEO、搜索与暗黑模式，并保持简单的配置驱动体验，适合希望快速搭建个人博客、知识库或内容型网站的开发者与创作者。**
 
 
 ## Features
 
-- Content Focused, Contentlayer + MD/MDX
+- Content Focused, in-repo Markdown content layer
 - Adaptive dark mode
 - Full SEO, Opengraph + JSON-LD + RSS
 - Lightweight search engine, powered by Fuse.js
@@ -58,7 +58,7 @@ You can easily customize the template site: all configurations are in `/data`, s
 
 - 博客文章和页面的Markdown静态文件分别存放在`/data/content/blog`和`/data/content/pages`。
 
-- 博客的基本元数据、友链、微博、tag标签关联存放在`sitemetadata.js`, `links.md`, `microblog.md`, `taglabel.js`
+- 站点元数据、tag 标签显示名存放在`site.md`, `tags.md`（改完运行`npm run site-data`重新生成对应的`.js`）；友链、微博存放在`links.md`, `microblog.md`
 
 
 ## Configuration

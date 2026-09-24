@@ -48,13 +48,14 @@ npm run dev
 
 ![文章页](./data/static/images/Post-Screenshot.jpg)
 
-### 先改这五处
+### 先改这六处
 
-1. **`data/sitemetadata.js`** — `title`、`author`、`description`、`siteUrl`；以及 `github`、`siteRepo`、`repoid`、`categoryid`（Giscus 评论）
-2. **`data/headerNavLinks.js`** — 导航栏链接
-3. **`data/content/pages/about.md`** — 关于页
-4. **`data/content/blog/hello-prologue.md`** — 第一篇文章
-5. **`data/microblog.md`** 和 **`data/links.md`** — 微博与友链
+1. **`data/site.md`** — `title`、`author`、`description`、`siteUrl`；以及 `github`、`siteRepo`、`repoid`、`categoryid`（Giscus 评论）。改完运行 `npm run site-data` 重新生成 `data/sitemetadata.js`
+2. **`data/tags.md`** — 标签的中文显示名（同样运行 `npm run site-data`）
+3. **`data/headerNavLinks.js`** — 导航栏链接
+4. **`data/content/pages/about.md`** — 关于页
+5. **`data/content/blog/hello-prologue.md`** — 第一篇文章
+6. **`data/microblog.md`** 和 **`data/links.md`** — 微博与友链
 
 配色、圆角、阴影都在 `src/app/globals.css` 的 `@theme inline` 里，改 CSS 变量即可换主题色。
 
@@ -139,13 +140,14 @@ Editing content does not need a server restart: save the file and reload.
 
 ![Post Screenshot](./data/static/images/Post-Screenshot.jpg)
 
-### 5 Things To Change First
+### 6 Things To Change First
 
-1. **`data/sitemetadata.js`** — `title`, `author`, `description`, `siteUrl`; and `github`, `siteRepo`, `repoid`, `categoryid` (Giscus comments)
-2. **`data/headerNavLinks.js`** — navigation links
-3. **`data/content/pages/about.md`** — the about page
-4. **`data/content/blog/hello-prologue.md`** — your first post
-5. **`data/microblog.md`** and **`data/links.md`** — microblog and friend links
+1. **`data/site.md`** — `title`, `author`, `description`, `siteUrl`; and `github`, `siteRepo`, `repoid`, `categoryid` (Giscus comments). Run `npm run site-data` to regenerate `data/sitemetadata.js`
+2. **`data/tags.md`** — the labels the UI shows for each tag slug (also via `npm run site-data`)
+3. **`data/headerNavLinks.js`** — navigation links
+4. **`data/content/pages/about.md`** — the about page
+5. **`data/content/blog/hello-prologue.md`** — your first post
+6. **`data/microblog.md`** and **`data/links.md`** — microblog and friend links
 
 Colours, radii and shadows are tokens in `src/app/globals.css` under `@theme inline` — change the CSS variables to re-theme the whole site.
 

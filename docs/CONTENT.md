@@ -1,7 +1,7 @@
 # Editing content with Obsidian
 
 The `/data` directory is a self-contained Obsidian vault: posts, pages, the
-YAML data files, **and every static asset the site serves**. One Obsidian
+markdown data files, **and every static asset the site serves**. One Obsidian
 window reaches all of it, so a post and the images inside it are edited in the
 same place.
 
@@ -42,10 +42,14 @@ identically.
        "draft": "checkbox",
        "featured": "checkbox",
        "tags": "multitext",
-       "categories": "multitext"
+       "categories": "multitext",
+       "keywords": "multitext"
      }
    }
    ```
+
+   `keywords` (in `data/site.md`) is the one property in this vault that must be
+   a list outside `content/`; everything else in `site.md` is text.
 
 **`draft` and `featured` MUST be `checkbox`.** Typed as text, Obsidian writes
 `draft: "false"` — a *string*, which is truthy in every language that matters
@@ -84,7 +88,7 @@ strip the leading slash**, because Obsidian's link updater writes the path the
 way its own "absolute path" setting generates it — without one. If the site
 build is fine but Obsidian shows a broken image, that is almost always this.
 
-Rooting at `data/` also means the vault indexes ~220 asset files and 65
+Rooting at `data/` also means the vault indexes ~220 asset files and 69
 markdown files instead of the repository's 75,000-file `node_modules`, so
 indexing is fast and no exclusion list is needed.
 
@@ -114,13 +118,48 @@ directory inside the vault; `public/static` is the link, and it points
 | `data/static/favicons/` | Site icon, author avatar, default cover. |
 | `data/microblog.md` | Microblog entries. |
 | `data/links.md` | Friend links. |
-| `data/sitemetadata.js` | Site title, author, URL, Giscus and analytics IDs. |
+| `data/site.md` | Site title, author, URL, Giscus and analytics IDs. |
+| `data/tags.md` | Tag slugs and the labels the UI renders for them. |
 | `data/headerNavLinks.js` | Navigation bar links. |
-| `data/tagLabels.js` | Chinese display labels for the English tag slugs. |
+| `data/sitemetadata.js` | **Generated** from `data/site.md`. Do not edit. |
+| `data/tagLabels.js` | **Generated** from `data/tags.md`. Do not edit. |
 
-The last three are `.js` because client components import them directly and a
-browser cannot import markdown; Obsidian shows them under *Show all file
-types* but cannot open or edit them. Edit those in an editor.
+`headerNavLinks.js` is a `.js` file because client components import it
+directly and a browser cannot import markdown; Obsidian shows it under *Show
+all file types* but cannot open or edit it. Edit it in an editor.
+
+## The two generated modules
+
+`data/sitemetadata.js` and `data/tagLabels.js` are read by **client**
+components, so their values have to be in the JS module graph and shipped to
+the browser — a browser cannot import markdown. They are therefore generated
+from the two notes `data/site.md` and `data/tags.md`:
+
+```bash
+npm run site-data     # regenerate both from the notes
+```
+
+`npm run dev` and `npm run build` run it for you. **The generated files are
+committed**, so a clone builds without the generator having run, and every
+change to `data/site.md` or `data/tags.md` shows up as a reviewable diff in
+the `.js` file rather than as a silent change at build time. `npm run check`
+fails if the two disagree.
+
+`data/site.md` is plain frontmatter — edit it in the Properties panel. Two
+things there are not obvious:
+
+- **`keywords` is a LIST**; everything else is TEXT.
+- **The four `umami*` keys are one analytics block.** Frontmatter cannot hold
+  a nested object (Obsidian shows one as an opaque JSON string and rewrites it
+  on any unrelated edit), so the block is flattened in the note and folded back
+  into `siteMetadata.umami` by the generator. Set all four or none — a
+  half-filled block fails the generator rather than shipping a script tag with
+  the wrong host.
+
+`data/tags.md` is a GFM table, one row per tag: `slug` is what appears in post
+frontmatter and in `/tags/<slug>` URLs, `label` is what the UI renders. Slugs
+must stay ASCII; only the labels are translated. A tag with no row falls back
+to showing its slug.
 
 `public/static` is a **link**, not a folder — it points at `data/static` so
 Next can serve those files at `/static/*`. It is created by
@@ -128,7 +167,7 @@ Next can serve those files at `/static/*`. It is created by
 re-asserted by `npm run check`. Never edit through it; edit `data/static` and
 the link follows.
 
-## The two markdown datasets
+## The microblog and links notes
 
 `data/microblog.md` and `data/links.md` are ordinary notes — edit them in
 Obsidian like any other.

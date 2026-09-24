@@ -33,6 +33,8 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // and seeing both beats re-running the whole suite to find the second.
 const OFFLINE = [
   ["static", "scripts/static-assets.mjs", ["link", "verify"]],
+  ["site-data", "scripts/build-site-data.mjs", ["--check"]],
+  ["site-data-template", "scripts/build-site-data.mjs", ["--check", "--template"]],
   ["slug", "scripts/check-slug-parity.mjs", []],
   ["render", "scripts/check-render-equivalence.mjs", []],
   ["content", "scripts/check-content-shape.mjs", []],

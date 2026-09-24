@@ -25,6 +25,13 @@
 # generated search index (rebuilt on every build; must not ship to the template snapshot)
 /public/search-index.json
 
+# NOTE: data/sitemetadata.js and data/tagLabels.js are ALSO generated (from
+# data/site.md and data/tags.md, by scripts/build-site-data.mjs) but are
+# deliberately COMMITTED -- the one exception to this file's rule. They are
+# imported by client components, so they have to be in the module graph; a
+# clone must build without the generator having run; and `npm run check`
+# fails if they drift from their notes.
+
 # publish worktree
 /.tmp/
 

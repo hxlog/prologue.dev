@@ -14,6 +14,7 @@ npm run build          # same prep, then next build --turbopack
 npm run start          # serve production build
 npm run lint           # eslint (flat config in eslint.config.mjs)
 
+npm run site-data      # regenerate data/{sitemetadata,tagLabels}.js from the notes
 npm run check          # the offline gates (see below)
 node scripts/check.mjs prerendered   # every prerendered page's anchors resolve
 node scripts/check.mjs feeds         # all four feeds, against a running server
@@ -23,7 +24,9 @@ npm run publish        # build the template snapshot locally (dry run — no pus
 npm run publish -- --push            # force-push template to hxlog/prologue-blog-template
 ```
 
-`npm run check` runs five gates as separate child processes and prints a PASS/FAIL table: the `public/static` link (`link verify`), heading-id parity, render equivalence (63 posts, 37 expected diffs), document shape (63 posts), and the starter template's own files.
+`npm run site-data` (and `-- --template` for the starter's copy) is rarely typed by hand: `dev` and `build` run it first, and `npm run check` re-runs it with `--check` so a note edited without regenerating fails the gates instead of shipping stale metadata.
+
+`npm run check` runs seven gates as separate child processes and prints a PASS/FAIL table: the `public/static` link (`link verify`), the two site-data drift checks, heading-id parity, render equivalence (63 posts, 37 expected diffs), document shape (63 posts), and the starter template's own files.
 
 There is **no test suite**. These gates are the acceptance gate — run them after touching the content layer, the markdown pipeline, or anything that renders. They are **not** part of `build`, and three of them cannot be: the `prerendered` group reads the output in `.next/server/app/**`, `feeds` needs a running server (`npm run start`), and the `template` gate inspects starter files this site never uses. Folding them into `build` would also break the public template, whose clones carry no `scripts/fixtures/` to compare against. CI (`.github/workflows/ci.yml`) runs `lint`, `check` and `build`.
 
@@ -43,6 +46,10 @@ Frontmatter is validated **loudly**: a mistyped `draft: "false"` (which is what 
 `src/lib/vault.js` reads the two non-post datasets, which are markdown notes so the vault can edit them: `data/microblog.md` (`## <date>` sections with a `<!-- id: … -->` anchor line) and `data/links.md` (a GFM table). It parses with remark-parse + remark-gfm — the same parser the post pipeline uses — and returns `getMicroblog()` / `getLinks()`. Entry ids are **stored, not derived**: the old loader computed `mb-<date>-<array index>`, so inserting one entry renumbered every later one and broke `/microblog#…` anchors and RSS guids at once. `getLinks()` and `getMicroblog()` are functions for the same staleness reason as the loader.
 
 `data/static/` holds the site's static assets; `public/static` is a **link** to it (created by `scripts/static-assets.mjs link`, which `dev`/`build` run and `npm run check` re-asserts). This arrangement is what lets one Obsidian vault reach every asset — see `docs/CONTENT.md`, and read its "Why there is no link or junction inside the vault" before proposing a junction to solve an asset problem.
+
+**Site metadata and tag labels are code-generated.** `data/sitemetadata.js` and `data/tagLabels.js` are read by *client* components (navbar, footer, the two modals, tag chips), so their values have to be in the JS module graph and shipped to the browser — a browser cannot import markdown, and an `fs` read at render time cannot reach a Client Component either. They are therefore derived from `data/site.md` (frontmatter) and `data/tags.md` (a GFM table) by `scripts/build-site-data.mjs`, which `dev`/`build` run and `npm run check` re-runs in `--check` mode. **The generated files are committed, not gitignored** — the one deliberate exception to the rule that generated artifacts stay out of the tree, and the reason a fresh clone builds without the generator having run. `/data/site.md`'s four `umami*` keys are flattened because Obsidian frontmatter cannot hold a nested object; the generator folds them back into `siteMetadata.umami`, so every consumer keeps the shape it had when the file was hand-written. The generator also runs against `template/data/` with `--template`; its banner deliberately always says `data/…` so the published starter's first `npm run dev` does not rewrite the file and leave the new clone dirty.
+
+The `--template` flag matters because the two copies are otherwise identical: the maintainer's `data/` and the starter's `template/data/` hold the same filenames, and the starter's `dev`/`build` invoke the same script with no flag once `template/data/` has become its `data/`.
 
 ## Markdown pipeline & Mermaid
 
@@ -70,8 +77,8 @@ This repo is mirrored to a public template (`hxlog/prologue-blog-template`) **wi
 **Implications when editing:**
 - The `template/` directory is the starter's overrides — not used by this site, but *is* what template users receive. Edit it when you intend to change the template's default content/assets.
 - Anything new added for the template must be placed under `template/` (or whitelisted in `applyStarterTemplate`), or it won't ship. `ensureTemplateInputs()` asserts the required ones exist, so a missing file fails the publish rather than shipping a broken clone.
-- Template-critical files that live in `src/` or `scripts/` are copied explicitly by `applyStarterTemplate`: `scripts/build-search-index.mjs` and `scripts/static-assets.mjs`. **Anything the shipped `dev`/`build` scripts invoke must be in that list**, or a fresh clone fails on its first command.
-- `template/data/tagLabels.js` and `template/data/static/` are both required inputs; five `src/` files import the former, so a template without it does not build.
+- Template-critical files that live in `src/` or `scripts/` are copied explicitly by `applyStarterTemplate`: `scripts/build-search-index.mjs`, `scripts/static-assets.mjs` and `scripts/build-site-data.mjs`. **Anything the shipped `dev`/`build` scripts invoke must be in that list**, or a fresh clone fails on its first command.
+- `template/data/tagLabels.js`, `template/data/sitemetadata.js` and `template/data/static/` are required inputs; five `src/` files import the first two, so a template without them does not build. Their notes (`template/data/site.md`, `template/data/tags.md`) are required too — they are the source the starter's own `dev`/`build` regenerates from.
 - Locally, `npm run publish` builds and inspects the snapshot under `.tmp/` (gitignored) and stops; `npm run publish -- --push` is what force-pushes. CI passes `--push`.
 
 ## Design system

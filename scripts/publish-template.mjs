@@ -133,8 +133,8 @@ function applyStarterTemplate(worktreeRoot) {
   rmSync(path.join(worktreeRoot, "data", ".obsidian"), { recursive: true, force: true });
   rmSync(path.join(worktreeRoot, "README.template.md"), { force: true });
   rmSync(path.join(worktreeRoot, "scripts"), { recursive: true, force: true });
-  // `dev` and `build` in the shipped package.json run both of these, so both
-  // must ship or a template clone fails on its first command.
+  // `dev` and `build` in the shipped package.json run all three of these, so
+  // all three must ship or a template clone fails on its first command.
   copyFile(
     path.join(ROOT, "scripts", "build-search-index.mjs"),
     path.join(worktreeRoot, "scripts", "build-search-index.mjs")
@@ -142,6 +142,10 @@ function applyStarterTemplate(worktreeRoot) {
   copyFile(
     path.join(ROOT, "scripts", "static-assets.mjs"),
     path.join(worktreeRoot, "scripts", "static-assets.mjs")
+  );
+  copyFile(
+    path.join(ROOT, "scripts", "build-site-data.mjs"),
+    path.join(worktreeRoot, "scripts", "build-site-data.mjs")
   );
   rmSync(path.join(worktreeRoot, ".github", "workflows", "publish-starter.yml"), { force: true });
   rmSync(path.join(worktreeRoot, ".github", "workflows", "publish-template.yml"), { force: true });
@@ -212,6 +216,14 @@ jobs:
   copyFile(
     path.join(TEMPLATE_ROOT, "data", "links.md"),
     path.join(worktreeRoot, "data", "links.md")
+  );
+  copyFile(
+    path.join(TEMPLATE_ROOT, "data", "site.md"),
+    path.join(worktreeRoot, "data", "site.md")
+  );
+  copyFile(
+    path.join(TEMPLATE_ROOT, "data", "tags.md"),
+    path.join(worktreeRoot, "data", "tags.md")
   );
   copyFile(
     path.join(TEMPLATE_ROOT, "data", "sitemetadata.js"),
@@ -342,6 +354,8 @@ function ensureTemplateInputs() {
     README_TEMPLATE,
     path.join(TEMPLATE_ROOT, "data", "content", "blog", "hello-prologue.md"),
     path.join(TEMPLATE_ROOT, "data", "content", "pages", "about.md"),
+    path.join(TEMPLATE_ROOT, "data", "site.md"),
+    path.join(TEMPLATE_ROOT, "data", "tags.md"),
     path.join(TEMPLATE_ROOT, "data", "sitemetadata.js"),
     path.join(TEMPLATE_ROOT, "data", "headerNavLinks.js"),
     path.join(TEMPLATE_ROOT, "data", "links.md"),

@@ -20,7 +20,7 @@ appears on the site.
 
 - **[Feature Tour](/blog/feature-tour.en)** — math, code, tables, footnotes, diagrams and the image lightbox, all in one post.
 - **[About page](/about.en)** — replace `data/content/pages/about.md` with your own introduction.
-- **[Configuration](/about.en)** — site title, author, URL, comment and analytics IDs all live in `data/sitemetadata.js`.
+- **[Configuration](/about.en)** — site title, author, URL, comment and analytics IDs all live in `data/site.md`; run `npm run site-data` after editing it.
 
 ## After you write
 

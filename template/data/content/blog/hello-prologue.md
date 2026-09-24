@@ -19,7 +19,7 @@ imageDesc: 封面图：把 data/static/photos/ 里的这张换成你自己的
 
 - **[功能一览](/blog/feature-tour)** — 公式、代码、表格、脚注、图表、图片灯箱，模板支持的排版都在这一篇里。
 - **[关于页面](/about)** — 把 `data/content/pages/about.md` 换成你自己的介绍。
-- **[配置](/about)** — 站点标题、作者、域名、评论与统计的 ID 都在 `data/sitemetadata.js`。
+- **[配置](/about)** — 站点标题、作者、域名、评论与统计的 ID 都在 `data/site.md`，改完运行 `npm run site-data`。
 
 ## 写完之后
 
