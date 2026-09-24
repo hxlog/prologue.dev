@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation"
 import { Suspense } from "react"
 import dynamic from "next/dynamic"
+import Image from "next/image"
 import { getPages, getBodyHtml } from "../../lib/content"
 import { OptimizedHTMLRenderer } from "../../components/optimized-html-renderer"
 import siteMetadata from "../../../data/sitemetadata"
@@ -90,6 +91,25 @@ export default async function PagePage(props) {
               {page.description}
             </p>
           )}
+          {/* Optional page avatar, rendered from frontmatter rather than the
+              body. A page's markdown is pure -- the pipeline runs remarkRehype
+              and rehypeStringify bare, so raw HTML is discarded, not escaped --
+              which is why the avatar cannot be an <img> tag in about.md. The
+              `avatar:` key is opt-in, so pages without one are unchanged.
+              `not-prose` keeps the article's prose rules off it; without that
+              guard the custom .prose selectors restyle the image and its
+              wrapper margins. */}
+          {page.avatar ? (
+            <div className="not-prose flex justify-center pt-2 pb-4">
+              <Image
+                src={page.avatar}
+                alt="Avatar"
+                width={100}
+                height={100}
+                className="rounded-full ring-2 ring-border drop-shadow-sm transition-all duration-300 hover:scale-105 hover:ring-accent"
+              />
+            </div>
+          ) : null}
           <OptimizedHTMLRenderer htmlContent={bodyHtml} />
           <hr />
           <Suspense fallback={<div className="h-32" aria-hidden />}>

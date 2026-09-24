@@ -1,11 +1,10 @@
 ---
 title: 关于作者
 description: 作者槐序，00后，梦想成为自由职业者
+avatar: /static/favicons/avatar.png
 ---
 
 ## 关于作者
-
-![槐序](/static/favicons/avatar.png)
 
 **槐序** — 00 后 / INFJ / 少数派 / 梦想成为自由职业者
 

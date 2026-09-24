@@ -195,6 +195,11 @@ function buildDocument(file, { requirePublishDate = true } = {}) {
     lastmod: optionalDate(file, data, "lastmod"),
     image: optionalString(file, data, "image"),
     imageDesc: optionalString(file, data, "imageDesc"),
+    // Opt-in page avatar. See the note in src/app/[...slug]/page.js: pages are
+    // pure markdown and the pipeline drops raw HTML outright, so anything with
+    // styling on it has to be named here and rendered by the page template
+    // instead of written in the body. Pages only; posts never set it.
+    avatar: optionalString(file, data, "avatar"),
     draft: booleanField(file, data, "draft"),
     featured: booleanField(file, data, "featured"),
     tags: stringList(file, data, "tags"),

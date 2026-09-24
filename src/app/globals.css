@@ -444,6 +444,21 @@ html.theme-vt::view-transition-new(root) {
     opacity: 1;
   }
 }
+/* The incoming half of a route change. Only ever applied to a
+   ::view-transition-new snapshot, never to live DOM -- a transform on a real
+   element would create a containing block and break `position: sticky`
+   descendants (the homepage's pinned search bar, the post sidebar). A snapshot
+   pseudo-element is not in the layout tree, so the 6px rise is free there. */
+@keyframes page-enter-snapshot {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 @keyframes blink {
   50% {
     opacity: 0;
@@ -451,8 +466,11 @@ html.theme-vt::view-transition-new(root) {
 }
 
 @media (prefers-reduced-motion: no-preference) {
+  /* First paint only -- a first paint is not a Transition, so it gets no
+     view-transition snapshot and needs this animation to fade in. On
+     navigations the ::view-transition-new rule below takes over instead. */
   .page-enter {
-    animation: page-fade 0.45s var(--ease-out-expo) both;
+    animation: page-fade 0.26s var(--ease-out-expo) both;
   }
   .reveal {
     animation: fade-rise 0.5s var(--ease-out-expo) both;
@@ -464,17 +482,26 @@ html.theme-vt::view-transition-new(root) {
 }
 
 /* ---------------------------------------------------------------------------
- * Route transitions — the outgoing half of a navigation.
+ * Route transitions — both halves of a navigation.
  *
- * RouteTransition (src/components/route-transition.js) wraps page content in
- * a <ViewTransition exit="page-exit">, so React names the outgoing snapshot
- * `.page-exit` and the browser animates it here. The incoming page does not
- * need a rule: it already runs .page-enter (above), which starts at paint, so
- * the old page fading out under it reads as one crossfade.
+ * RouteTransition (src/components/route-transition.js) wraps page content in a
+ * <ViewTransition exit="page-exit" enter="page-enter-fade">, so React names the
+ * outgoing snapshot `.page-exit` and the incoming one `.page-enter-fade`, and
+ * the browser animates each here.
  *
- * The 0.45s fade is deliberately shorter than the 0.618s theme reveal: a
- * route change is a thing the reader asked for and is waiting on, so it
- * should resolve briskly rather than draw attention to itself.
+ * Both halves are driven by these rules rather than by the live DOM, and that is
+ * the point of the design. An enter animation applied to the live tree depends
+ * on React unmounting and remounting the element; React reuses a node of the
+ * same type in the same position, and a reused node does not restart its CSS
+ * animation, so some navigations got an exit with no matching entrance. A
+ * ::view-transition-new snapshot is created for every transition that produces
+ * new content, so this half always runs. `.page-enter` remains, but only as the
+ * first-paint fade, which has no transition and therefore no snapshot.
+ *
+ * The timings are deliberately unequal. 150 ms out and 260 ms in means the old
+ * page is already ~60% gone when the new one is halfway arrived, so no frame
+ * has two mid-opacity copies of the page stacked. Equal durations put both at
+ * ~50% at the midpoint, which reads as a wash rather than a handoff.
  *
  * `pointer-events: none` on the overlay matters because the snapshot sits on
  * top of the live page for the duration and would otherwise swallow the first
@@ -484,26 +511,24 @@ html.theme-vt::view-transition-new(root) {
   pointer-events: none;
 }
 ::view-transition-old(.page-exit) {
-  animation: page-fade 0.45s var(--ease-out-expo) reverse both;
+  animation: page-fade 150ms var(--ease-out-expo) reverse both;
 }
-/* The incoming page has no snapshot of its own here — .page-enter covers it —
-   so the group must not also cross-fade it. */
-::view-transition-new(.page-exit) {
-  animation: none;
+::view-transition-new(.page-enter-fade) {
+  animation: page-enter-snapshot 260ms var(--ease-out-expo) both;
 }
 /* The UA gives the document root its own 250 ms cross-fade on *every* view
-   transition. Everything that visibly changes across a route change sits
-   inside .page-exit and already fades, so the root fade is a second animation
-   doing the same job at a different speed — and it is what makes the sticky
-   navbar and the page background shimmer against the incoming page. Cancel
-   it. The theme toggle cancels its own root fade under `html.theme-vt`
-   (above), so it is excluded here rather than double-handled. */
+   transition. The navbar and footer sit outside the page snapshots and are not
+   meant to move — the whole point of the split is that the chrome is the stable
+   frame — so the root fade would dissolve them against the incoming page for no
+   gain. Cancel it. The theme toggle cancels its own root fade under
+   `html.theme-vt` (above), so it is excluded here rather than double-handled. */
 html:not(.theme-vt)::view-transition-old(root) {
   animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  ::view-transition-old(.page-exit) {
+  ::view-transition-old(.page-exit),
+  ::view-transition-new(.page-enter-fade) {
     animation: none;
   }
 }

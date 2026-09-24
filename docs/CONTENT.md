@@ -157,9 +157,17 @@ the reason in [Why the vault root is `data/`](#why-the-vault-root-is-data).
 | `featured` | checkbox | no | Surfaces the post in the home page's featured grid. |
 | `tags` | list | no | English slugs from the taxonomy, e.g. `["Economics"]`. |
 | `categories` | list | no | Free-form grouping. |
+| `avatar` | text | no | **Pages only.** Renders a round avatar above the body, e.g. `/static/favicons/avatar.png`. |
 
 A page under `data/content/pages/` needs only `title` and `description` — it
 does **not** need a `publishDate`.
+
+A page's body is plain markdown, and **raw HTML in it is dropped, not escaped**.
+The markdown pipeline runs `remarkRehype` and `rehypeStringify` with no options,
+so a `<img class="...">` written in `about.md` disappears entirely. That is why
+the avatar is a frontmatter field: it is the one thing on a page that needs
+styling and interactivity, and the page template renders it as a real React
+component. Everything else on a page should be markdown.
 
 ## When frontmatter is wrong
 
