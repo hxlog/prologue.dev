@@ -31,12 +31,71 @@ import remarkGemoji from "remark-gemoji";
 import rehypeKatex from "rehype-katex";
 import rehypeSlug from "rehype-slug";
 import rehypeStringify from "rehype-stringify";
+import remarkDirective from "remark-directive";
+import { toString } from "mdast-util-to-string";
+import { visit } from "unist-util-visit";
 
 import rehypeFigure from "../../components/rehype-figure.js";
 import rehypeMermaidPre from "../../components/rehype-mermaid-pre.js";
 
 const CONTENT_DIR = path.join(process.cwd(), "data", "content");
 const BLOG_DIR = path.join(CONTENT_DIR, "blog");
+const YOUTUBE_ID = /^[\w-]{11}$/;
+const YOUTUBE_ALLOW =
+  "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
+
+function remarkYoutube() {
+  return (tree, file) => {
+    visit(tree, (node, index, parent) => {
+      if (!["containerDirective", "leafDirective", "textDirective"].includes(node.type)) {
+        return;
+      }
+
+      if (node.name !== "youtube") {
+        if (node.type === "textDirective" && parent && node.position) {
+          parent.children[index] = {
+            type: "text",
+            value: file.value.slice(node.position.start.offset, node.position.end.offset),
+          };
+        }
+        return;
+      }
+
+      if (node.type !== "leafDirective") {
+        file.fail("Use a leaf directive: ::youtube[title]{#video-id}", node);
+      }
+
+      const videoId = node.attributes?.id;
+      if (typeof videoId !== "string" || !YOUTUBE_ID.test(videoId)) {
+        file.fail("Expected an 11-character YouTube video ID in the directive", node);
+      }
+
+      const title = toString(node).trim();
+      if (!title) {
+        file.fail("Add an accessible title to the YouTube directive", node);
+      }
+
+      const data = node.data || (node.data = {});
+      data.hName = "div";
+      data.hProperties = { className: ["video-embed"] };
+      data.hChildren = [
+        {
+          type: "element",
+          tagName: "iframe",
+          properties: {
+            src: `https://www.youtube.com/embed/${videoId}`,
+            title,
+            loading: "lazy",
+            allow: YOUTUBE_ALLOW,
+            referrerPolicy: "strict-origin-when-cross-origin",
+            allowFullScreen: true,
+          },
+          children: [],
+        },
+      ];
+    });
+  };
+}
 
 /**
  * Shiki is essentially the entire cost of this pipeline (~13s cold for the
@@ -52,6 +111,8 @@ async function getProcessor() {
       const rehypeShiki = (await import("@shikijs/rehype")).default;
       return unified()
         .use(remarkParse)
+        .use(remarkDirective)
+        .use(remarkYoutube)
         .use(remarkRehype) // NO options -- see the warning above
         .use(remarkGfm)
         .use(remarkMath)
@@ -76,7 +137,7 @@ async function getProcessor() {
 /** Render one markdown string to HTML. */
 export async function renderMarkdown(raw) {
   const processor = await getProcessor();
-  return String(await processor.process(raw));
+  return String(await processor.process(raw.replace(/\r\n?/g, "\n")));
 }
 
 /** Strip a leading `---` frontmatter block. */

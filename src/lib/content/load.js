@@ -166,7 +166,7 @@ function stringList(file, data, field) {
  * publishDate would throw on the real `about.md`, which has never carried one.
  */
 function buildDocument(file, { requirePublishDate = true } = {}) {
-  const raw = readFileSync(file, "utf8");
+  const raw = readFileSync(file, "utf8").replace(/\r\n?/g, "\n");
   // The YAML engine is NOT optional. contentlayer2 passes `yaml.parse` from the
   // `yaml` package as gray-matter's engine (makeCacheItemFromFilePath.ts:225)
   // to stop gray-matter coercing date-like strings into Date objects -- and the

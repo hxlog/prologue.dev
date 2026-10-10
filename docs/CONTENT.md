@@ -81,6 +81,16 @@ Error: Cannot copy '../data/static' to a subdirectory of itself, '../data/static
 Portability of the deployed site wins over image previews inside the editor.
 Write and edit text in Obsidian; check how an image looks on the running site.
 
+### Embedding a YouTube video
+
+Use the `youtube` leaf directive with the video title and 11-character video
+ID. The renderer creates a responsive, lazy-loaded YouTube iframe; arbitrary
+raw HTML is not enabled in post markdown.
+
+```markdown
+::youtube[崔伟立原唱《战马》完整版，歌曲旋律优美，句句入耳入心超好听]{#asKQbk7AcJU}
+```
+
 ## What lives where
 
 | Path | What it is |
