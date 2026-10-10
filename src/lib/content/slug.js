@@ -18,8 +18,7 @@
  * reads raw markdown. A heading containing inline code or emphasis would
  * therefore diverge -- `## `foo`` renders as `foo` but reads as `` `foo` ``.
  * No post in this corpus has such a heading (measured: 0 of 405). If one is
- * ever added, this is the function to fix, and scripts/check-slug-parity.mjs is
- * the check that will catch it.
+ * ever added, this is the function to fix.
  */
 import GithubSlugger from "github-slugger";
 

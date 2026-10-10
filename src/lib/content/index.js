@@ -4,8 +4,8 @@
  * The `server-only` guard is HERE and only here. It is what stops a Client
  * Component from pulling the filesystem in; the bundler resolves the
  * `react-server` condition for the RSC graph and rejects the import otherwise.
- * load.js / pipeline.js / slug.js deliberately do not carry it, so a plain
- * `node scripts/...` can import them (see scripts/check-render-equivalence.mjs).
+ * load.js / pipeline.js / slug.js deliberately do not carry it, so plain Node
+ * scripts can import them without Next.js server-only guards.
  *
  * THE EXPORTS ARE FUNCTIONS, NOT ARRAYS, AND THE NAME SAYS SO. Contentlayer2
  * offered `allPosts` / `allPages` as module constants. This loader cannot

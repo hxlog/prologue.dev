@@ -12,16 +12,7 @@ const nextConfig = {
     // content-injection safeguard); 'inline' makes direct opens/lightbox views
     // display in the browser. This replaces the previous triple workaround
     // (middleware.js + vercel.json + headers() overrides).
-    contentDispositionType: 'inline',
-  },
-
-  async redirects() {
-    return [
-      // Numbered archive pagination was replaced by load-more.
-      { source: '/blog/page/:page*', destination: '/blog', permanent: true },
-      // Tag taxonomy merge: Web3 folded into Crypto (kept for old traffic).
-      { source: '/tags/Web3', destination: '/tags/Crypto', permanent: true },
-    ];
+    contentDispositionType: 'inline'
   },
 };
 

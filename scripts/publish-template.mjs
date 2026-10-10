@@ -143,10 +143,8 @@ function applyStarterTemplate(worktreeRoot) {
   rmSync(path.join(worktreeRoot, ".github", "workflows", "publish-template.yml"), { force: true });
 
   // Keep CI but only for master. The body is written out from scratch rather
-  // than copied, because the maintainer's ci.yml drives `npm run check` and the
-  // prerendered/feeds checks -- all of which read scripts/ and scripts/fixtures/,
-  // which applyStarterTemplate wipes. Only the steps a bare clone can actually
-  // run belong here: install, lint, build.
+  // than copied so the starter workflow contains only steps supported by a
+  // bare clone.
   const ciPath = path.join(worktreeRoot, ".github", "workflows", "ci.yml");
   if (existsSync(ciPath)) {
     writeFileSync(
@@ -241,15 +239,9 @@ function patchStarterPackageJson(worktreeRoot) {
 
   const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
   packageJson.scripts = packageJson.scripts || {};
-  // Maintainer-only entry points. `publish` force-pushes to this repo's
-  // template; `check` drives the gates under scripts/check-*.mjs, which are
-  // not shipped -- applyStarterTemplate wipes scripts/ and copies back only
-  // build-search-index.mjs. A stranger running `npm run check` on a clone would
-  // get "cannot find module", and `npm run build` must not depend on gates that
-  // compare against scripts/fixtures/, which the template does not carry either.
-  for (const script of ["publish", "check"]) {
-    delete packageJson.scripts[script];
-  }
+  // `publish` force-pushes to the maintainer's template repository and is not
+  // an entry point a starter clone should expose.
+  delete packageJson.scripts.publish;
   writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
 }
 

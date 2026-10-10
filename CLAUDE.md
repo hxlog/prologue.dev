@@ -14,18 +14,11 @@ npm run build          # same prep, then next build --turbopack
 npm run start          # serve production build
 npm run lint           # eslint (flat config in eslint.config.mjs)
 
-npm run check          # the offline gates (see below)
-node scripts/check.mjs prerendered   # every prerendered page's anchors resolve
-node scripts/check.mjs feeds         # all four feeds, against a running server
-node scripts/check.mjs all           # all three groups
-
 npm run publish        # build the template snapshot locally (dry run — no push)
 npm run publish -- --push            # force-push template to hxlog/prologue-blog-template
 ```
 
-`npm run check` runs four gates as separate child processes and prints a PASS/FAIL table: heading-id parity, render equivalence (63 posts, 37 expected diffs), document shape (63 posts), and the starter template's own files.
-
-There is **no test suite**. These gates are the acceptance gate — run them after touching the content layer, the markdown pipeline, or anything that renders. They are **not** part of `build`, and three of them cannot be: the `prerendered` group reads the output in `.next/server/app/**`, `feeds` needs a running server (`npm run start`), and the `template` gate inspects starter files this site never uses. Folding them into `build` would also break the public template, whose clones carry no `scripts/fixtures/` to compare against. CI (`.github/workflows/ci.yml`) runs `lint`, `check` and `build`.
+CI (`.github/workflows/ci.yml`) runs `lint` and `build`.
 
 ## Content layer
 

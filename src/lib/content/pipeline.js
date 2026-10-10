@@ -2,9 +2,7 @@
  * The one markdown renderer. Server-only by virtue of its only caller,
  * ./index.js, which carries the `server-only` guard.
  *
- * Plugin order and options are copied from contentlayer.config.js so this
- * reproduces Contentlayer2's body.html byte-for-byte -- verified for all 63
- * posts by scripts/check-render-equivalence.mjs.
+ * Plugin order and options are copied from contentlayer.config.js.
  *
  * DO NOT add options to remarkRehype or rehypeStringify. Contentlayer called
  * both bare, which means raw HTML blocks collapse to their text content

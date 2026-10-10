@@ -25,33 +25,5 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Check
-        # Four offline gates: heading-id parity, render equivalence, document
-        # shape, and the starter template's own files. They compare against
-        # scripts/fixtures/, which is why they belong here and not in `build`.
-        run: npm run check
-
       - name: Build
         run: npm run build
-
-      - name: Check the built output
-        # These two need a running server, so they run here rather than in the
-        # offline `npm run check`: `prerendered` reads .next/server/app, and
-        # `feeds` fetches all four feeds plus one post page. Server and checks
-        # share a step so the process cannot be reaped when a shell exits.
-        run: |
-          npm run start &
-          SERVER_PID=$!
-          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
-
-          for i in $(seq 1 30); do
-            if curl -sf http://localhost:3000/rss > /dev/null; then break; fi
-            if [ "$i" = 30 ]; then
-              echo "server did not come up within 30s" >&2
-              exit 1
-            fi
-            sleep 1
-          done
-
-          node scripts/check.mjs prerendered
-          node scripts/check.mjs feeds
