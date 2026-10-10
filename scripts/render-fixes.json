@@ -123,6 +123,13 @@
       "marker": "class=\"rounded-lg mx-auto lightbox-image cursor-zoom-in\""
     }
   ],
+  "/blog/existentialism-another-form-of-inhumanity": [
+    {
+      "fix": "youtube-directive",
+      "applied": true,
+      "marker": "class=\"video-embed\"><iframe src=\"https://www.youtube.com/embed/asKQbk7AcJU\""
+    }
+  ],
   "/blog/from-nextjs-to-astro-a-simpler-solution-to-build-a-website": [
     {
       "fix": "F1",

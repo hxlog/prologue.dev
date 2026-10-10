@@ -1,13 +1,12 @@
 const siteMetadata = {
-  title: "Prologue 序章",
+  title: "槐序的序章",
   author: "槐序",
   authorDesc: "00后/INFJ/少数派/梦想成为自由职业者",
-  publishName: "Prologue",
+  publishName: "槐序的序章",
   headerTitle: "What's past is prologue",
-  description:
-    "对当下的反思和批判",
+  description: "对当下的反思和批判",
   language: "zh-CN",
-  keywords: ['prologue', '序章', '槐序'],
+  keywords: ["prologue", "序章", "槐序", "槐序的序章"],
   siteUrl: "https://prologue.dev",
   siteRepo: "prologue.dev",
   repoid: "R_kgDOHl4HGg",
@@ -18,8 +17,6 @@ const siteMetadata = {
   email: "xingyuliu@outlook.sg",
   github: "hxlog",
 
-
-
   // optional
   umami: {
     scriptUrl: "https://umami.morean.cn/script.js",
@@ -27,7 +24,9 @@ const siteMetadata = {
     websiteId: "dddadd5a-f772-41c9-8942-9b54bad93e18",
     domains: "prologue.dev",
   },
-  wechatofficialaccount: "槐序的序章"
+  wechatofficialaccount: "槐序的序章",
 };
 
-module.exports = siteMetadata;
+export const siteRepo = siteMetadata.siteRepo;
+export const wechatofficialaccount = siteMetadata.wechatofficialaccount;
+export default siteMetadata;

@@ -28,4 +28,6 @@ const siteMetadata = {
   },
 };
 
-module.exports = siteMetadata;
+export const siteRepo = siteMetadata.siteRepo;
+export const wechatofficialaccount = siteMetadata.wechatofficialaccount;
+export default siteMetadata;
