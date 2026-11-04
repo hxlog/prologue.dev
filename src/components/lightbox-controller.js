@@ -21,13 +21,6 @@ function loadViewer() {
 
 const IMAGE_SELECTOR = "main img.lightbox-image";
 
-function prefersReducedMotion() {
-  return (
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  );
-}
-
 function captionOf(img) {
   return (
     img.alt ||
@@ -48,9 +41,8 @@ function captionOf(img) {
  * intent (pointerover/focusin/touchstart), so a reader who never opens a photo
  * downloads none of it.
  *
- * The open animation is the viewer's own FLIP morph (see lightbox-viewer.js):
- * this file only captures the clicked thumbnail's rect, which is why opening is
- * not gated on any animation API.
+ * The open/close animation is the viewer's own centre zoom (see
+ * lightbox-viewer.js): this file only builds the slide list and the session.
  */
 export default function Lightbox() {
   const [Viewer, setViewer] = useState(null);
@@ -90,7 +82,6 @@ export default function Lightbox() {
       };
     });
 
-    const rect = img.getBoundingClientRect();
     sourceRef.current = img;
     /* Focus goes back to the image that opened the viewer. Images are not
        focusable by default, so this uses a temporary tabindex=-1 instead of
@@ -100,12 +91,7 @@ export default function Lightbox() {
     const commit = (ViewerComponent) =>
       flushSync(() => {
         setViewer(() => ViewerComponent);
-        setSession({
-          slides,
-          index,
-          morph: !prefersReducedMotion(),
-          origin: { left: rect.left, top: rect.top, width: rect.width, height: rect.height },
-        });
+        setSession({ slides, index });
       });
 
     loadViewer()
@@ -193,8 +179,6 @@ export default function Lightbox() {
     <Viewer
       slides={session.slides}
       startIndex={session.index}
-      morph={session.morph}
-      origin={session.origin}
       onClose={close}
     />
   );

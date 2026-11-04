@@ -43,15 +43,7 @@ export default function Home() {
     <div className="relative">
       <RouteTransition>
         <PageTransition>
-          {/* overflow-x-clip: the aurora bleeds 30% past each side by design,
-              and without the clip that bleed is real horizontal overflow on a
-              narrow window (155px at 919px wide). It has to be `clip`, not
-              `hidden`: clip does not create a scroll container, so the pinned
-              column further down still sticks. */}
-          <section className="relative mx-auto max-w-3xl overflow-x-clip pt-16 pb-10">
-            {/* Atmosphere, not decoration: the three brand colours as one wash
-                behind the opening line. Painted by CSS, no image asset. */}
-            <div className="hero-aurora" aria-hidden="true" />
+          <section className="mx-auto max-w-3xl pt-16 pb-10">
             <p className="eyebrow">{siteMetadata.title}</p>
             <h1 className="mt-4 text-display font-semibold leading-tight tracking-tight text-foreground">
               {siteMetadata.headerTitle}

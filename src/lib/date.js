@@ -52,6 +52,31 @@ export function currentYear() {
   return new Date().getFullYear();
 }
 
+/**
+ * Month/day + year for the microblog timeline rail: "11.04" and "2026".
+ *
+ * Split into two lines by the rail, so the parts are returned separately
+ * instead of one formatted string. Asia/Shanghai is pinned for the same reason
+ * as yearInBeijing(): the site's dates are Beijing dates regardless of where
+ * the build or the reader runs.
+ */
+const railDate = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Shanghai",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+export function formatRailDate(dateLike) {
+  const date = toDate(dateLike);
+  if (Number.isNaN(date.getTime())) return { monthDay: "", year: "" };
+  const parts = {};
+  for (const part of railDate.formatToParts(date)) {
+    if (part.type !== "literal") parts[part.type] = part.value;
+  }
+  return { monthDay: `${parts.month}.${parts.day}`, year: parts.year };
+}
+
 /** The year in Beijing time for a given instant (defaults to now). */
 export function yearInBeijing(now = new Date()) {
   return Number(

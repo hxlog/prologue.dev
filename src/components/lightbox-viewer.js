@@ -8,17 +8,26 @@ const MAX_ZOOM = 4;
 const ZOOM_STEP = 1.35;
 const DOUBLE_CLICK_ZOOM = 2.4;
 
-/* Morph: a FLIP handoff from the clicked thumbnail's rect to the laid-out
-   viewer image, on the Web Animations API. This replaced View Transitions after
-   measuring the capture cost on an image-heavy post: startViewTransition() took
-   180-250 ms before it would even call the update callback there (the browser
-   snapshots the whole page), which is exactly the "opens slowly" report. FLIP
-   starts in the same frame as the click; the source rect is captured at click
-   time, so no snapshot and no named elements are involved. */
-const MORPH_MS = 300;
-const MORPH_EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
+/* Open/close is a centre zoom on the Web Animations API, not a FLIP morph.
+   The viewer grows from scale(0.92) to 1 while the scrim fades in, and closing
+   shrinks the bitmap to scale(0.94) as it fades out, with the chrome dissolving
+   under it. A FLIP handoff from the clicked thumbnail was tried first and
+   replaced: it made the zoom depend on the source rect and had to be re-targeted
+   after paging; the centre zoom is one gesture for every slide and keeps the
+   overlay's own geometry. CLOSE_MS is how long the viewer stays mounted. */
+const OPEN_ZOOM_MS = 260;
+const CLOSE_MS = 240;
+const SLIDE_MS = 260;
+const EASE_OUT = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+function prefersReducedMotion() {
+  return (
+    typeof window !== "undefined" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  );
+}
 
 function clampOffset(next, zoomValue, img) {
   if (zoomValue <= MIN_ZOOM || !img) return { x: 0, y: 0 };
@@ -35,26 +44,33 @@ function clampOffset(next, zoomValue, img) {
  * renders it on demand and warms the chunk on pointer intent), so it costs
  * nothing on first load.
  *
- * Deliberately not a <dialog>: the open/close animation is driven by the View
- * Transitions API, and a top-layer dialog is a separate rendering context that
- * does not always participate in a same-document transition. Everything the
- * dialog gave us is here instead — focus trap, inert background, Esc, scroll
- * lock — in src/lib/overlay.js.
+ * Deliberately not a <dialog>: the open/close animation is driven by Web
+ * Animations on a plain element, and a top-layer dialog is a separate rendering
+ * context. Everything the dialog gave us is here instead — focus trap, inert
+ * background, Esc, scroll lock — in src/lib/overlay.js.
+ *
+ * Paging is a pure horizontal slide: two stage-sized cells in one track, one
+ * `translateX` animation, no opacity animation anywhere. The previous version
+ * crossfaded the two slides, which stacked two semi-transparent bitmaps for
+ * ~180 ms and read as a flash (especially when their aspect ratios differed).
+ * The track is 200% wide while paging and snaps back to a single cell when the
+ * animation ends, so the slider never stays in the DOM.
  *
  * Zoom model: one transform on the figure (translate + scale), offset clamped
  * to the scaled bounds so the image cannot be dragged out of the viewport. The
  * bitmap is the already-optimised URL the page loaded (currentSrc), so opening
  * is a cache hit rather than a second download.
  */
-export default function LightboxViewer({ slides, startIndex, morph, origin, onClose }) {
+export default function LightboxViewer({ slides, startIndex, onClose }) {
   const [index, setIndex] = useState(startIndex);
-  /* Crossfade + directional slide between slides. Two layers are painted for
-     ~180 ms: the outgoing slide (the previous index) and the incoming one.
-     Without the outgoing layer the old bitmap disappears on the same frame the
-     new one appears, which reads as a flicker rather than a transition. */
-  const [prevIndex, setPrevIndex] = useState(null);
-  const [direction, setDirection] = useState(1);
-  const [navigated, setNavigated] = useState(false);
+  /* True until the opening zoom finishes; keeps the bitmap painted at full
+     opacity during that first gesture even if its load callback has not fired
+     yet (the URL is a cache hit, so this is usually the same frame). */
+  const [opening, setOpening] = useState(() => !prefersReducedMotion());
+  /* { from, dir } while the track is sliding: `from` is the outgoing slide and
+     `dir` is +1/-1. Null means the track shows one cell. */
+  const [slideAnim, setSlideAnim] = useState(null);
+  const [closing, setClosing] = useState(false);
   const [zoom, setZoom] = useState(MIN_ZOOM);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   /* Both are derived, not mirrored: the displayed URL is "the cached one, then
@@ -71,6 +87,8 @@ export default function LightboxViewer({ slides, startIndex, morph, origin, onCl
   const pinchRef = useRef(null);
   const pointersRef = useRef(new Map());
   const closingRef = useRef(false);
+  const slideTimerRef = useRef(null);
+  const closeTimerRef = useRef(null);
 
   const total = slides.length;
   const slide = slides[index];
@@ -86,53 +104,91 @@ export default function LightboxViewer({ slides, startIndex, morph, origin, onCl
 
   const go = useCallback(
     (delta) => {
-      if (total < 2) return;
-      setDirection(delta);
-      setPrevIndex(index);
-      setNavigated(true);
-      setIndex((current) => (current + delta + total) % total);
+      if (total < 2 || closingRef.current) return;
+      const from = index;
+      const next = (from + delta + total) % total;
+      if (slideTimerRef.current) clearTimeout(slideTimerRef.current);
       resetView();
+      setSlideAnim({ from, dir: delta });
+      setIndex(next);
+      slideTimerRef.current = setTimeout(() => setSlideAnim(null), SLIDE_MS + 20);
     },
     [index, resetView, total]
   );
 
-  /* Drop the outgoing layer once its 180 ms exit has finished. */
-  useEffect(() => {
-    if (prevIndex === null) return undefined;
-    const timer = setTimeout(() => setPrevIndex(null), 230);
-    return () => clearTimeout(timer);
-  }, [prevIndex, index]);
+  useEffect(
+    () => () => {
+      if (slideTimerRef.current) clearTimeout(slideTimerRef.current);
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    },
+    []
+  );
 
-  /* The morph itself. Runs before the first paint so the viewer never shows up
-     at its final size and then jumps back to the thumbnail. The source image's
-     intrinsic size is passed in as width/height, so the target box exists even
-     before the bitmap decodes. */
+  /* The opening zoom. Runs before the first paint so the bitmap never appears
+     at its final size first. No thumbnail geometry is involved: the image simply
+     grows from 92% about the stage centre while the scrim fades in. */
   useLayoutEffect(() => {
-    if (!morph || !origin) return;
+    if (!opening) return undefined;
     const img = imageRef.current;
-    if (!img) return;
-    const rect = img.getBoundingClientRect();
-    if (!rect.width || !rect.height || !origin.width || !origin.height) return;
-    const dx = origin.left + origin.width / 2 - (rect.left + rect.width / 2);
-    const dy = origin.top + origin.height / 2 - (rect.top + rect.height / 2);
-    const scale = origin.width / rect.width;
-    img.animate(
-      [
-        { transform: `translate(${dx}px, ${dy}px) scale(${scale})`, opacity: 0.35 },
-        { transform: "none", opacity: 1 },
-      ],
-      { duration: MORPH_MS, easing: MORPH_EASE }
-    );
-  }, [morph, origin]);
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      setOpening(false);
+    };
+    if (img) {
+      const animation = img.animate(
+        [{ transform: "scale(0.92)" }, { transform: "none" }],
+        { duration: OPEN_ZOOM_MS, easing: EASE_OUT }
+      );
+      animation.finished.then(finish, finish);
+    }
+    /* Fallback for a cancelled/failed animation; the timeout alone must never
+       unmount, it only ends the opening state. */
+    const timer = setTimeout(finish, OPEN_ZOOM_MS + 160);
+    return () => clearTimeout(timer);
+  }, [opening]);
 
-  /* Close is immediate on purpose. A reverse morph has to keep the viewer
-     mounted until an animation finishes, which makes Esc / the close button feel
-     laggy on a throttled frame (measured: up to a second to react); unmounting
-     synchronously is what every image viewer does and can never stall. */
+  /* Close is the reverse gesture: the bitmap shrinks to 94% while it fades out,
+     and the scrim/chrome fade under it. The viewer unmounts on the animation's
+     `finished`, not on a wall-clock timer: a busy main thread can delay the
+     animation's first frame, and a timer starting when close was requested would
+     then unmount before anything was painted. The timeout is only a fallback for
+     a cancelled/failed animation. Reduced motion skips straight to the unmount. */
   const requestClose = useCallback(() => {
     if (closingRef.current) return;
     closingRef.current = true;
-    onClose();
+
+    if (prefersReducedMotion()) {
+      onClose();
+      return;
+    }
+
+    setClosing(true);
+
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      onClose();
+    };
+
+    const img = imageRef.current;
+    if (img) {
+      const animation = img.animate(
+        [
+          { transform: "none", opacity: 1 },
+          { transform: "scale(0.94)", opacity: 0 },
+        ],
+        {
+          duration: CLOSE_MS,
+          easing: "cubic-bezier(0.4, 0, 0.2, 1)",
+          fill: "forwards",
+        }
+      );
+      animation.finished.then(finish, finish);
+    }
+    closeTimerRef.current = setTimeout(finish, CLOSE_MS + 160);
   }, [onClose]);
 
   /* Decode the high-resolution candidate in the background and swap it in. The
@@ -166,8 +222,7 @@ export default function LightboxViewer({ slides, startIndex, morph, origin, onCl
      after mount. All three touch the rest of the document (`inert` on a
      70 KB article invalidates its whole style/layout tree), and running them
      inside the open handler put that work between the click and the first
-     painted frame of the viewer. The background is already behind the scrim, so
-     a frame of delay is invisible. */
+     painted frame of the viewer. */
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return undefined;
@@ -250,6 +305,7 @@ export default function LightboxViewer({ slides, startIndex, morph, origin, onCl
   }, [index, slide, slides, total]);
 
   const onPointerDown = (event) => {
+    if (closingRef.current) return;
     if (event.pointerType === "mouse" && event.button !== 0) return;
     pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
     if (pointersRef.current.size === 2) {
@@ -307,20 +363,22 @@ export default function LightboxViewer({ slides, startIndex, morph, origin, onCl
   };
 
   const closeOnBackdrop = (event) => {
+    if (closingRef.current) return;
     const target = event.target;
     if (!(target instanceof Element)) {
       if (target === rootRef.current) requestClose();
       return;
     }
-    /* Clicking the scrim, the stage, a slide layer or the letterboxed area of
-       a figure closes; clicking the bitmap itself does not (it may be a drag or
-       a double-click zoom). */
+    /* Clicking the scrim, the stage, the track, a cell or the letterboxed area
+       of a figure closes; clicking the bitmap itself does not (it may be a drag
+       or a double-click zoom). */
     if (
       target === rootRef.current ||
       target === stageRef.current ||
-      target.classList.contains("lightbox-layer") ||
-      (target.classList.contains("lightbox-figure") &&
-        !target.closest("img"))
+      target.classList.contains("lightbox-scrim") ||
+      target.classList.contains("lightbox-track") ||
+      target.classList.contains("lightbox-cell") ||
+      (target.classList.contains("lightbox-figure") && !target.closest("img"))
     ) {
       requestClose();
     }
@@ -328,10 +386,65 @@ export default function LightboxViewer({ slides, startIndex, morph, origin, onCl
 
   if (!slide) return null;
 
+  const renderCell = (slideIndex, isCurrent) => {
+    const item = slides[slideIndex];
+    if (!item) return null;
+    const cellSrc = isCurrent ? src : item.src;
+    const isLoaded = isCurrent ? loaded : true;
+    return (
+      <div
+        key={`${slideIndex}-${isCurrent ? "current" : "outgoing"}`}
+        className="lightbox-cell"
+        aria-hidden={isCurrent ? undefined : "true"}
+      >
+        <figure
+          className="lightbox-figure"
+          data-opening={isCurrent && opening ? "true" : undefined}
+          style={
+            isCurrent
+              ? {
+                  transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${zoom})`,
+                  cursor: zoom > MIN_ZOOM ? "grab" : "zoom-in",
+                }
+              : undefined
+          }
+        >
+          {/* A plain <img>, not next/image: the point is to paint the exact URL
+              the page already downloaded (currentSrc). Routing it back through
+              the optimizer would request a different width and cost a second
+              round trip on the one action that has to feel instant. */}
+          {/* width/height are the source bitmap's intrinsic size: they reserve
+              the right box before the bitmap decodes, so the opening zoom starts
+              from the image's own centre rather than from a collapsing box. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            ref={isCurrent ? imageRef : undefined}
+            src={item && isCurrent ? cellSrc : item.src}
+            alt={isCurrent ? item.alt : ""}
+            width={item.width || undefined}
+            height={item.height || undefined}
+            decoding="async"
+            draggable="false"
+            onLoad={isCurrent ? () => setLoadedSrc(cellSrc) : undefined}
+            data-loaded={isLoaded ? "true" : undefined}
+          />
+        </figure>
+      </div>
+    );
+  };
+
+  const animating = slideAnim !== null;
+  const cells = animating
+    ? slideAnim.dir > 0
+      ? [renderCell(slideAnim.from, false), renderCell(index, true)]
+      : [renderCell(index, true), renderCell(slideAnim.from, false)]
+    : renderCell(index, true);
+
   return (
     <div
       ref={rootRef}
       className="lightbox"
+      data-closing={closing ? "true" : undefined}
       role="dialog"
       aria-modal="true"
       aria-label={`图片查看器：第 ${index + 1} 张，共 ${total} 张`}
@@ -342,6 +455,8 @@ export default function LightboxViewer({ slides, startIndex, morph, origin, onCl
       onPointerCancel={endPointer}
       onDoubleClick={toggleZoom}
     >
+      <div className="lightbox-scrim" aria-hidden="true" />
+
       <button
         type="button"
         className="lightbox-close"
@@ -354,59 +469,11 @@ export default function LightboxViewer({ slides, startIndex, morph, origin, onCl
       </button>
 
       <div ref={stageRef} className="lightbox-stage">
-        {prevIndex !== null && slides[prevIndex] ? (
-          <div
-            className="lightbox-layer lightbox-layer--ghost"
-            data-anim="out"
-            data-dir={direction > 0 ? "next" : "prev"}
-            aria-hidden="true"
-          >
-            <figure className="lightbox-figure">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={slides[prevIndex].src}
-                alt=""
-                draggable="false"
-                data-loaded="true"
-              />
-            </figure>
-          </div>
-        ) : null}
-
         <div
-          key={index}
-          className="lightbox-layer"
-          data-anim={navigated ? "in" : undefined}
-          data-dir={direction > 0 ? "next" : "prev"}
+          className="lightbox-track"
+          data-anim={animating ? (slideAnim.dir > 0 ? "next" : "prev") : undefined}
         >
-          <figure
-            className="lightbox-figure"
-            data-morph={morph && !navigated ? "true" : undefined}
-            style={{
-              transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${zoom})`,
-              cursor: zoom > MIN_ZOOM ? "grab" : "zoom-in",
-            }}
-          >
-            {/* A plain <img>, not next/image: the point is to paint the exact
-                URL the page already downloaded (currentSrc). Routing it back
-                through the optimizer would request a different width and cost a
-                second round trip on the one action that has to feel instant. */}
-            {/* width/height are the source bitmap's intrinsic size: they reserve
-                the right box before the bitmap decodes, which is what lets the
-                morph measure a real target rect on the same frame as the click. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              ref={imageRef}
-              src={src}
-              alt={slide.alt}
-              width={slide.width || undefined}
-              height={slide.height || undefined}
-              decoding="async"
-              draggable="false"
-              onLoad={() => setLoadedSrc(src)}
-              data-loaded={loaded ? "true" : undefined}
-            />
-          </figure>
+          {cells}
         </div>
 
         {total > 1 ? (

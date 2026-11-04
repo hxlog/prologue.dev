@@ -74,11 +74,10 @@ const GROUPS = [
   },
   {
     title: "渐变",
-    note: "填充渐变给装饰块，文字渐变只能用于大字号（--gradient-brand-text），hero 光晕由三段径向渐变叠成。",
+    note: "填充渐变给装饰块，文字渐变只能用于大字号（--gradient-brand-text）。首页 hero 只用底色，没有叠加光晕。",
     rows: [
       { name: "--gradient-brand", usage: "品牌填充渐变（三色）", kind: "gradient" },
       { name: "--gradient-brand-text", usage: "标题文字渐变", kind: "gradient" },
-      { name: "--gradient-aurora", usage: "首页 hero 光晕", kind: "gradient" },
     ],
   },
   {

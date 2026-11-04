@@ -189,21 +189,6 @@
 
   /* Fills and decoration — safe at any size, never used for text. */
   --gradient-brand: linear-gradient(120deg, #c9cdf5, #e6f4fb 46%, #f7d4e6);
-  --gradient-aurora: radial-gradient(
-      52% 64% at 18% 8%,
-      color-mix(in srgb, var(--accent-pastel) 46%, transparent),
-      transparent 72%
-    ),
-    radial-gradient(
-      46% 58% at 82% 4%,
-      color-mix(in srgb, var(--sky) 38%, transparent),
-      transparent 74%
-    ),
-    radial-gradient(
-      58% 62% at 62% 96%,
-      color-mix(in srgb, var(--secondary-pastel) 44%, transparent),
-      transparent 76%
-    );
   /* Text gradients are display-size only (3:1 is enough), but they still use
      the two inks rather than the pastels or the headline washes out. */
   --gradient-brand-text: linear-gradient(120deg, #6a6fcd, #b85680);
@@ -968,25 +953,6 @@
     box-shadow: var(--shadow-pop);
   }
 
-  /* Hero wash. Three soft radial gradients (lavender, sky, pink) painted behind
-     the opening headline -- the one place on the site where the brand colours
-     appear as atmosphere rather than as an accent. No filter: it is already a
-     gradient, and blur() on a full-width layer is a real cost on a phone. */
-  .hero-aurora {
-    position: absolute;
-    inset-inline: -30%;
-    top: -7rem;
-    height: min(26rem, 60vw);
-    background: var(--gradient-aurora);
-    opacity: 0.55;
-    pointer-events: none;
-    z-index: -1;
-    mask-image: linear-gradient(to bottom, #000 0%, transparent 88%);
-  }
-  .dark .hero-aurora {
-    opacity: 0.42;
-  }
-
   /* Entrance for cards added after first paint ("load more", search results).
      The first page is deliberately NOT animated: those cards are the LCP
      candidates and an opacity gate on them would delay the largest paint. */
@@ -1494,13 +1460,11 @@ html.dark .shiki span {
  * glass language as the navbar and the modals: blurred translucent surface,
  * hairline border, brand pastel on hover.
  *
- * The entrance is the FLIP morph in lightbox-viewer.js: the clicked thumbnail's
- * rect is captured at click time and the viewer image animates from it to its
- * laid-out box (Web Animations), so the handoff starts on the click frame.
- * [data-morph] therefore *disables* the CSS scale-in below — two animations on
- * the same element read as a stutter. The CSS animation is what runs with
- * prefers-reduced-motion (no morph, no movement) and covers browsers that
- * cannot run the projection.
+ * Open and close are a centre zoom in lightbox-viewer.js: the bitmap grows from
+ * scale(0.92) as the scrim fades in, and closing shrinks it to scale(0.94) while
+ * it fades out and the chrome dissolves under it (reduced motion skips both).
+ * Paging is a pure horizontal slide of a two-cell track — no opacity crossfade,
+ * because two stacked semi-transparent bitmaps read as a flash.
  * ------------------------------------------------------------------------- */
 .lightbox {
   position: fixed;
@@ -1513,13 +1477,31 @@ html.dark .shiki span {
   gap: 0.75rem;
   padding: 1rem;
   color: #eef0f7;
+  touch-action: none;
+  isolation: isolate;
+}
+
+/* The scrim is a real layer, not the root's background: closing fades it out
+   while the bitmap is still shrinking, and an opacity animation on the root
+   would fade that zoom with it. */
+.lightbox-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
   background: rgb(18 20 27 / 0.82);
   backdrop-filter: blur(14px) saturate(115%);
-  animation: lightbox-scrim var(--duration-base) var(--ease-out-expo) both;
-  touch-action: none;
+  animation: lightbox-scrim-in var(--duration-base) var(--ease-out-expo) both;
 }
-@keyframes lightbox-scrim {
+@keyframes lightbox-scrim-in {
   from {
+    opacity: 0;
+  }
+}
+.lightbox[data-closing="true"] .lightbox-scrim {
+  animation: lightbox-scrim-out 220ms ease both;
+}
+@keyframes lightbox-scrim-out {
+  to {
     opacity: 0;
   }
 }
@@ -1535,70 +1517,51 @@ html.dark .shiki span {
   overflow: hidden;
 }
 
-/* Two layers are painted for ~180 ms while paging: the outgoing slide slides
- * and fades out while the incoming slide slides in from the direction of
- * travel. `translate` (not `transform`) animates the layer, because the
- * figure inside it owns `transform` for the zoom/pan state. */
-.lightbox-layer {
+/* Paging is a pure horizontal slide: one track, two stage-sized cells, a single
+   translate animation, and no opacity change anywhere. The old version
+   crossfaded two layers (two semi-transparent bitmaps stacked for ~180 ms),
+   which read as a flash and doubled the image whenever the aspect ratios
+   differed. When the animation ends React drops the outgoing cell and the track
+   returns to its one-cell width with no visual jump. */
+.lightbox-track {
   position: absolute;
   inset: 0;
   display: flex;
+  width: 100%;
+}
+.lightbox-track[data-anim="next"] {
+  width: 200%;
+  animation: lightbox-track-next 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.lightbox-track[data-anim="prev"] {
+  width: 200%;
+  animation: lightbox-track-prev 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.lightbox-cell {
+  position: relative;
+  display: flex;
+  flex: 0 0 100%;
   align-items: center;
   justify-content: center;
+  height: 100%;
 }
-.lightbox-layer[data-anim="in"][data-dir="next"] {
-  animation: lightbox-in-next 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+.lightbox-track[data-anim] .lightbox-cell {
+  flex-basis: 50%;
 }
-.lightbox-layer[data-anim="in"][data-dir="prev"] {
-  animation: lightbox-in-prev 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-.lightbox-layer[data-anim="out"] {
-  pointer-events: none;
-}
-.lightbox-layer[data-anim="out"][data-dir="next"] {
-  animation: lightbox-out-next 180ms cubic-bezier(0.4, 0, 1, 1) both;
-}
-.lightbox-layer[data-anim="out"][data-dir="prev"] {
-  animation: lightbox-out-prev 180ms cubic-bezier(0.4, 0, 1, 1) both;
-}
-@keyframes lightbox-in-next {
+@keyframes lightbox-track-next {
   from {
-    opacity: 0;
-    translate: 22px 0;
+    transform: translate3d(0, 0, 0);
   }
   to {
-    opacity: 1;
-    translate: 0 0;
+    transform: translate3d(-50%, 0, 0);
   }
 }
-@keyframes lightbox-in-prev {
+@keyframes lightbox-track-prev {
   from {
-    opacity: 0;
-    translate: -22px 0;
+    transform: translate3d(-50%, 0, 0);
   }
   to {
-    opacity: 1;
-    translate: 0 0;
-  }
-}
-@keyframes lightbox-out-next {
-  from {
-    opacity: 1;
-    translate: 0 0;
-  }
-  to {
-    opacity: 0;
-    translate: -14px 0;
-  }
-}
-@keyframes lightbox-out-prev {
-  from {
-    opacity: 1;
-    translate: 0 0;
-  }
-  to {
-    opacity: 0;
-    translate: 14px 0;
+    transform: translate3d(0, 0, 0);
   }
 }
 
@@ -1633,15 +1596,37 @@ html.dark .shiki span {
   transition: opacity var(--duration-base) ease;
 }
 .lightbox-figure img[data-loaded],
-.lightbox-figure[data-morph] img {
+.lightbox-figure[data-opening] img {
   opacity: 1;
   transition: none;
 }
-.lightbox-layer--ghost img {
+/* The outgoing cell is a static copy: it must be painted even though its
+   <img> never receives a load callback, and its chrome-level shadow would
+   double up during the slide. */
+.lightbox-cell[aria-hidden="true"] .lightbox-figure img {
   opacity: 1;
   transition: none;
   box-shadow: none;
 }
+
+/* Closing: the chrome fades out while the bitmap shrinks and fades, so the zoom
+   is the primary motion and the overlay dissolves under it. */
+.lightbox[data-closing="true"] .lightbox-close,
+.lightbox[data-closing="true"] .lightbox-nav,
+.lightbox[data-closing="true"] .lightbox-bar,
+.lightbox[data-closing="true"] .lightbox-caption {
+  animation: lightbox-chrome-out 160ms ease both;
+  pointer-events: none;
+}
+.lightbox[data-closing="true"] .lightbox-figure {
+  transition: none;
+}
+@keyframes lightbox-chrome-out {
+  to {
+    opacity: 0;
+  }
+}
+
 /* Chrome: one glass recipe for every button in the overlay. */
 .lightbox-close,
 .lightbox-nav,
@@ -1728,16 +1713,14 @@ html.dark .shiki span {
   font-size: var(--text-sm);
   line-height: 1.5;
   color: rgb(238 240 247 / 0.78);
-  animation: lightbox-caption-in 220ms var(--ease-out-expo) both;
+  animation: lightbox-caption-in 160ms var(--ease-out-expo) both;
 }
 @keyframes lightbox-caption-in {
   from {
     opacity: 0;
-    translate: 0 4px;
   }
   to {
     opacity: 1;
-    translate: 0 0;
   }
 }
 
@@ -1755,9 +1738,13 @@ html.dark .shiki span {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .lightbox,
-  .lightbox-layer,
-  .lightbox-caption {
+  .lightbox-scrim,
+  .lightbox-track,
+  .lightbox-caption,
+  .lightbox[data-closing="true"] .lightbox-close,
+  .lightbox[data-closing="true"] .lightbox-nav,
+  .lightbox[data-closing="true"] .lightbox-bar,
+  .lightbox[data-closing="true"] .lightbox-caption {
     animation: none;
   }
   .lightbox-figure {

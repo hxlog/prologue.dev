@@ -145,5 +145,14 @@ async function PageBody({ params }) {
 async function PageToc({ params }) {
   const page = await getCachedPage(slugOf(await params));
   if (!page) return null;
-  return <TableofContent headings={page.headings} />;
+  /* The portfolio block is a component, not markdown: its heading never lands in
+     page.headings. Append it so the outline can jump to the block (and so the
+     active pill can land on it while it is in view). */
+  const headings = page.portfolio
+    ? [
+        ...page.headings,
+        { id: "portfolio-title", text: "开源项目", level: "two" },
+      ]
+    : page.headings;
+  return <TableofContent headings={headings} />;
 }

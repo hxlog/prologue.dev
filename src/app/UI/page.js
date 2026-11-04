@@ -399,7 +399,7 @@ export default function UiStandardPage() {
             <Specimen title="玻璃吸顶导航" note=".glass-header：76% 背景 + 14px 模糊；滚动时抬升阴影由 scroll() 驱动。">
               <div
                 className="relative h-20 overflow-hidden rounded-(--radius-control)"
-                style={{ backgroundImage: "var(--gradient-aurora)" }}
+                style={{ backgroundImage: "var(--gradient-brand)" }}
               >
                 <div className="glass-header absolute inset-x-0 top-0 flex items-center justify-between gap-3 px-3 py-2">
                   <span className="text-sm font-semibold text-foreground">prologue.dev</span>
@@ -491,57 +491,33 @@ export default function UiStandardPage() {
 
             <Specimen
               title="开源项目卡片"
-              note="Portfolio（/about 正文之后）；复用 .card + card-spotlight，精选占满整行，其余两列。"
+              note="Portfolio（/about 正文之后）；复用 .card + card-interactive + card-spotlight。全部卡片等宽两列，没有精选位，也没有额外的超链接按钮——整张卡就是仓库链接。"
             >
-              <div className="grid grid-cols-1 gap-3">
-                <a
-                  href="https://github.com/hxlog/balanced-portfolio"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="card card-interactive card-spotlight group relative flex flex-col p-5 sm:flex-row sm:items-end sm:gap-8"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="eyebrow mb-1">精选</p>
-                    <p className="card-title text-2xl font-semibold tracking-tight text-foreground">
-                      Balanced Portfolio
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {[
+                  ["Balanced Portfolio", "机构级投资管理工具：全天候风险平价组合与回测、股指期货统计看板、场外期权定价。", "hxlog/balanced-portfolio", "48", "25"],
+                  ["Prologue", "这个站点本身：内容优先的 Next.js 博客。", "hxlog/prologue.dev", "41", "10"],
+                  ["DSH MCP Tools", "DeepSeek Harness 的 MCP 管理器。", "hxlog/dsh-mcp-tools", "3", "0"],
+                ].map(([name, desc, repo, stars, forks]) => (
+                  <a
+                    key={repo}
+                    href={`https://github.com/${repo}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="card card-interactive card-spotlight flex flex-col p-5"
+                  >
+                    <p className="card-title text-lg font-semibold leading-7 tracking-tight text-foreground">
+                      {name}
                     </p>
-                    <p className="mt-2 text-sm leading-6 text-muted">
-                      机构级投资管理工具：全天候风险平价组合与回测、股指期货统计看板、场外期权定价。
-                    </p>
-                  </div>
-                  <div className="mt-auto flex items-center justify-between gap-3 pt-5 text-xs text-faint sm:mt-0 sm:flex-col sm:items-end">
-                    <span className="font-mono text-[0.7rem]">hxlog/balanced-portfolio</span>
-                    <span className="flex items-center gap-3">
-                      <span>★ 48</span>
-                      <span>⑂ 25</span>
-                    </span>
-                  </div>
-                </a>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {[
-                    ["Prologue", "这个站点本身：内容优先的 Next.js 博客。", "41", "10"],
-                    ["DSH MCP Tools", "DeepSeek Harness 的 MCP 管理器。", "3", "0"],
-                  ].map(([name, desc, stars, forks]) => (
-                    <a
-                      key={name}
-                      href="https://github.com/hxlog"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="card card-interactive card-spotlight group relative flex flex-col p-5"
-                    >
-                      <p className="card-title text-lg font-semibold tracking-tight text-foreground">
-                        {name}
-                      </p>
-                      <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted">{desc}</p>
-                      <div className="mt-auto flex items-center justify-between gap-3 pt-4 text-xs text-faint">
-                        <span className="truncate font-mono text-[0.7rem]">hxlog/{name.toLowerCase()}</span>
-                        <span className="shrink-0">
-                          ★ {stars} · ⑂ {forks}
-                        </span>
-                      </div>
-                    </a>
-                  ))}
-                </div>
+                    <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted">{desc}</p>
+                    <div className="mt-auto flex items-center justify-between gap-3 pt-5 text-xs text-faint">
+                      <span className="truncate font-mono text-[0.7rem]">{repo}</span>
+                      <span className="shrink-0">
+                        ★ {stars} · ⑂ {forks}
+                      </span>
+                    </div>
+                  </a>
+                ))}
               </div>
             </Specimen>
           </div>
