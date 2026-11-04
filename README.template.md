@@ -36,11 +36,14 @@
 ```bash
 git clone https://github.com/hxlog/prologue-blog-template.git my-blog
 cd my-blog
-npm install
-npm run dev
+corepack enable   # 每台机器只需一次，用于启用 package.json 里固定的 Yarn 4
+yarn install
+yarn dev
 ```
 
 打开 `http://localhost:3000`。
+
+需要 **Node.js 22.13+**（见 `package.json` 的 `engines`），包管理器为 **Yarn 4**：版本固定在 `packageManager` 字段，通过 [Corepack](https://nodejs.org/api/corepack.html) 启用；仓库只提交 `yarn.lock`，没有 `package-lock.json`。
 
 改内容不需要重启开发服务器：保存文件，刷新页面即可。
 
@@ -74,10 +77,10 @@ npm run dev
 ### 常用命令
 
 ```bash
-npm run dev            # 开发服务器
-npm run build          # 生产构建
-npm run start          # 本地跑生产版本
-npm run lint           # ESLint
+yarn dev               # 开发服务器
+yarn build             # 生产构建
+yarn start             # 本地跑生产版本
+yarn lint              # ESLint
 ```
 
 ### 同步上游更新
@@ -128,11 +131,14 @@ Or use **Use this template** on GitHub, then:
 ```bash
 git clone https://github.com/hxlog/prologue-blog-template.git my-blog
 cd my-blog
-npm install
-npm run dev
+corepack enable   # once per machine, to activate the Yarn 4 pinned in package.json
+yarn install
+yarn dev
 ```
 
 Open `http://localhost:3000`.
+
+**Node.js 22.13+** is required (see `engines` in `package.json`), and the package manager is **Yarn 4**: the version is pinned in `packageManager` and enabled through [Corepack](https://nodejs.org/api/corepack.html). Only `yarn.lock` is committed; there is no `package-lock.json`.
 
 Editing content does not need a server restart: save the file and reload.
 
@@ -166,10 +172,10 @@ Obsidian is optional. Editing the same files in VS Code or vim works identically
 ### Common Commands
 
 ```bash
-npm run dev            # dev server
-npm run build          # production build
-npm run start          # serve the production build locally
-npm run lint           # ESLint
+yarn dev               # dev server
+yarn build             # production build
+yarn start             # serve the production build locally
+yarn lint              # ESLint
 ```
 
 ### Keeping Your Fork Updated

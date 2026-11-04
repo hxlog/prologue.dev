@@ -179,6 +179,25 @@ the avatar is a frontmatter field: it is the one thing on a page that needs
 styling and interactivity, and the page template renders it as a real React
 component. Everything else on a page should be markdown.
 
+## Where frontmatter appears
+
+You never write these by hand, but they are what a field becomes on the page:
+
+- **OG card** (`/og`, the image shown when the post is shared) — draws `title`,
+  `publishDate` (Chinese long form), `readingTime` (`约 N 分钟`), up to three
+  Chinese tag labels plus a `+N` chip, the author and `prologue.dev`. Editing
+  the title or tags changes the card on the next build; a card is cached
+  forever under a URL that carries those values.
+- **Feeds** — `description` and `image`; a post with no `image` gets a
+  generated OG card as its cover.
+- **Sitemap** — `lastmod ?? publishDate`; `/blog` and tag pages report the
+  newest post they can show, never "today".
+- **Cards and search** — `title`, `description`, `tags`, `readingTime`,
+  plus the tag's Chinese label from `data/tagLabels.js`.
+
+Because the tag labels, not the slugs, are what readers see, a tag that is
+missing from `data/tagLabels.js` still works but renders its raw English slug.
+
 ## When frontmatter is wrong
 
 The build **fails** and names the file and the field:
@@ -187,7 +206,7 @@ The build **fails** and names the file and the field:
 [content] data/content/blog/zzz-bad-frontmatter.md: "draft" must be a boolean, got "false". In Obsidian, set this property's type to Checkbox.
 ```
 
-`npm run dev` surfaces the same message in the browser and the terminal, and
+`yarn dev` surfaces the same message in the browser and the terminal, and
 recovers by itself once the file is fixed — no restart.
 
 This is stricter than the old Contentlayer2 setup, which *warned and skipped*

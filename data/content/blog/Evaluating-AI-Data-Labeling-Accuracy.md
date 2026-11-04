@@ -1,6 +1,6 @@
 ---
 title: 浅谈评估AI数据标注的准确率
-tags: ["AI"]
+tags: ["AI", "Quant"]
 publishDate: 2026-10-13
 description: 自动优化提示词的原理、模型标签A/B测试统计分析、证据驱动的模型打标质量改进。
 ---

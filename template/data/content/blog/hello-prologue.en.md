@@ -25,8 +25,8 @@ appears on the site.
 ## After you write
 
 ```bash
-npm run dev     # local preview; save a file and the page updates
-npm run build   # production build
+yarn dev        # local preview; save a file and the page updates
+yarn build      # production build
 ```
 
 Content edits do not need a server restart: save the file, reload the page.

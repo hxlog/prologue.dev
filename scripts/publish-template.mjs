@@ -12,7 +12,7 @@ const README_TEMPLATE = path.join(ROOT, "README.template.md");
 const TARGET_BRANCH = readArg("--branch") || "master";
 // Dry run by default. This script force-pushes to a public repository, and a
 // destructive action should not be the one you get by typing the obvious
-// command -- `npm run publish` builds and inspects the snapshot locally, and
+// command -- `yarn publish` builds and inspects the snapshot locally, and
 // pushing is the explicit extra step. CI passes --push (see
 // .github/workflows/publish-template.yml).
 const PUBLISH = hasFlag("--push");
@@ -168,16 +168,34 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "24"
-          cache: npm
+
+      # Yarn 4 is pinned by packageManager in package.json; Corepack is what
+      # makes a bare runner honour that pin. It has to run before anything calls
+      # \`yarn\`, including actions/setup-node's own cache lookup, so the cache
+      # is wired by hand below instead of with \`cache: yarn\`.
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Locate Yarn cache
+        id: yarn-cache-dir
+        run: echo "dir=$(yarn config get cacheFolder)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore Yarn cache
+        uses: actions/cache@v4
+        with:
+          path: \${{ steps.yarn-cache-dir.outputs.dir }}
+          key: \${{ runner.os }}-yarn-\${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            \${{ runner.os }}-yarn-
 
       - name: Install dependencies
-        run: npm ci
+        run: yarn install --immutable
 
       - name: Lint
-        run: npm run lint
+        run: yarn lint
 
       - name: Build
-        run: npm run build
+        run: yarn build
 `
     );
   }
@@ -322,6 +340,9 @@ function ensureTemplateInputs() {
   const required = [
     TEMPLATE_ROOT,
     README_TEMPLATE,
+    // The shipped clone installs with Yarn 4; without the linker setting it
+    // defaults to Plug'n'Play, which Next.js/Turbopack cannot build from.
+    path.join(ROOT, ".yarnrc.yml"),
     path.join(TEMPLATE_ROOT, "data", "content", "blog", "hello-prologue.md"),
     path.join(TEMPLATE_ROOT, "data", "content", "pages", "about.md"),
     path.join(TEMPLATE_ROOT, "data", "sitemetadata.js"),

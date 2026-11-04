@@ -17,13 +17,32 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "24"
-          cache: npm
+
+      # package.json pins Yarn 4 through "packageManager"; the yarn on the
+      # runner is v1, so corepack has to be enabled before any yarn call.
+      - name: Enable Corepack
+        run: corepack enable
+
+      # setup-node's own `cache: yarn` probes the runner's Yarn 1 cache
+      # folder (Yarn 4 reports it via `yarn config get cacheFolder` instead),
+      # so the cache is wired up explicitly here.
+      - name: Locate Yarn cache
+        id: yarn-cache
+        run: echo "dir=$(yarn config get cacheFolder)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Yarn packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.yarn-cache.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
 
       - name: Install dependencies
-        run: npm ci
+        run: yarn install --immutable
 
       - name: Lint
-        run: npm run lint
+        run: yarn lint
 
       - name: Build
-        run: npm run build
+        run: yarn build

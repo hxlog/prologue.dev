@@ -48,9 +48,12 @@ A content-first blog built with Next.js 16 and an in-repo filesystem content lay
 ```bash
 git clone https://github.com/hxlog/prologue-blog-template.git my-blog
 cd my-blog
-npm install
-npm run dev
+corepack enable   # once per machine — activates the Yarn 4 pinned in package.json
+yarn install
+yarn dev
 ```
+
+> Node.js **22.13+** is required (`engines` in `package.json`), and the package manager is **Yarn 4**, pinned by `packageManager` and enabled through [Corepack](https://nodejs.org/api/corepack.html). `npm`/ `pnpm` are not used: there is no `package-lock.json`, only `yarn.lock`.
 
 You can easily customize the template site: all configurations are in `/data`, static files are in `/public`.
 

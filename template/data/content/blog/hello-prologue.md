@@ -24,8 +24,8 @@ imageDesc: 封面图：把 public/static/photos/ 里的这张换成你自己的
 ## 写完之后
 
 ```bash
-npm run dev     # 本地预览，改完保存即可看到
-npm run build   # 构建生产版本
+yarn dev        # 本地预览，改完保存即可看到
+yarn build      # 构建生产版本
 ```
 
 内容改动不需要重启开发服务器：保存文件，刷新页面就能看到。
