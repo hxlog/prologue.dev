@@ -40,6 +40,15 @@ const nextConfig = {
   // deployed function and every card would fall back to the initial letter.
   outputFileTracingIncludes: {
     '/og': ['./public/static/favicons/avatar.png'],
+    // /api/search reads the generated corpus from disk on first request. It is
+    // built by scripts/build-search-index.mjs, which the tracer cannot see
+    // through, so the file must be included explicitly or the deployed function
+    // answers 503 index-unavailable.
+    '/api/search': ['./public/search-index.json'],
+    // The /about portfolio reads data/projects.yaml inside a 'use cache' scope.
+    // If that cache revalidates in a deployment, the file has to be present in
+    // the server trace; a catch-all key keeps the one small file available.
+    '/*': ['./data/projects.yaml'],
   },
 };
 

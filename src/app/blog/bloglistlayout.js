@@ -1,5 +1,5 @@
 import Link from "next/link";
-import SearchGrid from "../../components/search-grid";
+import PostGrid from "../../components/post-grid";
 import RouteTransition from "../../components/route-transition";
 import { tagLabel } from "../../../data/tagLabels";
 import { readingTimeLabel } from "../../lib/date";
@@ -7,7 +7,7 @@ import { readingTimeLabel } from "../../lib/date";
 /**
  * Shared archive layout for /blog and /tags/[...slug].
  * Server component: maps full content docs to slim objects before they cross
- * into the client <SearchGrid>, keeping the RSC payload small.
+ * into the client <PostGrid>, keeping the RSC payload small.
  *
  * No active-link state is needed here — the tag sidebar receives `activeTag`
  * as a prop from the route, so nothing reads the pathname.
@@ -81,7 +81,7 @@ export default function PostsLayout({
           )}
 
           <div className="min-w-0">
-            <SearchGrid posts={slimPosts} />
+            <PostGrid posts={slimPosts} />
           </div>
         </div>
       </div>

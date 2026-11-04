@@ -28,7 +28,11 @@ const asJson = process.argv.includes("--json");
 
 let posts;
 try {
-  posts = JSON.parse(readFileSync(INDEX, "utf8"));
+  // The search index now also carries pages (type: "page"); tags only exist on
+  // posts, so a page must not count as a tag-less post in the "thin" report.
+  posts = JSON.parse(readFileSync(INDEX, "utf8")).filter(
+    (doc) => doc.type !== "page"
+  );
 } catch {
   console.error(`Cannot read ${INDEX}. Run \`yarn build\` (or \`node scripts/build-search-index.mjs\`) first.`);
   process.exit(1);

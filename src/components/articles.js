@@ -3,27 +3,24 @@
 import { useEffect, useMemo, useState } from "react";
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/react";
 import Card from "./card";
-import { usePostSearch, warmSearch } from "../lib/use-post-search";
 import { tagLabel } from "../../data/tagLabels";
 
 const PAGE_SIZE = 8;
 
 /**
- * Home article browser: Featured grid + Latest/tag/Search tabs.
+ * Home article browser: Featured grid + Latest/top-tag tabs.
+ *
+ * Search is no longer a tab here. Site-wide search (including full post text)
+ * lives in the navbar dialog and runs on the server, so the home page does not
+ * carry a second search UI or download a search index.
  *
  * LCP notes: the first PAGE_SIZE cards render STATICALLY (no entrance
  * animation, no opacity gate) so they paint with the server HTML; only cards
- * added via "load more" or search results animate in. Search runs over the
- * shared build-time Fuse index (src/lib/use-post-search.js).
+ * added via "load more" animate in.
  */
 export default function Articles({ articles, topTags = [] }) {
   const [tabIndex, setTabIndex] = useState(0);
-  const [query, setQuery] = useState("");
-  const [debounced, setDebounced] = useState("");
-  const [results, setResults] = useState([]);
-  const [loadedFor, setLoadedFor] = useState("");
   const [visible, setVisible] = useState(PAGE_SIZE);
-  const { search } = usePostSearch();
 
   const featuredArticles = useMemo(
     () => articles.filter((a) => a.featured && !a.draft),
@@ -43,45 +40,16 @@ export default function Articles({ articles, topTags = [] }) {
     [latestArticles, topTags]
   );
 
-  // Tab order: 最新, …top tags (responsive), 搜索.
-  const searchTabIndex = 1 + topTags.length;
   // Tag #2 appears from tablet (md), tag #3 from desktop (lg) — the tab row
   // adapts to device width without JS resize handling.
   const tagTabVisibility = ["", "hidden md:inline-block", "hidden lg:inline-block"];
 
-  // Reset search + paging when switching tabs.
+  // Reset paging when switching tabs. Deferred to a task so the reset does not
+  // happen inside Headless UI's change event.
   useEffect(() => {
-    const t = setTimeout(() => {
-      setVisible(PAGE_SIZE);
-      if (tabIndex !== searchTabIndex) {
-        setQuery("");
-        setDebounced("");
-      }
-    }, 0);
+    const t = setTimeout(() => setVisible(PAGE_SIZE), 0);
     return () => clearTimeout(t);
-  }, [tabIndex, searchTabIndex]);
-
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(query.trim()), 150);
-    return () => clearTimeout(t);
-  }, [query]);
-
-  const isSearching = debounced.length >= 2;
-  const searching = isSearching && loadedFor !== debounced;
-
-  useEffect(() => {
-    if (!isSearching) return;
-    let cancelled = false;
-    search(debounced).then((items) => {
-      if (!cancelled) {
-        setResults(items);
-        setLoadedFor(debounced);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [debounced, isSearching, search]);
+  }, [tabIndex]);
 
   const loadMore = () => setVisible((prev) => prev + PAGE_SIZE);
 
@@ -103,8 +71,6 @@ export default function Articles({ articles, topTags = [] }) {
         </button>
       </div>
     ) : null;
-
-  const searchList = results.slice(0, visible);
 
   return (
     <div className="w-full">
@@ -133,9 +99,8 @@ export default function Articles({ articles, topTags = [] }) {
               label: tagLabel(tag),
               vis: tagTabVisibility[i] || "",
             })),
-            { label: "搜索", vis: "" },
           ].map((tab, index) => (
-            <Tab key={index} as="button" className={`z-10 nav-item ${tab.vis}`}>
+            <Tab key={index} as="button" className={"z-10 nav-item " + tab.vis}>
               {tab.label}
             </Tab>
           ))}
@@ -161,59 +126,6 @@ export default function Articles({ articles, topTags = [] }) {
               )}
             </TabPanel>
           ))}
-
-          {/* Search */}
-          <TabPanel className="min-h-[50vh] space-y-4">
-            <div className="relative">
-              <input
-                id="home-search"
-                name="search"
-                type="search"
-                aria-label="搜索文章"
-                placeholder="搜索文章、标签…"
-                onFocus={warmSearch}
-                onPointerEnter={warmSearch}
-                value={query}
-                onChange={(e) => {
-                  setQuery(e.target.value);
-                  setVisible(PAGE_SIZE);
-                }}
-                className="input pr-10"
-              />
-              <svg
-                className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </div>
-
-            {isSearching && searching ? (
-              <p className="py-8 text-center text-sm text-faint">搜索中…</p>
-            ) : isSearching && searchList.length > 0 ? (
-              <>
-                {cardGrid(searchList, true)}
-                {loadMoreButton(results.length)}
-              </>
-            ) : isSearching ? (
-              <p className="py-8 text-center text-sm text-muted">
-                没有找到与「{debounced}」相关的文章
-              </p>
-            ) : (
-              <p className="py-8 text-center text-sm text-faint">
-                输入关键词，全文搜索标题、简介与标签
-              </p>
-            )}
-          </TabPanel>
         </TabPanels>
       </TabGroup>
     </div>
