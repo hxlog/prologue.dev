@@ -27,6 +27,10 @@ export default function Card({
 }) {
   return (
     <article className="card card-interactive card-spotlight group relative flex flex-col p-5">
+      {/* 1px tri-colour rim: .card-ring is a masked conic gradient, so the three
+          hover hues still name themselves in dark mode, where the surface barely
+          moves. Decorative only. */}
+      <span className="card-ring" aria-hidden="true" />
       <div className="flex items-center gap-2 text-xs text-faint">
         <time dateTime={publishDate}>{formatDate(publishDate)}</time>
         {readingTime ? (
@@ -37,7 +41,7 @@ export default function Card({
         ) : null}
       </div>
 
-      <h3 className="card-title mt-2.5 text-lg font-semibold leading-7 tracking-tight text-foreground transition-colors duration-fast">
+      <h3 className="card-title mt-2.5 text-lg font-semibold leading-7 tracking-tight text-foreground transition-colors duration-(--duration-fast)">
         <Link
           href={slug}
           prefetch={true}

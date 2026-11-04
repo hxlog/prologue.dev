@@ -22,7 +22,7 @@ export default function AboutMe() {
       <h2 className="section-label">关于作者</h2>
 
       <Link href="/about" className="group mt-6 inline-block">
-        <span className="block rounded-full bg-[var(--gradient-brand)] p-[2px] transition-transform duration-base ease-out-expo group-hover:scale-105">
+        <span className="ring-gradient block transition-transform duration-(--duration-base) ease-out-expo group-hover:scale-105">
           <Image
             src={siteMetadata.avatar}
             alt={siteMetadata.author}
@@ -41,7 +41,7 @@ export default function AboutMe() {
         <div className="px-2">
           <Link
             href="/blog"
-            className="block font-semibold text-foreground transition-colors duration-fast hover:text-accent"
+            className="block font-semibold text-foreground transition-colors duration-(--duration-fast) hover:text-accent"
           >
             {POSTS_NUM}
           </Link>

@@ -12,7 +12,7 @@ import { formatDate } from "../lib/date";
  * - compact: home sidebar — first paragraph clamped + up to 3 thumbnails.
  *
  * Images use next/image fill inside aspect-ratio boxes (CLS-safe) and carry
- * the `lightbox-image` class so the globally mounted ImageLightbox picks
+ * the `lightbox-image` class so the globally mounted lightbox controller picks
  * them up in DOM order (swipe across entries works for free).
  */
 export default function MicroblogCard({ entry, compact = false }) {
@@ -35,7 +35,7 @@ export default function MicroblogCard({ entry, compact = false }) {
             fill
             loading="lazy"
             sizes="(min-width: 1024px) 30vw, (min-width: 640px) 45vw, 92vw"
-            className="lightbox-image object-cover transition-transform duration-base ease-out-expo hover:scale-[1.03]"
+            className="lightbox-image object-cover transition-transform duration-(--duration-base) ease-out-expo hover:scale-[1.03]"
           />
           <figcaption className="sr-only">{img.desc || img.src}</figcaption>
         </figure>

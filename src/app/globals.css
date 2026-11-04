@@ -150,27 +150,51 @@
   --secondary-soft: rgba(247, 212, 230, 0.22);
   --secondary-pastel: #f7d4e6;
 
-  /* Decoration only — gradients and the cursor glow. Never text, never a
+  /* Decoration only — gradients and the hover system. Never text, never a
      control, so it carries no contrast obligation. */
   --sky: #b4e0ec;
 
-  /* Cursor glow and hover wash. Fixed rgba rather than color-mix() so dark
-     mode can dim the same three hues by overriding three values instead of
-     rewriting every gradient. */
-  --glow-sky: rgb(191 232 244 / 0.55);
-  --glow-lav: rgb(206 210 248 / 0.5);
-  --glow-pink: rgb(250 216 232 / 0.5);
-  --wash-sky: rgb(191 232 244 / 0.16);
-  --wash-lav: rgb(206 210 248 / 0.12);
-  --wash-pink: rgb(250 216 232 / 0.16);
+  /* The hover system is three layers, and each layer gets its own tokens so
+     dark mode can dim the same three hues by overriding values instead of
+     rewriting gradients:
+
+       1. --wash-*    the holographic band on .card::before
+       2. --glow-*    the pointer-following light on .card-spotlight::after
+       3. --ring-*    the 1px tri-colour rim (a conic gradient inside a mask)
+
+     v4 moved in two directions at once: alpha DOWN (the 0.16 wash made a grid
+     of cards read as tinted paper) and chroma UP. "Very light" and "washed
+     out" are not the same thing, and the old values were the second one. */
+  /* The hues are SATURATED and the alphas stay low. That combination is the
+     whole trick: a pale hue at high alpha disappears into "tinted paper", while
+     a saturated one at low alpha still composites to a light surface (L ≈ 0.90)
+     with real chroma. v3 used pale hues at 0.16 and measured C ≈ 0.02 — visible
+     as "a bit purple", not as three colours. */
+  --glow-sky: rgb(74 198 236 / 0.3);
+  --glow-lav: rgb(146 152 248 / 0.24);
+  --glow-pink: rgb(248 140 190 / 0.28);
+  --glow-core: rgb(255 255 255 / 0.16);
+  --wash-sky: rgb(74 198 236 / 0.24);
+  --wash-lav: rgb(146 152 248 / 0.2);
+  --wash-pink: rgb(248 140 190 / 0.22);
+  /* Top highlight on the sheen. It lifts the composite lightness in light mode
+     and is almost absent in dark mode, where "light hover" is exactly the
+     wrong direction. */
+  --sheen-hi: rgb(255 255 255 / 0.16);
+  --ring-gradient: conic-gradient(
+    from 210deg,
+    #7fd6ee,
+    #b9bdf6 30%,
+    #f7b3d3 60%,
+    #b9bdf6 80%,
+    #7fd6ee
+  );
+  /* Both stay at zero until the pointer arrives: a card is flat at rest. */
+  --ring-a: 0;
+  --card-lift: 3%;
 
   /* Fills and decoration — safe at any size, never used for text. */
-  --gradient-brand: linear-gradient(
-    120deg,
-    #c9cdf5,
-    #dff0f9 46%,
-    #f7d4e6
-  );
+  --gradient-brand: linear-gradient(120deg, #c9cdf5, #e6f4fb 46%, #f7d4e6);
   --gradient-aurora: radial-gradient(
       52% 64% at 18% 8%,
       color-mix(in srgb, var(--accent-pastel) 46%, transparent),
@@ -221,23 +245,55 @@
 
   --sky: #b4e0ec;
 
-  /* A third of the light-mode alpha. At the old 0.42 the pale lavender
-     composited to #5f637c (L 0.128) over the card — that is the bright white
-     patch reported on dark cards. These land at L ≈ 0.05: dim, but the three
-     hues are still separable. */
-  --glow-sky: rgb(191 232 244 / 0.16);
-  --glow-lav: rgb(206 210 248 / 0.15);
-  --glow-pink: rgb(250 216 232 / 0.14);
-  --wash-sky: rgb(191 232 244 / 0.07);
-  --wash-lav: rgb(206 210 248 / 0.06);
-  --wash-pink: rgb(250 216 232 / 0.07);
+  /* Same three hues at roughly a tenth of the light alpha. Colour in dark mode
+     is carried by the rim, not by a bright surface patch: at v3's 0.16 the
+     pale wash composited to L 0.05 over #1c1f28 (the "hover is too white"
+     report). These land near L 0.03 — dim, and still three separable hues.
+     The rim is the exception: it is 1px of high-chroma ink, so it can be
+     brighter (0.62) without lifting the card's overall lightness. */
+  /* Dark mode spends a different currency: over #1c1f28, alpha is what costs
+     brightness, so the wash uses MID-saturation, mid-luminance hues at ~0.13.
+     A saturated deep cyan at low alpha adds hue without lifting the card's
+     luminance the way the old pale-lavender wash did (that is the "hover is too
+     white" report). The three colours are then named by the rim, which is 1px of
+     high-chroma ink and can afford 0.75 opacity. */
+  /* Near-white tints, not coloured ones: in dark mode the bands and the rim
+     carry the hue, and a coloured glow would repaint the band it sits on (the
+     previous periwinkle glow pulled 64% of the card into the lavender bucket).
+     These only add the pointer light. */
+  --glow-sky: rgb(240 250 252 / 0.065);
+  --glow-lav: rgb(246 246 252 / 0.058);
+  --glow-pink: rgb(252 244 248 / 0.06);
+  --glow-core: rgb(255 255 255 / 0.03);
+  /* Alphas sized against measurement, not taste: the whole overlay composites
+     to Y ≈ 0.032 on the #1c1f28 card (rest surface is Y 0.0138), which is dim
+     enough to read as a faint light rather than as the old bright patch.
 
-  --gradient-brand: linear-gradient(
-    120deg,
-    #c9cdf5,
-    #dff0f9 46%,
-    #f7d4e6
+     The band inks are more saturated than the light-mode ones on purpose.
+     Compositing over a blue-leaning dark base compresses hue: the first dark
+     set (rgb(56 156 196) @ .09 and friends) measured **249° / 277° / 309°**,
+     i.e. the "sky" band had drifted into blue-violet and 78 % of the card
+     landed in one bucket -- the "dark mode still doesn't show three colours"
+     report. Saturated inks at a slightly higher alpha pull the composite back
+     to **223° / 280° / 336°** with a 37 / 34 / 29 % split and max chroma 0.069,
+     for +0.002 Y. Brightness is the scarce resource here, hue separation is
+     not. */
+  --wash-sky: rgb(0 200 210 / 0.13);
+  --wash-lav: rgb(110 110 245 / 0.125);
+  --wash-pink: rgb(235 80 120 / 0.135);
+  --sheen-hi: rgb(255 255 255 / 0.012);
+  --ring-gradient: conic-gradient(
+    from 210deg,
+    #6fd0ea,
+    #b0b6f5 30%,
+    #f2a8cb 60%,
+    #b0b6f5 80%,
+    #6fd0ea
   );
+  --ring-a: 0;
+  --card-lift: 2%;
+
+  --gradient-brand: linear-gradient(120deg, #c9cdf5, #e6f4fb 46%, #f7d4e6);
   --gradient-brand-text: linear-gradient(120deg, #ccd0f8, #f4cede);
 
   color-scheme: dark;
@@ -395,16 +451,30 @@
     transform: scale(0.98);
   }
 
-  /* The fill (not the ink) takes --accent-strong: white on the light-mode
-     accent (#6a6fcd) is 4.45:1 and on the strong one 5.1:1, so only the latter
-     is a fill a label may sit on. Hover lands on the lighter accent, which is
-     the same "more contrast" direction as the rest of the palette. */
+  /* The fill is a gradient of the two STRONG inks (5.1:1 and 5.2:1 with white),
+     so a label clears AA at both ends of it. A brand-pastel fill cannot carry
+     white text, which is why the primary button is the one control that does
+     not use --gradient-brand. Hover slides the gradient instead of lightening
+     it: the lighter inks only reach 4.4:1 with white. */
   .btn-primary {
-    background-color: var(--accent-strong);
+    background-image: linear-gradient(
+      115deg,
+      var(--accent-strong),
+      var(--secondary-strong)
+    );
+    background-size: 160% 100%;
+    background-position: 0% 50%;
     color: var(--on-accent);
+    box-shadow: var(--shadow-card);
+    transition:
+      background-position var(--duration-base) var(--ease-out-expo),
+      box-shadow var(--duration-base) var(--ease-out-expo),
+      transform var(--duration-fast) var(--ease-out-expo);
   }
   .btn-primary:hover {
-    background-color: var(--accent);
+    background-position: 100% 50%;
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-1px);
   }
 
   .btn-ghost {
@@ -440,6 +510,19 @@
   }
   .btn-icon:active {
     transform: scale(0.94);
+  }
+
+  /* Floating scroll actions. Positioned here; the scroll-driven reveal itself
+     lives with the other motion rules at the end of the layer chain, because a
+     registered/timeline animation is easier to audit in one place. */
+  .scroll-actions {
+    position: fixed;
+    right: 2rem;
+    bottom: 2rem;
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
   }
 
   .input {
@@ -490,7 +573,14 @@
   .nav-item[data-active="true"],
   .nav-item[aria-selected="true"],
   .nav-item[aria-current="page"] {
-    background-color: color-mix(in srgb, var(--accent-pastel) 20%, transparent);
+    /* Three-stop tint rather than a flat fill: the active pill is the same
+       gradient language as the cards and chips. */
+    background-image: linear-gradient(
+      120deg,
+      color-mix(in srgb, var(--accent-pastel) 26%, transparent),
+      color-mix(in srgb, var(--sky) 22%, transparent) 52%,
+      color-mix(in srgb, var(--secondary-pastel) 24%, transparent)
+    );
     color: var(--accent);
     font-weight: 600;
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent);
@@ -499,13 +589,23 @@
   /* -------------------------------------------------------------------------
    * Surfaces
    * ----------------------------------------------------------------------- */
-  /* Card: flat surface, hairline ring, no shadow at rest. The hover is a 1px
-     lift plus a three-colour wash -- sky in one corner, lavender through the
-     middle, pink in the opposite corner -- at wash-level alpha, so eight cards
-     lighting up at once still reads as paper rather than as a light show.
-     The wash is a pseudo-element and not a `background-color`: a gradient
-     cannot be transitioned, opacity can, so the colour change is smooth while
-     the surface colour itself only drifts 4%. */
+  /* Card: flat surface, hairline ring, no shadow at rest. Hover is three
+     layers, in paint order:
+
+       1. .card::before      a holographic band -- sky -> lavender -> pink ->
+                             lavender -> sky across 112deg -- that fades in.
+                             A gradient cannot be transitioned, opacity can, and
+                             eight cards fading at once still reads as paper.
+       2. .card-ring         a 1px tri-colour rim (conic gradient clipped to the
+                             border box). This is the layer that names the three
+                             colours in dark mode, where the surface barely
+                             moves; a rim of high-chroma ink costs no
+                             brightness.
+       3. .card-spotlight::after  the pointer light: three SMALL hues offset
+                             around the pointer so they stay separable instead
+                             of averaging into one lavender smudge.
+
+     The surface itself only drifts --card-lift (3% / 2%) and rises 1px. */
   .card {
     position: relative;
     isolation: isolate;
@@ -518,9 +618,8 @@
       transform var(--duration-base) var(--ease-out-expo);
   }
   /* z-index: -1 under the card's own `isolation` paints above the surface
-     colour and below every in-flow child. Negative-z pseudo-elements are also
-     how .card-spotlight puts the moving glow underneath. ::before paints before
-     ::after, so the static wash sits under the moving one. */
+     colour and below every in-flow child. ::before paints before ::after, so
+     the band sits under the moving light. */
   .card::before {
     content: "";
     position: absolute;
@@ -530,18 +629,89 @@
     border-radius: inherit;
     opacity: 0;
     transition: opacity var(--duration-base) var(--ease-out-expo);
-    background: linear-gradient(135deg, var(--wash-sky), transparent 46%),
-      linear-gradient(315deg, var(--wash-pink), transparent 46%),
-      linear-gradient(160deg, var(--wash-lav), transparent 70%);
+    /* Three BANDS of roughly equal area — sky, lavender, pink — across the
+       112deg axis, separated by narrow blend zones rather than a long ramp.
+       This is the part v3 got structurally wrong: its five-stop ramp put
+       lavender at 32% and again at 78%, so the middle half of every card was a
+       lavender-to-lavender blend and the result measured 57% lavender / 0% sky.
+       Equal bands make the three hues readable at a glance, and because the
+       band axis runs through the diagonal, each band still gets a gradient
+       direction of its own instead of reading as a stripe.
+       The second layer is a plain top highlight: it lifts the composite
+       lightness (the target is L ≈ 0.90, i.e. still "very light") without
+       touching the hue distribution. */
+    background:
+      linear-gradient(
+        112deg,
+        var(--wash-sky) 0%,
+        var(--wash-sky) 30%,
+        var(--wash-lav) 36%,
+        var(--wash-lav) 56%,
+        var(--wash-pink) 62%,
+        var(--wash-pink) 100%
+      ),
+      linear-gradient(180deg, var(--sheen-hi), transparent 58%);
   }
+
+  /* 1px tri-colour rim. The classic gradient-border recipe: a background
+     painted only inside a 1px padding, then masked away from the content box.
+     Lightning CSS emits the -webkit- prefix, so do not hand-write it. The mask
+     keyword pair is written in the shorthand-free form on purpose -- the
+     two-value `mask` shorthand with a clip keyword is not consistently parsed. */
+  .card-ring {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    padding: 1px;
+    background: var(--ring-gradient);
+    opacity: var(--ring-a);
+    transition: opacity var(--duration-base) var(--ease-out-expo);
+    /* Standard properties only: Lightning CSS emits the -webkit- pair itself,
+       and a hand-written prefix makes it drop the standard one instead. */
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0) border-box;
+    mask-composite: exclude;
+  }
+  @supports not (mask-composite: exclude) {
+    /* Without content-box masking the rim cannot be drawn; fall back to the
+       hairline that v3 used, so the card is never left without a hover edge. */
+    .card-ring {
+      display: none;
+    }
+  }
+
+  /* Brand ring for a fixed-size round image (author avatar, friend avatars).
+     The previous markup wrote bg-[var(--gradient-brand)], which compiles to
+     background-color: <gradient> -- an invalid value, so the ring silently
+     never painted. background-image + padding is the same 2px ring, but it
+     actually renders. */
+  .ring-gradient {
+    border-radius: var(--radius-pill);
+    padding: 2px;
+    background-image: var(--gradient-brand);
+  }
+
   @media (hover: hover) and (pointer: fine) {
     .card-interactive:hover {
       transform: translateY(-1px);
-      background-color: color-mix(in srgb, var(--accent-pastel) 4%, var(--surface));
+      background-color: color-mix(
+        in srgb,
+        var(--accent-pastel) var(--card-lift),
+        var(--surface)
+      );
       box-shadow: var(--shadow-card-hover);
     }
     .card-interactive:hover::before {
       opacity: 1;
+    }
+    .card-interactive:hover .card-ring {
+      --ring-a: 0.45;
+    }
+    /* The rim is the layer that carries the three colours in dark mode, so it
+       is brighter there — 1px of ink costs no overall brightness. */
+    .dark .card-interactive:hover .card-ring {
+      --ring-a: 0.75;
     }
   }
   .card-interactive:hover .card-title {
@@ -596,22 +766,35 @@
       --spot-x 140ms linear,
       --spot-y 140ms linear,
       --spot-a var(--duration-base) ease;
+    /* v3 put three 420-460px blobs almost on top of each other, so their
+       alphas averaged into a single lavender patch -- the "it is all purple"
+       report. v4 keeps the same three hues but shrinks each one and pushes the
+       offsets out, so at any pointer position there is sky in one place,
+       lavender in another and pink in a third, with only soft edges crossing.
+       The white core is the bottom layer: it lightens the middle without
+       desaturating the hues that sit over it. */
     background: radial-gradient(
-        460px circle at calc(var(--spot-x, 50%) - 9%)
-          calc(var(--spot-y, 50%) - 7%),
+        320px circle at calc(var(--spot-x, 50%) - 12%)
+          calc(var(--spot-y, 50%) - 9%),
         var(--glow-sky),
-        transparent 70%
+        transparent 58%
       ),
       radial-gradient(
-        420px circle at var(--spot-x, 50%) var(--spot-y, 50%),
-        var(--glow-lav),
-        transparent 68%
-      ),
-      radial-gradient(
-        430px circle at calc(var(--spot-x, 50%) + 9%)
+        300px circle at calc(var(--spot-x, 50%) + 10%)
           calc(var(--spot-y, 50%) + 7%),
         var(--glow-pink),
-        transparent 70%
+        transparent 56%
+      ),
+      radial-gradient(
+        330px circle at calc(var(--spot-x, 50%) + 1%)
+          calc(var(--spot-y, 50%) - 3%),
+        var(--glow-lav),
+        transparent 60%
+      ),
+      radial-gradient(
+        220px circle at var(--spot-x, 50%) var(--spot-y, 50%),
+        var(--glow-core),
+        transparent 72%
       );
   }
   /* Hover only flips --spot-a on the card; the pseudo-element inherits it and
@@ -1049,6 +1232,39 @@ html:not(.theme-vt)::view-transition-old(root) {
   }
 }
 
+/* ---------------------------------------------------------------------------
+ * Scroll-driven reveal for .scroll-actions (the floating comment / top
+ * buttons). v3 ran a `scroll` listener and a React state update per scroll
+ * event to toggle a class; this runs on the compositor with no JS at all, which
+ * also keeps the buttons out of the tab order while they are invisible.
+ *
+ * `visibility` is animated deliberately: opacity alone would leave two
+ * invisible-but-focusable buttons at the top of every article.
+ *
+ * The @supports block is the whole feature detection — a browser without
+ * animation-timeline keeps the base rule and shows the buttons permanently.
+ * That is the honest fallback: the control is never missing, only never hidden.
+ * ------------------------------------------------------------------------- */
+@supports (animation-timeline: scroll()) {
+  .scroll-actions {
+    animation: scroll-actions-in linear both;
+    animation-timeline: scroll(root block);
+    animation-range: 0 120px;
+  }
+  @keyframes scroll-actions-in {
+    from {
+      opacity: 0;
+      translate: 0 0.5rem;
+      visibility: hidden;
+    }
+    to {
+      opacity: 1;
+      translate: 0 0;
+      visibility: visible;
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(.page-exit),
   ::view-transition-new(.page-enter-fade) {
@@ -1063,6 +1279,14 @@ html:not(.theme-vt)::view-transition-old(root) {
      colour). */
   .card-spotlight:hover::after {
     animation: none;
+  }
+  /* No scrolled reveal either: show the buttons from the start rather than
+     fading them in as the page moves. */
+  .scroll-actions {
+    animation: none;
+    opacity: 1;
+    translate: none;
+    visibility: visible;
   }
 }
 
@@ -1109,7 +1333,10 @@ html:not(.theme-vt)::view-transition-old(root) {
   --tw-prose-invert-quotes: var(--foreground);
   --tw-prose-invert-quote-borders: var(--accent);
   --tw-prose-invert-captions: var(--faint);
-  --tw-prose-invert-code: var(--secondary);
+  /* Same rule as the light block: inline code is body text, so dark mode also
+     takes the strong (lighter) ink rather than the base pink. The two blocks
+     disagreeing was the one place the dark palette was not the same system. */
+  --tw-prose-invert-code: var(--secondary-strong);
   --tw-prose-invert-pre-code: var(--foreground);
   --tw-prose-invert-pre-bg: var(--surface-2);
   --tw-prose-invert-th-borders: var(--border-strong);
@@ -1155,9 +1382,25 @@ html:not(.theme-vt)::view-transition-old(root) {
 .prose :where(blockquote):not(.not-prose *) {
   font-style: normal;
   border-left: 3px solid var(--accent);
-  background-color: var(--accent-soft);
+  /* Three-stop tint instead of the flat accent-soft: a long CJK article stacks
+     quotes and code blocks, and a flat tint makes them all read as the same
+     grey block. */
+  background-image: linear-gradient(
+    115deg,
+    var(--accent-soft),
+    color-mix(in srgb, var(--sky) 14%, transparent) 52%,
+    var(--secondary-soft)
+  );
   border-radius: 0 var(--radius-control) var(--radius-control) 0;
   padding: 0.75rem 1.125rem;
+}
+/* Separators carry the brand ramp so they read as part of the system rather
+   than as a leftover browser rule. */
+.prose :where(hr):not(.not-prose *) {
+  height: 1px;
+  border: 0;
+  background-image: var(--gradient-brand);
+  opacity: 0.7;
 }
 /* Body links are body text (18px regular is not "large" per WCAG), so they
    read the strong ink and only the underline stays pastel; the lighter
@@ -1202,23 +1445,31 @@ figcaption {
   text-align: center;
 }
 
-.katex {
-  font: normal 1.21em KaTeX_Main, serif;
-  line-height: 1.2;
+/* Native MathML (rehype-katex output: "mathml"). Switching to it removed
+   katex.min.css, whose 20 @font-face rules were the last webfont requests on the
+   site. The <span class="katex"> wrapper survives around the <math>; it needs
+   no font declaration of its own. Two layout fixes remain necessary because
+   native MathML does neither:
+   - a long display formula is one intrinsic-width box, and browsers do not wrap
+     it, so it used to push the whole page sideways on mobile;
+   - inline math sits on the text baseline and needs no extra spacing. */
+.prose .katex {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: baseline;
   white-space: normal;
-  text-indent: 0;
 }
-
-/* 强制 KaTeX display 公式换行 */
-.katex-display {
-  white-space: normal !important;
+.prose .katex math {
+  font-size: 1.06em;
+  color: var(--foreground);
 }
-.katex-display > .katex {
-  white-space: normal !important;
-}
-.katex-display > .katex > .katex-html {
-  white-space: normal !important;
-  display: inline !important;
+.prose .katex math[display="block"] {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-block: 0.25rem;
+  scrollbar-width: thin;
 }
 
 /* Shiki dual theme — colors come from CSS vars (defaultColor: false) */
@@ -1240,153 +1491,198 @@ html.dark .shiki span {
 }
 
 /* ---------------------------------------------------------------------------
- * yet-another-react-lightbox — unified dark-glass skin (both themes).
- * Photos read best on a dark scrim; the chrome (buttons, caption) reuses the
- * site's glass language: blurred translucent surfaces, hairline borders and
- * the brand lavender on hover. The scrim is intentionally theme-independent,
- * so its colors are local variables rather than the flipping site tokens.
+ * Image lightbox.
+ *
+ * The scrim is deliberately theme-independent — a photo reads against a dark
+ * surface, and a light scrim would fight the image — but the chrome is the same
+ * glass language as the navbar and the modals: blurred translucent surface,
+ * hairline border, brand pastel on hover.
+ *
+ * The entrance is the FLIP morph in lightbox-viewer.js: the clicked thumbnail's
+ * rect is captured at click time and the viewer image animates from it to its
+ * laid-out box (Web Animations), so the handoff starts on the click frame.
+ * [data-morph] therefore *disables* the CSS scale-in below — two animations on
+ * the same element read as a stutter. The CSS animation is what runs with
+ * prefers-reduced-motion (no morph, no movement) and covers browsers that
+ * cannot run the projection.
  * ------------------------------------------------------------------------- */
-.yarl__container {
-  --lb-fg: #eef0f7;
-  --lb-accent: #c9cdf5;
-  --lb-border: rgba(238, 240, 247, 0.14);
-  --lb-surface: rgba(20, 22, 29, 0.55);
-  --lb-surface-hover: rgba(47, 52, 70, 0.75);
-  background: rgba(20, 22, 29, 0.78) !important;
-  box-shadow: none !important;
-  backdrop-filter: blur(12px);
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  color: #eef0f7;
+  background: rgb(18 20 27 / 0.82);
+  backdrop-filter: blur(14px) saturate(115%);
+  animation: lightbox-scrim var(--duration-base) var(--ease-out-expo) both;
+  touch-action: none;
+}
+@keyframes lightbox-scrim {
+  from {
+    opacity: 0;
+  }
 }
 
-.yarl__slide_image {
-  max-height: 92vh !important;
-  max-width: 96vw !important;
-  width: auto !important;
-  height: auto !important;
-  object-fit: contain !important;
-  margin-bottom: 0 !important;
-  border-radius: var(--radius-card) !important;
+.lightbox-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.lightbox-figure {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  max-height: 100%;
+  margin: 0;
+  will-change: transform;
+  transition: transform var(--duration-fast) var(--ease-out-expo);
+  animation: lightbox-figure-in var(--duration-enter) var(--ease-out-expo) both;
+}
+.lightbox-figure[data-morph] {
+  animation: none;
+}
+@keyframes lightbox-figure-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+}
+
+.lightbox-figure img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  border-radius: var(--radius-card);
   box-shadow:
-    0 0 0 1px var(--lb-border),
-    0 24px 70px -12px rgba(0, 0, 0, 0.6) !important;
-  background: transparent !important;
-  will-change: transform;
-  transition:
-    transform 180ms var(--ease-out-expo),
-    box-shadow 0.2s ease;
+    0 0 0 1px rgb(238 240 247 / 0.12),
+    0 30px 80px -20px rgb(0 0 0 / 0.7);
+  user-select: none;
+  -webkit-user-drag: none;
+  opacity: 0;
+  transition: opacity var(--duration-base) ease;
+}
+.lightbox-figure img[data-loaded],
+.lightbox-figure[data-morph] img {
+  opacity: 1;
+  transition: none;
 }
 
-.yarl__slide_wrapper {
-  will-change: transform;
-  transition: transform 200ms var(--ease-out-expo);
+/* Chrome: one glass recipe for every button in the overlay. */
+.lightbox-close,
+.lightbox-nav,
+.lightbox-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgb(238 240 247 / 0.14);
+  border-radius: var(--radius-pill);
+  background: rgb(27 30 40 / 0.62);
+  color: #eef0f7;
+  transition:
+    background-color var(--duration-fast) ease,
+    border-color var(--duration-fast) ease,
+    transform var(--duration-fast) var(--ease-out-expo);
+  cursor: pointer;
+}
+.lightbox-close:hover,
+.lightbox-nav:hover,
+.lightbox-tool:hover {
+  background: rgb(44 49 64 / 0.82);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.lightbox-tool:active,
+.lightbox-nav:active,
+.lightbox-close:active {
+  transform: scale(0.94);
+}
+.lightbox-tool:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 2;
+  width: 2.5rem;
+  height: 2.5rem;
+}
+.lightbox-nav {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  width: 2.75rem;
+  height: 2.75rem;
+  translate: 0 -50%;
+}
+.lightbox-nav--prev {
+  left: 0.5rem;
+}
+.lightbox-nav--next {
+  right: 0.5rem;
+}
+
+.lightbox-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.lightbox-tool {
+  width: 2.25rem;
+  height: 2.25rem;
+}
+.lightbox-counter {
+  font-size: var(--text-caption);
+  font-variant-numeric: tabular-nums;
+  color: rgb(238 240 247 / 0.68);
+  padding-inline: 0.25rem;
+}
+
+.lightbox-caption {
+  max-width: 48rem;
+  margin: 0;
+  padding-inline: 0.5rem;
+  text-align: center;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: rgb(238 240 247 / 0.78);
+}
+
+@media (max-width: 640px) {
+  .lightbox-nav {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+  .lightbox-nav--prev {
+    left: -0.25rem;
+  }
+  .lightbox-nav--next {
+    right: -0.25rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .yarl__slide_image,
-  .yarl__slide_wrapper {
-    transition: none !important;
+  .lightbox,
+  .lightbox-figure {
+    animation: none;
   }
-  .page-enter,
-  .reveal {
-    animation: none !important;
+  .lightbox-figure {
+    transition: none;
   }
-  .reading-progress {
-    animation: none !important;
-  }
-  .card-spotlight::after {
-    animation: none !important;
-  }
-}
-
-/* Caption: floating dark-glass panel, same radius/border language as modals */
-.yarl__slide_footer {
-  position: absolute !important;
-  display: block !important;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: 3rem !important;
-  width: min(92vw, 860px);
-  margin: 0 !important;
-  padding: 0.75rem 1.25rem;
-  text-align: center;
-  border-radius: var(--radius-card);
-  background: rgba(34, 30, 33, 0.72) !important;
-  border: 1px solid var(--lb-border);
-  box-shadow: 0 18px 44px -12px rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(10px);
-}
-
-.yarl__caption_text {
-  margin: 0;
-  color: var(--lb-fg);
-  font-size: 0.95rem;
-  line-height: 1.6;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-}
-
-@media (min-width: 640px) {
-  .yarl__slide_image {
-    max-height: 93vh !important;
-    max-width: 94vw !important;
-  }
-  .yarl__slide_footer {
-    width: min(88vw, 860px);
-    padding: 0.8rem 1.4rem;
-  }
-  .yarl__caption_text {
-    font-size: 1rem;
-  }
-}
-@media (min-width: 1024px) {
-  .yarl__slide_image {
-    max-height: 94vh !important;
-    max-width: 92vw !important;
-  }
-  .yarl__slide_footer {
-    width: min(72vw, 920px);
-    bottom: 1.4rem;
-    opacity: 0.85;
-    transition: opacity 0.2s ease;
-  }
-  .yarl__slide_footer:hover {
-    opacity: 1;
-  }
-  .yarl__caption_text {
-    font-size: 1.05rem;
-  }
-}
-
-/* Chrome buttons: glass pills with hairline borders; lavender on hover */
-.yarl__toolbar,
-.yarl__button {
-  background: transparent !important;
-  box-shadow: none !important;
-}
-.yarl__button {
-  color: var(--lb-fg) !important;
-  background: var(--lb-surface) !important;
-  border: 1px solid var(--lb-border);
-  border-radius: var(--radius-pill) !important;
-  backdrop-filter: blur(8px);
-  transition:
-    background 0.2s ease,
-    color 0.2s ease,
-    border-color 0.2s ease,
-    transform 0.15s ease;
-}
-.yarl__button:hover,
-.yarl__button:active,
-.yarl__button:focus {
-  background: var(--lb-surface-hover) !important;
-  color: var(--lb-accent) !important;
-  border-color: color-mix(in srgb, var(--lb-accent) 40%, transparent);
-  transform: scale(1.05);
-}
-
-.yarl__navigation_next,
-.yarl__navigation_prev {
-  padding: var(--yarl__navigation_button_padding, 5px 5px) !important;
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
 }
