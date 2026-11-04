@@ -1,4 +1,5 @@
 import siteMetadata from "../../../data/sitemetadata";
+import { readingTimeLabel } from "../date";
 
 const SITE = String(siteMetadata.siteUrl || "").replace(/\/+$/, "");
 
@@ -27,14 +28,43 @@ export function postUrl(slug) {
   return `${SITE}${value.startsWith("/") ? "" : "/"}${value}`;
 }
 
-/** Dynamic OG image endpoint with a properly encoded title. */
-export function ogImageUrl(title) {
-  return `${SITE}/og?title=${encodeURIComponent(title || "")}`;
+/**
+ * Dynamic OG image URL.
+ *
+ * Accepts either a bare title (legacy call shape — a feed-style title) or
+ * `{ title, date, tags, read }`, which is what a post passes and what the OG
+ * card renders. Every value is encoded individually: a title with `&`, `#` or
+ * `+` (all common in Chinese titles) would otherwise truncate or corrupt the
+ * query string, and an unencoded `/` in a tag would split the path.
+ */
+export function ogImageUrl(input) {
+  const params =
+    typeof input === "string" || input == null
+      ? { title: input || "" }
+      : input;
+
+  const search = new URLSearchParams();
+  if (params.title) search.set("title", String(params.title));
+  if (params.date) search.set("date", String(params.date));
+  if (params.read) search.set("read", String(params.read));
+  if (Array.isArray(params.tags) && params.tags.length) {
+    search.set("tags", params.tags.join(","));
+  }
+
+  const query = search.toString();
+  return query ? `${SITE}/og?${query}` : `${SITE}/og`;
 }
 
 /** Resolve a post cover image, falling back to the OG image generator. */
 export function coverImageUrl(post) {
   const image = String(post.image || "").trim();
-  if (!image) return ogImageUrl(post.title);
+  if (!image) {
+    return ogImageUrl({
+      title: post.title,
+      date: post.publishDate,
+      tags: post.tags,
+      read: readingTimeLabel(post.readingTime),
+    });
+  }
   return absolutize(image);
 }

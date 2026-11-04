@@ -1,43 +1,46 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import dynamic from "next/dynamic";
-import { getPosts, getBodyHtml } from "../../../lib/content";
+import Link from "next/link";
+import Image from "next/image";
 import "katex/dist/katex.min.css";
+import { getPosts } from "../../../lib/content";
+import { getCachedPost, getCachedPosts } from "../../../lib/content/cached";
 import siteMetadata from "../../../../data/sitemetadata";
 import ScrollTopAndComment from "../../../components/scroll";
 import TableofContent from "../../../components/toc";
-import Link from "next/link";
-import Image from "next/image";
 import AboutMe from "../../../components/aboutme";
 import TagChips from "../../../components/tag-chips";
 import RelatedPosts from "../../../components/related-posts";
 import ReadingProgress from "../../../components/reading-progress";
 import { OptimizedHTMLRenderer } from "../../../components/optimized-html-renderer";
 import RouteTransition from "../../../components/route-transition";
-import { formatDate } from "../../../lib/date";
+import { ArticleSkeleton } from "../../../components/skeletons";
+import { formatDate, readingTimeLabel } from "../../../lib/date";
+import { ogImageUrl } from "../../../lib/feed/urls";
 
 const Comments = dynamic(() => import("../../../components/comments"), {
   loading: () => <div className="h-32" aria-hidden />,
 });
 
-async function getPostFromParams(params) {
-  const slug = params?.slug?.join("/");
-  return getPosts().find((post) => post.slugAsParams === slug);
+function slugOf(params) {
+  const parts = params?.slug;
+  return Array.isArray(parts) ? parts.join("/") : parts;
 }
 
-// Non-mutating: getPosts() returns the shared snapshot, which must not be
+// Non-mutating: the loader returns the shared snapshot, which must not be
 // sorted in place.
-function getAdjacentPosts(post) {
-  const sortedPosts = [...getPosts()].sort(
+function getAdjacentPosts(posts, post) {
+  const sorted = [...posts].sort(
     (a, b) => new Date(a.publishDate) - new Date(b.publishDate),
   );
 
-  const currentIndex = sortedPosts.findIndex((p) => p === post);
-  const previousPost = currentIndex > 0 ? sortedPosts[currentIndex - 1] : null;
+  const currentIndex = sorted.findIndex(
+    (p) => p.slugAsParams === post.slugAsParams,
+  );
+  const previousPost = currentIndex > 0 ? sorted[currentIndex - 1] : null;
   const nextPost =
-    currentIndex < sortedPosts.length - 1
-      ? sortedPosts[currentIndex + 1]
-      : null;
+    currentIndex < sorted.length - 1 ? sorted[currentIndex + 1] : null;
 
   const result = {};
   if (previousPost) {
@@ -51,10 +54,23 @@ function getAdjacentPosts(post) {
   return result;
 }
 
+/** Params for the OG card: the fields the card renders, or nothing. */
+function ogParamsFor(post) {
+  return {
+    title: post.title,
+    date: post.publishDate,
+    tags: post.tags || [],
+    read: readingTimeLabel(post.readingTime),
+  };
+}
+
 export async function generateMetadata(props) {
-  const params = await props.params;
-  const post = await getPostFromParams(params);
+  const post = await getCachedPost(slugOf(await props.params));
   if (!post) return {};
+
+  const ogImage = post.image?.trim()
+    ? { url: post.image.trim() }
+    : { url: ogImageUrl(ogParamsFor(post)) };
 
   return {
     title: post.title + " - " + siteMetadata.publishName,
@@ -64,47 +80,57 @@ export async function generateMetadata(props) {
       title: post.title + " - " + siteMetadata.publishName,
       description: post.description,
       type: "article",
-      images: [
-        post.image == ""
-          ? { url: `/og?title=${post.title}` }
-          : { url: post.image },
-      ],
+      publishedTime: post.publishDate,
+      modifiedTime: post.lastmod || post.publishDate,
+      authors: [siteMetadata.author],
+      tags: post.tags,
+      images: [ogImage],
     },
     twitter: {
       card: "summary_large_image",
       title: post.title + " - " + siteMetadata.publishName,
       description: post.description,
-      images: [post.image === null ? `/og?title=${post.title}` : post.image],
+      images: [ogImage.url],
     },
   };
 }
 
-export async function generateStaticParams() {
+export function generateStaticParams() {
   return getPosts().map((post) => ({
     slug: post.slugAsParams.split("/"),
   }));
 }
 
-export default async function PostPage(props) {
-  const params = await props.params;
-  const post = await getPostFromParams(params);
+/**
+ * Shell first, article behind a boundary. The boundary is what keeps the route
+ * prerenderable while `params` is still readable -- see lib/content/cached.js
+ * for why the body render behind it is cached rather than repeated per request.
+ */
+export default function PostPage({ params }) {
+  return (
+    <Suspense fallback={<ArticleSkeleton />}>
+      <PostView params={params} />
+    </Suspense>
+  );
+}
+
+async function PostView({ params }) {
+  const post = await getCachedPost(slugOf(await params));
   if (!post || post.draft === true) {
     notFound();
   }
 
-  const adjacentPosts = getAdjacentPosts(post);
-  // body.html is async and lazy: Shiki compiles this one post, not all 63.
-  const bodyHtml = await getBodyHtml(post);
+  const allPosts = await getCachedPosts();
+  const adjacentPosts = getAdjacentPosts(allPosts, post);
+  const { html, ...postMeta } = post;
+  const ogImage = ogImageUrl(ogParamsFor(post));
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
     datePublished: post.publishDate,
     dateModified: post.lastmod,
     headline: post.title,
-    image:
-      post.image == ""
-        ? [`/og?title=${post.title}`]
-        : [post.image, `/og?title=${post.title}`],
+    image: post.image?.trim() ? [post.image, ogImage] : [ogImage],
     description: post.description,
     author: [
       {
@@ -116,156 +142,152 @@ export default async function PostPage(props) {
   };
 
   const hasHero = Boolean(post.image?.trim());
+  const hasDescription = Boolean(post.description);
 
   return (
     <>
       <RouteTransition>
-      <ReadingProgress />
-      <section>
+        <ReadingProgress />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-      </section>
 
-      <div className="page-enter relative mx-auto max-w-7xl gap-8 xl:grid xl:grid-cols-10">
-        <article className="prose dark:prose-invert col-span-8 mx-auto max-w-7xl py-8">
-          <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
-            <time dateTime={post.publishDate}>
-              {formatDate(post.publishDate)}
-            </time>
-            <span aria-hidden="true">·</span>
-            <span>{post.readingTime.words} 字</span>
-            <span aria-hidden="true">·</span>
-            <span>{post.readingTime.text}</span>
-          </div>
+        <div className="page-enter gap-10 xl:grid xl:grid-cols-[minmax(0,1fr)_16rem]">
+          <article className="prose mx-auto min-w-0 max-w-none py-8">
+            <header className="not-prose">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-faint">
+                <time dateTime={post.publishDate}>
+                  {formatDate(post.publishDate)}
+                </time>
+                <span aria-hidden="true">·</span>
+                <span>{post.readingTime.words} 字</span>
+                <span aria-hidden="true">·</span>
+                <span>{readingTimeLabel(post.readingTime)}</span>
+              </div>
 
-          <h1 className="mt-4 text-3xl font-semibold leading-tight tracking-tight text-foreground sm:text-4xl">
-            {post.title}
-          </h1>
+              <h1 className="mt-4 text-h1 font-semibold leading-tight tracking-tight text-foreground sm:text-display">
+                {post.title}
+              </h1>
 
-          {post.description && (
-            <p className="mt-3 font-serif text-base leading-7 text-foreground/70">
-              {post.description}
-            </p>
-          )}
-
-          {post.tags?.length ? (
-            <div className="mt-4 not-prose">
-              <TagChips tags={post.tags} />
-            </div>
-          ) : null}
-
-          {hasHero ? (
-            <Image
-              src={post.image.trim()}
-              width={1920}
-              height={1080}
-              alt={"封面 " + post.title}
-              preload
-              fetchPriority="high"
-              sizes="(min-width: 1280px) 896px, (min-width: 768px) 85vw, 100vw"
-              className="my-6 w-full inset-0 rounded-xl object-cover ring-1 ring-inset ring-border"
-              style={{ height: "auto" }}
-            />
-          ) : null}
-          {post.imageDesc != "" ? (
-            <p className="text-sm text-faint">{post.imageDesc}</p>
-          ) : null}
-
-          <OptimizedHTMLRenderer htmlContent={bodyHtml} />
-
-          {post.lastmod ? (
-            <p className="mt-6 text-sm text-faint">
-              最后更新于 {formatDate(post.lastmod)}
-            </p>
-          ) : null}
-
-          <Link
-            href="https://creativecommons.org/licenses/by-nc-sa/4.0/"
-            target="_blank"
-          >
-            <p className="mt-10 py-2 text-sm text-faint transition-colors duration-300 hover:text-accent">
-              CC BY-NC-SA 4.0
-            </p>
-          </Link>
-
-                    <p className="not-prose py-2 text-right">
-            <Link
-              href={`https://github.com/${siteMetadata.github}/${siteMetadata.siteRepo}/blob/master/data/content${post.urlslug}.md`}
-              target="_blank"
-              className="text-sm text-faint transition-colors duration-300 hover:text-accent"
-            >
-              在 GitHub 上查看
-            </Link>
-          </p>
-          
-          <Suspense fallback={<div className="h-32" aria-hidden />}>
-            <Comments />
-          </Suspense>
-          <div className="not-prose">
-            <RelatedPosts
-              post={post}
-              allPosts={getPosts()}
-              excludeSlugs={[
-                adjacentPosts.previousPostSlug,
-                adjacentPosts.nextPostSlug,
-              ].filter(Boolean)}
-            />
-          </div>
-
-          <div className="not-prose mt-10 justify-between gap-8 py-4 sm:flex">
-            {adjacentPosts.previousPostSlug ? (
-              <div className="mb-4 sm:mb-0">
-                <p className="text-xs uppercase tracking-wide text-faint">
-                  上一篇
+              {hasDescription && (
+                <p className="mt-3 text-lead text-muted">
+                  {post.description}
                 </p>
+              )}
+
+              {post.tags?.length ? (
+                <div className="mt-4">
+                  <TagChips tags={post.tags} />
+                </div>
+              ) : null}
+
+              {hasHero ? (
+                <Image
+                  src={post.image.trim()}
+                  width={1920}
+                  height={1080}
+                  alt={"封面 " + post.title}
+                  preload
+                  fetchPriority="high"
+                  sizes="(min-width: 1280px) 896px, (min-width: 768px) 85vw, 100vw"
+                  className="my-6 h-auto w-full rounded-card object-cover shadow-card"
+                />
+              ) : null}
+              {post.imageDesc ? (
+                <p className="text-sm text-faint">{post.imageDesc}</p>
+              ) : null}
+            </header>
+
+            <OptimizedHTMLRenderer htmlContent={html} />
+
+            {post.lastmod ? (
+              <p className="mt-6 text-sm text-faint">
+                最后更新于 {formatDate(post.lastmod)}
+              </p>
+            ) : null}
+
+            <div className="not-prose mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6 text-sm text-faint">
+              <Link
+                href="https://creativecommons.org/licenses/by-nc-sa/4.0/"
+                target="_blank"
+                className="transition-colors duration-fast hover:text-accent"
+              >
+                CC BY-NC-SA 4.0
+              </Link>
+              <Link
+                href={`https://github.com/${siteMetadata.github}/${siteMetadata.siteRepo}/blob/master/data/content${post.urlslug}.md`}
+                target="_blank"
+                className="transition-colors duration-fast hover:text-accent"
+              >
+                在 GitHub 上查看
+              </Link>
+            </div>
+
+            <Suspense fallback={<div className="h-32" aria-hidden />}>
+              <Comments />
+            </Suspense>
+
+            <div className="not-prose">
+              <RelatedPosts
+                post={postMeta}
+                allPosts={allPosts}
+                excludeSlugs={[
+                  adjacentPosts.previousPostSlug,
+                  adjacentPosts.nextPostSlug,
+                ].filter(Boolean)}
+              />
+            </div>
+
+            <nav className="not-prose mt-10 flex flex-col justify-between gap-6 border-t border-border pt-6 sm:flex-row">
+              {adjacentPosts.previousPostSlug ? (
                 <Link
                   href={`/blog/${adjacentPosts.previousPostSlug}`}
-                  className="mt-1 block text-sm text-muted transition-colors duration-200 hover:text-accent"
+                  prefetch={true}
+                  className="group max-w-sm"
                 >
-                  {adjacentPosts.previousPostTitle}
+                  <p className="text-xs uppercase tracking-wide text-faint">
+                    上一篇
+                  </p>
+                  <p className="mt-1 text-sm text-muted transition-colors duration-fast group-hover:text-accent">
+                    {adjacentPosts.previousPostTitle}
+                  </p>
                 </Link>
-              </div>
-            ) : (
-              <div />
-            )}
-            {adjacentPosts.nextPostSlug ? (
-              <div className="sm:text-right">
-                <p className="text-xs uppercase tracking-wide text-faint">
-                  下一篇
-                </p>
+              ) : (
+                <span />
+              )}
+              {adjacentPosts.nextPostSlug ? (
                 <Link
                   href={`/blog/${adjacentPosts.nextPostSlug}`}
-                  className="mt-1 block text-sm text-muted transition-colors duration-200 hover:text-accent"
+                  prefetch={true}
+                  className="group max-w-sm sm:text-right"
                 >
-                  {adjacentPosts.nextPostTitle}
+                  <p className="text-xs uppercase tracking-wide text-faint">
+                    下一篇
+                  </p>
+                  <p className="mt-1 text-sm text-muted transition-colors duration-fast group-hover:text-accent">
+                    {adjacentPosts.nextPostTitle}
+                  </p>
                 </Link>
+              ) : null}
+            </nav>
+          </article>
+
+          <aside className="hidden xl:block">
+            <div className="sticky-below-nav pt-10">
+              <AboutMe />
+              <div className="mt-10">
+                <h2 className="section-label">目录</h2>
+                <div className="mt-3">
+                  <TableofContent headings={post.headings} />
+                </div>
               </div>
-            ) : null}
-          </div>
-
-
-        </article>
-
-        <div className="col-span-2 mx-auto">
-          <AboutMe />
-          <div
-            className="sticky pt-10"
-            style={{ top: "calc(var(--nav-height) + 0.5rem)" }}
-          >
-            <div className="hidden xl:block">
-              <h3 className="py-4 pt-0 text-sm font-medium text-muted">目录</h3>
-              <TableofContent headings={post.headings} />
+              <Link href="/" className="link mt-6 inline-block text-sm">
+                ← 返回首页
+              </Link>
             </div>
-            <Link href="/">
-              <p className="py-2 text-right text-sm text-faint transition-colors duration-300 hover:text-accent sm:text-left">
-                ← 返回
-              </p>
-            </Link>
-          </div>
+          </aside>
         </div>
-      </div>
       </RouteTransition>
 
       <ScrollTopAndComment />

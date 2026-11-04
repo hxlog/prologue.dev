@@ -16,10 +16,15 @@ export default async function MicroblogPage() {
   return (
     <RouteTransition>
       <PageTransition className="mx-auto max-w-2xl py-8">
-        <p className="eyebrow">Microblog</p>
-        <h1 className="mt-2 pb-8 text-3xl font-semibold tracking-tight text-foreground">
-          微博
-        </h1>
+        <header>
+          <p className="eyebrow">Microblog</p>
+          <h1 className="mt-2 text-h1 font-semibold tracking-tight text-foreground">
+            微博
+          </h1>
+          <p className="mt-2 pb-8 text-sm text-muted">
+            碎片化的思考、图文与随想。
+          </p>
+        </header>
         <div className="space-y-4">
           {entries.map((entry) => (
             <MicroblogCard key={entry.id} entry={entry} />

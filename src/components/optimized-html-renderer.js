@@ -5,6 +5,13 @@ import { decodeHtmlEntities } from "../lib/html-entities";
 /**
  * Split post HTML into React nodes: Next/Image for <img>, MermaidBlock for
  * <pre class="mermaid">, and dangerouslySetInnerHTML for everything else.
+ *
+ * The width/height come from the attributes rehype-figure writes (it reads the
+ * real pixel size with sharp at render time). This used to hard-code 1920x1080
+ * for every image, which reserved a 16:9 box for every 4:3 screenshot: the
+ * element was 639x360 before load and 639x510 after, so every article shifted
+ * its text as the reader scrolled into an image. Passing the true intrinsic
+ * size is what makes the reserved box match the bitmap.
  */
 export function OptimizedHTMLRenderer({ htmlContent }) {
   const processHTML = (html) => {
@@ -31,22 +38,28 @@ export function OptimizedHTMLRenderer({ htmlContent }) {
 
       if (match[0].startsWith("<img")) {
         const attributes = match[1] || "";
-        const srcMatch = attributes.match(/\bsrc=["']([^"']*?)["']/i);
-        const altMatch = attributes.match(/\balt=["']([^"']*?)["']/i);
-        const titleMatch = attributes.match(/\btitle=["']([^"']*?)["']/i);
-        const classMatch = attributes.match(/\bclass=["']([^"']*?)["']/i);
+        const attr = (name) => {
+          const found = attributes.match(new RegExp(`\\b${name}=["']([^"']*?)["']`, "i"));
+          return found ? found[1] : "";
+        };
+        const src = attr("src");
+        const width = Number.parseInt(attr("width"), 10);
+        const height = Number.parseInt(attr("height"), 10);
+        const eager = /\bloading=["']eager["']/i.test(attributes);
 
-        if (srcMatch) {
+        if (src) {
           parts.push(
             <Image
               key={`img-${keyIndex++}`}
-              src={srcMatch[1]}
-              alt={altMatch ? altMatch[1] : ""}
-              width={1920}
-              height={1080}
-              title={titleMatch ? titleMatch[1] : ""}
-              sizes="(min-width: 1280px) 896px, 100vw"
-              className={`drop-shadow-xs rounded-sm ${classMatch ? classMatch[1] : ""}`.trim()}
+              src={src}
+              alt={attr("alt")}
+              width={Number.isFinite(width) && width > 0 ? width : 1600}
+              height={Number.isFinite(height) && height > 0 ? height : 900}
+              title={attr("title")}
+              sizes="(min-width: 1280px) 720px, (min-width: 768px) 85vw, 100vw"
+              loading={eager ? "eager" : "lazy"}
+              fetchPriority={eager ? "high" : undefined}
+              className={`drop-shadow-xs rounded-sm ${attr("class")}`.trim()}
               style={{ height: "auto", width: "100%" }}
             />
           );

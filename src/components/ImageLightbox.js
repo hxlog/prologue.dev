@@ -41,8 +41,17 @@ export default function ImageLightbox() {
   const pathname = usePathname();
 
   useEffect(() => {
+    // Scope the scan to <main>: under Cache Components React's <Activity> may
+    // keep a previously visited route mounted but hidden, and a document-wide
+    // query would put those off-screen images into the slide list — the swipe
+    // order would include photos the reader cannot see, and clicking the
+    // first visible one would open at the wrong index.
+    const main = document.querySelector("main") ?? document.body;
+
     const refreshImages = () => {
-      imagesRef.current = Array.from(document.querySelectorAll('img.lightbox-image'));
+      imagesRef.current = Array.from(
+        main.querySelectorAll("img.lightbox-image")
+      );
     };
 
     refreshImages();
@@ -50,9 +59,8 @@ export default function ImageLightbox() {
     const rafId = requestAnimationFrame(refreshImages);
     const timerId = window.setTimeout(refreshImages, 120);
 
-    const root = document.querySelector('main') ?? document.body;
     const observer = new MutationObserver(() => refreshImages());
-    observer.observe(root, { childList: true, subtree: true });
+    observer.observe(main, { childList: true, subtree: true });
 
     return () => {
       cancelAnimationFrame(rafId);
@@ -65,7 +73,10 @@ export default function ImageLightbox() {
     const handleClick = (e) => {
       const img = findImageElement(e.target);
       if (img) {
-        const images = Array.from(document.querySelectorAll('img.lightbox-image'));
+        const main = document.querySelector("main") ?? document.body;
+        const images = Array.from(
+          main.querySelectorAll("img.lightbox-image")
+        );
         imagesRef.current = images;
         const slides = images.map((el) => ({
           src: el.src,
@@ -80,8 +91,8 @@ export default function ImageLightbox() {
         }
       }
     };
-    document.addEventListener('click', handleClick);
-    return () => document.removeEventListener('click', handleClick);
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
   }, []);
 
   return (

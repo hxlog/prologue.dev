@@ -7,7 +7,7 @@ import { usePostSearch } from "../lib/use-post-search";
 const PAGE_SIZE = 8;
 
 /**
- * Shared search + card grid for /blog and /tags/* (and pagination).
+ * Shared search + card grid for /blog and /tags/*.
  * Receives SLIM post objects from a server component (never full content
  * documents) so the RSC payload stays small. Search runs over the build-time
  * Fuse index (src/lib/use-post-search.js) — identical behavior site-wide.
@@ -55,15 +55,17 @@ export default function SearchGrid({ posts, className = "" }) {
     <div className={className}>
       <div className="relative">
         <input
+          id="archive-search"
+          name="search"
           aria-label="搜索文章"
-          type="text"
+          type="search"
           value={query}
           onChange={(e) => {
             setQuery(e.target.value);
             setVisible(PAGE_SIZE);
           }}
           placeholder="搜索文章、标签…"
-          className="block w-full rounded-xl border border-border bg-surface px-4 py-2.5 pr-10 text-sm text-foreground shadow-card transition-all duration-200 placeholder:text-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+          className="input pr-10"
         />
         <svg
           className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint"
@@ -108,11 +110,7 @@ export default function SearchGrid({ posts, className = "" }) {
 
       {total > visible && (
         <div className="mt-8 flex justify-center">
-          <button
-            type="button"
-            onClick={loadMore}
-            className="rounded-full border border-border bg-surface px-6 py-2 text-sm font-medium text-muted transition-all duration-200 hover:-translate-y-px hover:border-accent hover:text-accent hover:shadow-card-hover"
-          >
+          <button type="button" onClick={loadMore} className="btn btn-ghost">
             加载更多
           </button>
         </div>

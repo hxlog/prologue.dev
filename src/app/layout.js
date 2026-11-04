@@ -1,38 +1,34 @@
 import "./globals.css";
 import dynamic from "next/dynamic";
-import { Noto_Sans_SC, Noto_Serif_SC, JetBrains_Mono } from "next/font/google";
+import { Suspense } from "react";
 import { Providers } from "../components/providers";
 import Navbar from "../components/navbar";
 import Footer from "../components/footer";
+import Spotlight from "../components/spotlight";
 import siteMetadata from "../../data/sitemetadata";
 import UmamiAnalytics from "../components/umami-analytics";
 
 const ImageLightbox = dynamic(() => import("../components/ImageLightbox"));
 
 /**
- * Typography stack (next/font best practice: self-hosted, zero layout shift,
- * unicode-range subsetting keeps CJK payloads small):
- * - Noto Sans SC  → UI + headings + body (--font-sans)
- * - Noto Serif SC → editorial accents: excerpts, quotes (--font-serif)
- * - JetBrains Mono → code, terminal widget, copy fields (--font-mono)
+ * Typography: system fonts only — this app makes no font requests at all.
+ *
+ * Two rounds of measurement. First the two Noto SC families were removed: each
+ * ships 101 unicode-range slices, a measured Chinese article pulled 33 woff2
+ * files totalling 1.9 MB, and because text painted with the fallback and then
+ * repainted as slices arrived, every swap was a new LCP candidate (p75 LCP
+ * 13.2 s on an article whose HTML was 196 KB).
+ *
+ * Then the last latin mono (JetBrains Mono, ~40 KB) went too. `display: "swap"`
+ * still painted code blocks in the fallback first and swapped them a moment
+ * later, which is the same LCP mechanism on every code-heavy article, for a
+ * face the reader's OS already has a good enough version of. Code and `.copy-field`
+ * now use the platform mono via --font-mono; everything else uses --font-sans,
+ * so the whole site is one typographic voice on every OS.
+ *
+ * Do not add a webfont back without re-measuring LCP — the swap repaint is the
+ * mechanism, not the byte count.
  */
-const notoSansSC = Noto_Sans_SC({
-  subsets: ["latin"],
-  variable: "--font-noto-sans-sc",
-  display: "swap",
-});
-
-const notoSerifSC = Noto_Serif_SC({
-  subsets: ["latin"],
-  variable: "--font-noto-serif-sc",
-  display: "swap",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-jetbrains-mono",
-  display: "swap",
-});
 
 export const metadata = {
   metadataBase: new URL(siteMetadata.siteUrl),
@@ -69,19 +65,27 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html
-      lang={siteMetadata.language}
-      suppressHydrationWarning
-      className={`${notoSansSC.variable} ${notoSerifSC.variable} ${jetbrainsMono.variable}`}
-    >
-      <body className="mx-auto bg-background text-foreground antialiased">
+    <html lang={siteMetadata.language} suppressHydrationWarning>
+      <body className="bg-background text-foreground antialiased">
         <Providers>
+          <a href="#content" className="skip-link">
+            跳到正文
+          </a>
           <Navbar />
-          <div className="max-w-7xl mx-auto px-6">
-            <main>{children}</main>
+          <div className="shell">
+            <main id="content">{children}</main>
             <Footer />
           </div>
-          <ImageLightbox />
+          {/* ImageLightbox reads the pathname to re-scan the DOM after a
+              navigation. Under Cache Components that URL read must not sit in
+              the static shell; a Suspense boundary keeps the layout
+              prerenderable and the lightbox resolves on the client. It
+              renders nothing until an image is clicked. */}
+          <Suspense fallback={null}>
+            <ImageLightbox />
+          </Suspense>
+          {/* One delegated pointermove listener for every .card-spotlight. */}
+          <Spotlight />
         </Providers>
         <UmamiAnalytics />
       </body>

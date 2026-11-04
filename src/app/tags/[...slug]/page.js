@@ -1,24 +1,24 @@
 import { notFound } from "next/navigation";
-import { getPosts } from "../../../lib/content";
+import { Suspense } from "react";
 import { compareDesc } from "date-fns";
 import PostsLayout from "../../blog/bloglistlayout";
 import { getTagCounts, getSortedTags } from "../../../lib/tag-counts";
+import { getCachedPosts } from "../../../lib/content/cached";
 import { tagLabel } from "../../../../data/tagLabels";
 import siteMetadata from "../../../../data/sitemetadata";
+import { ArchiveSkeleton } from "../../../components/skeletons";
 
 /**
  * Prerender every known tag page at build time (the tag set is a finite,
- * closed list from the taxonomy). This removes the per-request SSR that made
- * /tags/* the worst-TTFB pages on the site. Unknown tags still resolve at
- * request time and 404 via notFound().
+ * closed list from the taxonomy). Unknown tags still resolve at request time
+ * and 404 via notFound().
  */
 export function generateStaticParams() {
   return getSortedTags().map((tag) => ({ slug: [tag] }));
 }
 
 export async function generateMetadata(props) {
-  const params = await props.params;
-  const slug = params?.slug?.join("/");
+  const slug = slugOf(await props.params);
   const label = tagLabel(slug);
   return {
     title: `${label} - ${siteMetadata.publishName}`,
@@ -32,29 +32,40 @@ export async function generateMetadata(props) {
   };
 }
 
-export default async function Tag(props) {
-  const params = await props.params;
-  const slug = params?.slug?.join("/");
+function slugOf(params) {
+  const parts = params?.slug;
+  return Array.isArray(parts) ? parts.join("/") : parts;
+}
 
-  const filtered = getPosts().filter(
-    (post) => post.draft !== true && (post.tags || []).includes(slug)
+export default function Tag({ params }) {
+  return (
+    <Suspense fallback={<ArchiveSkeleton />}>
+      <TagArchive params={params} />
+    </Suspense>
   );
-  if (filtered.length === 0) {
+}
+
+async function TagArchive({ params }) {
+  const slug = slugOf(await params);
+  const posts = (await getCachedPosts()).filter((post) =>
+    (post.tags || []).includes(slug)
+  );
+  if (posts.length === 0) {
     notFound();
   }
 
-  const posts = [...filtered].sort((a, b) =>
+  const sorted = [...posts].sort((a, b) =>
     compareDesc(new Date(a.publishDate), new Date(b.publishDate))
   );
 
   return (
     <PostsLayout
-      posts={posts}
+      posts={sorted}
       tagCounts={getTagCounts()}
       sortedTags={getSortedTags()}
       activeTag={slug}
       title="标签"
-      subtitle={`「${tagLabel(slug)}」下共有 ${posts.length} 篇文章`}
+      subtitle={`「${tagLabel(slug)}」下共有 ${sorted.length} 篇文章`}
     />
   );
 }

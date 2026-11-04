@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/react";
-import { AnimatePresence, motion } from "framer-motion";
 import Card from "./card";
 import { usePostSearch } from "../lib/use-post-search";
 import { tagLabel } from "../../data/tagLabels";
@@ -88,33 +87,18 @@ export default function Articles({ articles, topTags = [] }) {
 
   const cardGrid = (list, animate = false) => (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      {animate ? (
-        <AnimatePresence initial={false}>
-          {list.map((article) => (
-            <motion.div
-              key={article.slug}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <Card {...cardProps(article)} />
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      ) : (
-        list.map((article) => <Card key={article.slug} {...cardProps(article)} />)
-      )}
+      {list.map((article) => (
+        <div key={article.slug} className={animate ? "reveal-rise" : undefined}>
+          <Card {...cardProps(article)} />
+        </div>
+      ))}
     </div>
   );
 
   const loadMoreButton = (total) =>
     total > visible ? (
       <div className="mt-8 flex justify-center">
-        <button
-          type="button"
-          onClick={loadMore}
-          className="rounded-full border border-border bg-surface px-6 py-2 text-sm font-medium text-muted transition-all duration-200 hover:-translate-y-px hover:border-accent hover:text-accent hover:shadow-card-hover"
-        >
+        <button type="button" onClick={loadMore} className="btn btn-ghost">
           加载更多
         </button>
       </div>
@@ -127,12 +111,10 @@ export default function Articles({ articles, topTags = [] }) {
       {/* Featured */}
       {featuredArticles.length > 0 && (
         <section className="mb-10">
-          <div className="mb-4 flex items-baseline justify-between border-b border-border pb-2">
-            <h2 className="text-xl font-semibold tracking-tight text-foreground">
+          <div className="mb-4 border-b border-border pb-2">
+            <h2 className="text-title font-semibold tracking-tight text-foreground">
               Featured
             </h2>
-            <span className="text-xs text-faint"> </span>
-            {/* 置空 */}
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {featuredArticles.map((article) => (
@@ -153,17 +135,7 @@ export default function Articles({ articles, topTags = [] }) {
             })),
             { label: "搜索", vis: "" },
           ].map((tab, index) => (
-            <Tab
-              key={index}
-              as="button"
-              className={({ selected }) =>
-                `${tab.vis} relative z-10 rounded-md px-3 py-2 text-sm transition-colors duration-200 ${
-                  selected
-                    ? "bg-accent-soft font-semibold text-accent"
-                    : "text-muted hover:bg-surface-2 hover:text-foreground"
-                }`
-              }
-            >
+            <Tab key={index} as="button" className={`z-10 nav-item ${tab.vis}`}>
               {tab.label}
             </Tab>
           ))}
@@ -194,7 +166,9 @@ export default function Articles({ articles, topTags = [] }) {
           <TabPanel className="min-h-[50vh] space-y-4">
             <div className="relative">
               <input
-                type="text"
+                id="home-search"
+                name="search"
+                type="search"
                 aria-label="搜索文章"
                 placeholder="搜索文章、标签…"
                 value={query}
@@ -202,7 +176,7 @@ export default function Articles({ articles, topTags = [] }) {
                   setQuery(e.target.value);
                   setVisible(PAGE_SIZE);
                 }}
-                className="block w-full rounded-xl border border-border bg-surface px-4 py-2.5 pr-10 text-sm text-foreground shadow-card transition-all duration-200 placeholder:text-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+                className="input pr-10"
               />
               <svg
                 className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint"

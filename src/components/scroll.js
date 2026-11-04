@@ -18,16 +18,18 @@ const ScrollTopAndComment = () => {
   const handleScrollToComment = () =>
     document.getElementById("comments")?.scrollIntoView({ behavior: "smooth" });
 
-  const btn =
-    "rounded-full bg-surface p-2 text-muted shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:text-accent hover:shadow-card-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent";
-
   return (
     <div
-      className={`fixed bottom-8 right-8 flex-col gap-3 transition-all duration-300 ${
-        show ? "flex opacity-100" : "pointer-events-none flex opacity-0 translate-y-2"
+      className={`fixed bottom-8 right-8 flex-col gap-3 transition-[opacity,transform] duration-base ease-out-expo ${
+        show ? "flex opacity-100" : "pointer-events-none flex translate-y-2 opacity-0"
       }`}
     >
-      <button aria-label="Scroll To Comment" type="button" onClick={handleScrollToComment} className={btn}>
+      <button
+        aria-label="Scroll To Comment"
+        type="button"
+        onClick={handleScrollToComment}
+        className="btn-icon h-9 w-9 bg-surface shadow-card"
+      >
         <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
           <path
             fillRule="evenodd"
@@ -37,7 +39,12 @@ const ScrollTopAndComment = () => {
         </svg>
       </button>
 
-      <button aria-label="Scroll To Top" type="button" onClick={handleScrollTop} className={btn}>
+      <button
+        aria-label="Scroll To Top"
+        type="button"
+        onClick={handleScrollTop}
+        className="btn-icon h-9 w-9 bg-surface shadow-card"
+      >
         <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
           <path
             fillRule="evenodd"

@@ -1,15 +1,12 @@
-import { createFeed } from "../../lib/feed/build-feed";
+import { getFeedXml } from "../../lib/feed/cached";
 import { finalizeJson } from "../../lib/feed/finalize";
 
-// Feed content only changes on deploy; edge-cache for 10 minutes with
-// background revalidation so readers always get a fast response and the
-// route stops rebuilding ~0.8MB of post HTML on every poll.
 const CACHE_CONTROL = "public, s-maxage=600, stale-while-revalidate=86400";
 
 export async function GET() {
-  const feed = await createFeed();
+  const json = await getFeedXml("json");
 
-  return new Response(finalizeJson(feed.json1()), {
+  return new Response(finalizeJson(json), {
     headers: {
       "Content-Type": "application/feed+json; charset=utf-8",
       "Cache-Control": CACHE_CONTROL,

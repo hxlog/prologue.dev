@@ -55,8 +55,15 @@ function coverEnclosure(post) {
  * Reading post.body.html without that await throws rather than emitting an
  * empty item, which is the failure mode this replaced.
  */
-export async function createFeed() {
+export async function createFeed(feedUpdated = new Date()) {
   const site = siteUrl();
+
+  // The feed's own `updated` timestamp is supplied by the caller. It used to be
+  // read here behind `await io()`, which forced the whole builder to run at
+  // request time -- and this builder renders all 64 post bodies, so every
+  // reader poll (and every burst of them) paid the full Shiki cost. The clock
+  // now arrives from getFeedXml() in ./cached.js, whose 'use cache' scope runs
+  // once per revalidation window and is allowed to read it.
 
   const feed = new Feed({
     title: siteMetadata.title,
@@ -67,7 +74,7 @@ export async function createFeed() {
     favicon: `${site}${siteMetadata.favicon}`,
     image: `${site}${siteMetadata.avatar}`,
     copyright: "CC BY-NC-SA 4.0",
-    updated: new Date(),
+    updated: feedUpdated,
     generator: "prologue.dev feed pipeline",
     ttl: 60,
     feedLinks: {
