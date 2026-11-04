@@ -20,6 +20,9 @@
 # publish worktree
 /.tmp/
 
+# Playwright MCP scratch (screenshots, console logs) — local only
+/.playwright-mcp/
+
 # yarn, not using zero-installs
 .pnp.*
 .yarn/*
