@@ -22,10 +22,10 @@
  * Pastels moved up with it (#c9cdf5 / #f7d4e6), and the gradients gained a sky
  * mid-stop so a brand gradient is no longer a two-colour ramp.
  *
- * A fourth hue, sky #b4e0ec, exists ONLY inside gradients and the card hover.
- * It never carries text or a control, so it cannot fail contrast.
+ * A fourth hue, sky #b4e0ec, exists ONLY inside gradients, the card hover and
+ * the chip rim. It never carries text or a control, so it cannot fail contrast.
  *
- * The card hover and the chip wash read their colours from --glow-* / --wash-*
+ * The card hover and the chip rim read their colours from --glow-*
  * so dark mode can dim them without touching any gradient definition: the same
  * 42 % pale-lavender alpha that looks like a soft light on white composites to
  * #5f637c (L 0.128) on #1c1f28, which was the "hover too bright" report. Dark
@@ -177,11 +177,13 @@
   --glow-shadow: 0 18px 38px -20px rgb(170 160 252 / 0.4),
     0 2px 12px -6px rgb(84 208 238 / 0.25),
     inset 0 0 0 1px rgb(170 160 252 / 0.16);
-  /* Chips keep the linear three-hue wash: a pill is too small for a ring, and
-     the same tokens would make it read as a second visual language. */
-  --wash-sky: rgb(74 198 236 / 0.24);
-  --wash-lav: rgb(146 152 248 / 0.2);
-  --wash-pink: rgb(248 140 190 / 0.22);
+  /* Tag pill — "stardust". At rest the wash is 6% so the three hues stay a hint,
+     not a block; the colour lives in the hover rim. --chip-ring-a is much higher
+     than --glow-ring-a because a 1px line needs saturation to register where a
+     card-wide rim does not. */
+  --chip-wash-a: 0.06;
+  --chip-ring-a: 0.9;
+  --chip-hairline-a: 0.12;
   /* Stays at zero until the pointer arrives: a card is flat at rest. */
   --card-lift: 3%;
 
@@ -252,10 +254,11 @@
   --glow-shadow: 0 18px 38px -20px rgb(140 138 245 / 0.32),
     0 2px 12px -6px rgb(52 210 225 / 0.22),
     inset 0 0 0 1px rgb(140 138 245 / 0.08);
-  /* Chips keep their linear wash; see the light-mode note. */
-  --wash-sky: rgb(0 200 210 / 0.13);
-  --wash-lav: rgb(110 110 245 / 0.125);
-  --wash-pink: rgb(235 80 120 / 0.135);
+  /* Tag pill: the wash drops, the rim alpha drops further than light mode
+     (0.58) because the same saturated triplet over a dark base reads louder. */
+  --chip-wash-a: 0.055;
+  --chip-ring-a: 0.58;
+  --chip-hairline-a: 0.14;
   --card-lift: 2%;
 
   --gradient-brand: linear-gradient(120deg, #c9cdf5, #e6f4fb 46%, #f7d4e6);
@@ -350,6 +353,14 @@
   syntax: "<percentage>";
   inherits: true;
   initial-value: 50%;
+}
+/* The chip rim's rotation has to be a registered <angle> for @keyframes to
+   animate it -- an unregistered custom property would jump from 90deg to 450deg
+   in one frame. It is not inherited: only the pill's own ::before reads it. */
+@property --chip-ang {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 90deg;
 }
 
 
@@ -740,12 +751,19 @@
     isolation: isolate;
   }
 
-  /* Tag pill: a linear three-hue wash at pill scale. It stays linear because a
-     pill is too small for the rim + glow pair; the shared --wash-* tokens keep
-     it part of the same colour system. Hover does not swap
-     the background (a gradient cannot be transitioned) -- it lifts the pill,
-     darkens the label and draws the ring. */
+  /* Tag pill — "stardust". A 24px pill is too small for the card's full rim +
+     glow pair, so it borrows the rim language in a cheaper form: at rest a 6%
+     three-hue wash plus a 1px lavender hairline; on hover a 1px conic rim spins
+     around the pill (5.5s) while two 1px stars twinkle inside it, and the label
+     steps up to --accent-strong. The old 20-24% wash filled the whole pill with
+     three hues it could not separate across ~48px, which read as a dirty block.
+     The rim is the same mask-composite trick as the card rim (see the long note
+     there) and needs the standard and -webkit properties in pairs, or one engine
+     loses the ring. The stars paint at z-index -1 under isolation, so they sit
+     above the wash but never over the glyphs. */
   .chip {
+    position: relative;
+    isolation: isolate;
     display: inline-flex;
     align-items: center;
     height: 1.5rem;
@@ -757,23 +775,88 @@
     letter-spacing: 0.01em;
     color: var(--muted);
     background-image: linear-gradient(
-      120deg,
-      var(--wash-lav),
-      var(--wash-sky) 52%,
-      var(--wash-pink)
+      140deg,
+      rgb(var(--glow-lav) / calc(var(--chip-wash-a) * 1.1)),
+      rgb(var(--glow-sky) / calc(var(--chip-wash-a) * 0.8)) 55%,
+      rgb(var(--glow-pink) / calc(var(--chip-wash-a) * 1.1))
     );
-    box-shadow: inset 0 0 0 1px transparent;
+    box-shadow: inset 0 0 0 1px rgb(var(--glow-lav) / var(--chip-hairline-a));
     transition:
       color var(--duration-fast) ease,
       box-shadow var(--duration-fast) ease,
       transform var(--duration-fast) var(--ease-out-expo);
   }
+  .chip::before,
+  .chip::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--duration-base) var(--ease-out-expo);
+  }
+  .chip::before {
+    padding: 1px;
+    background: conic-gradient(
+      from var(--chip-ang, 90deg),
+      rgb(var(--glow-sky) / var(--chip-ring-a)) 0 30%,
+      rgb(var(--glow-lav) / var(--chip-ring-a)) 36% 63%,
+      rgb(var(--glow-pink) / var(--chip-ring-a)) 69% 96%,
+      rgb(var(--glow-sky) / var(--chip-ring-a)) 100%
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite: exclude;
+  }
+  .chip::after {
+    background:
+      radial-gradient(circle at 24% 30%, rgb(var(--glow-pink) / 0.95) 0 1.5px, transparent 2.4px),
+      radial-gradient(circle at 76% 70%, rgb(var(--glow-sky) / 0.95) 0 1.3px, transparent 2.2px);
+  }
+  @keyframes chip-spin {
+    from {
+      --chip-ang: 90deg;
+    }
+    to {
+      --chip-ang: 450deg;
+    }
+  }
+  @keyframes chip-twinkle {
+    0%,
+    100% {
+      opacity: 0.35;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
   @media (hover: hover) and (pointer: fine) {
     a.chip:hover,
     button.chip:hover {
-      color: var(--accent);
-      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 26%, transparent);
+      color: var(--accent-strong);
+      box-shadow: inset 0 0 0 1px rgb(var(--glow-lav) / calc(var(--chip-hairline-a) * 1.7));
       transform: translateY(-1px);
+    }
+    a.chip:hover::before,
+    button.chip:hover::before {
+      opacity: 1;
+      animation: chip-spin 5.5s linear infinite;
+    }
+    a.chip:hover::after,
+    button.chip:hover::after {
+      opacity: 1;
+      animation: chip-twinkle 1.7s ease-in-out infinite;
+    }
+  }
+  /* Older engines without mask-composite would paint the rim as a filled pill.
+     The label and the hairline still carry the hover there. */
+  @supports not ((mask-composite: exclude) or (-webkit-mask-composite: xor)) {
+    a.chip:hover::before,
+    button.chip:hover::before {
+      opacity: 0;
     }
   }
   .chip-more {
@@ -1185,6 +1268,12 @@ html:not(.theme-vt)::view-transition-old(root) {
   }
   .reveal-rise,
   .toc-pill {
+    animation: none;
+  }
+  /* Chips keep the ring and the accent label, but stop spinning and twinkling;
+     the registered --chip-ang stays at its initial 90deg, so the rim is static. */
+  .chip::before,
+  .chip::after {
     animation: none;
   }
   /* No scrolled reveal either: show the buttons from the start rather than

@@ -314,17 +314,28 @@ export default function UiStandardPage() {
               </div>
             </Specimen>
 
-            <Specimen title="标签 chip" note=".chip 线性三色 wash；.chip-more 为虚线 +N 展开。">
+            <Specimen
+              title="标签 chip（C 星屑）"
+              note=".chip 静止 6% 三色 wash + 1px 淡紫描边；hover 时 1px 三色外圈旋转（5.5s）+ 两颗星点闪烁（1.7s），文字 → --accent-strong。"
+            >
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="chip">阅读</span>
-                <span className="chip">Web3</span>
-                <span className="chip">效率</span>
+                <a className="chip" href="/tags/Economics">
+                  经济学
+                </a>
+                <a className="chip" href="/tags/AI">
+                  人工智能
+                </a>
+                <a className="chip" href="/tags/Meta">
+                  随笔
+                </a>
                 <button type="button" className="chip-more">
                   +2
                 </button>
               </div>
               <p className="mt-3 text-xs text-faint">
-                药丸太小，放不下外圈 + 柔光，所以 chip 保持线性 wash —— 与卡片同色系、不同视觉语言。
+                药丸太小，放不下卡片那种双层柔光，所以沿用卡片 07 的外圈语言：同一套 conic 三色 +
+                mask-composite 1px 裁切，只是把旋转放慢到 5.5s、加了两颗 1px 星点。把指针移上来试试 ——
+                这是全站唯一带持续动效的 hover。
               </p>
             </Specimen>
 
@@ -407,7 +418,7 @@ export default function UiStandardPage() {
           index="06"
           eyebrow="Interaction"
           title="卡片悬停：双描边柔光 07"
-          lead="全站唯一的装饰性 hover：1px 三色 conic 外圈随指针旋转、1px 内描边、跟随指针的柔光、上浮 2px。左右分别是 Light 与 .dark 作用域下的同一个组件。"
+          lead="卡片：1px 三色 conic 外圈随指针旋转、1px 内描边、跟随指针的柔光、上浮 2px。标签沿用同一套外圈语言，只是放慢成自转并加了两颗星点（见 05 的 chip 标本）。左右分别是 Light 与 .dark 作用域下的同一个组件。"
         >
           <HoverPlayground />
 

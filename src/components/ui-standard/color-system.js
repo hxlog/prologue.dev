@@ -82,8 +82,8 @@ const GROUPS = [
     ],
   },
   {
-    title: "悬停系统 07",
-    note: "颜色以裸 RGB 三元组存储，一套色同时驱动外圈（ring）、内描边（hairline）和柔光（glow）三种透明度。",
+    title: "悬停系统（卡片 07 · 标签 C）",
+    note: "颜色以裸 RGB 三元组存储：一套色同时驱动卡片的外圈 / 内描边 / 柔光，以及标签的外圈。标签另用三个 alpha token 分开控制静止底色、外圈和描边。",
     rows: [
       { name: "--glow-sky", usage: "青 · 外圈扇形 / 柔光外晕", kind: "triplet" },
       { name: "--glow-lav", usage: "紫 · 外圈扇形 / 柔光核心", kind: "triplet" },
@@ -94,9 +94,9 @@ const GROUPS = [
       { name: "--glow-glow-2-a", usage: "柔光外晕透明度", kind: "raw" },
       { name: "--glow-shadow", usage: "hover 的双层外投影 + 内描边", kind: "shadow" },
       { name: "--card-lift", usage: "hover 时卡片底色混入比例", kind: "raw" },
-      { name: "--wash-sky", usage: "chip 渐变 · 青", kind: "color" },
-      { name: "--wash-lav", usage: "chip 渐变 · 紫", kind: "color" },
-      { name: "--wash-pink", usage: "chip 渐变 · 粉", kind: "color" },
+      { name: "--chip-wash-a", usage: "标签静止底色透明度", kind: "raw" },
+      { name: "--chip-ring-a", usage: "标签外圈透明度（1px 线要更高）", kind: "raw" },
+      { name: "--chip-hairline-a", usage: "标签静止描边透明度", kind: "raw" },
     ],
   },
 ];
