@@ -168,6 +168,7 @@ the reason in [Why the vault root is `data/`](#why-the-vault-root-is-data).
 | `tags` | list | no | English slugs from the taxonomy, e.g. `["Economics"]`. |
 | `categories` | list | no | Free-form grouping. |
 | `avatar` | text | no | **Pages only.** Renders a round avatar above the body, e.g. `/static/favicons/avatar.png`. |
+| `portfolio` | checkbox | no | **Pages only.** `true` renders the GitHub project block (from `data/projects.yaml`) after the body, before the comments. |
 
 A page under `data/content/pages/` needs only `title` and `description` — it
 does **not** need a `publishDate`.
@@ -178,6 +179,11 @@ so a `<img class="...">` written in `about.md` disappears entirely. That is why
 the avatar is a frontmatter field: it is the one thing on a page that needs
 styling and interactivity, and the page template renders it as a real React
 component. Everything else on a page should be markdown.
+
+The `portfolio` flag works the same way: set `portfolio: true` in
+`pages/about.md`'s frontmatter to render the project list defined in
+`data/projects.yaml` (name, blurb, GitHub stars/forks). With the flag absent —
+the starter template's default — the block is not rendered at all.
 
 ## Where frontmatter appears
 

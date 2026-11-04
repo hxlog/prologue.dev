@@ -319,13 +319,13 @@ export default function UiStandardPage() {
               note=".chip 静止 6% 三色 wash + 1px 淡紫描边；hover 时 1px 三色外圈旋转（5.5s）+ 两颗星点闪烁（1.7s），文字 → --accent-strong。"
             >
               <div className="flex flex-wrap items-center gap-1.5">
-                <a className="chip" href="/tags/Economics">
+                <a className="chip" href="#components">
                   经济学
                 </a>
-                <a className="chip" href="/tags/AI">
+                <a className="chip" href="#components">
                   人工智能
                 </a>
-                <a className="chip" href="/tags/Meta">
+                <a className="chip" href="#components">
                   随笔
                 </a>
                 <button type="button" className="chip-more">
@@ -407,6 +407,140 @@ export default function UiStandardPage() {
                     <span className="nav-item">归档</span>
                     <span className="nav-item">关于</span>
                   </div>
+                </div>
+              </div>
+            </Specimen>
+
+            <Specimen
+              title="全站搜索面板"
+              note=".search-dialog-*；点导航栏放大镜或按 ⌘K/Ctrl+K 打开真实面板（也可点本页任意位置后按 /）。面板是固定顶部命令面板，Esc / 点击外部关闭。"
+            >
+              <div className="search-dialog-panel" aria-hidden="true">
+                <div className="search-dialog-topline" />
+                <div className="search-dialog-input">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={1.6}
+                    stroke="currentColor"
+                    className="h-[18px] w-[18px] shrink-0 text-faint"
+                    aria-hidden="true"
+                  >
+                    <circle cx="10.5" cy="10.5" r="6.5" />
+                    <path strokeLinecap="round" d="m16 16 4.5 4.5" />
+                  </svg>
+                  <input readOnly placeholder="搜索文章与页面…" tabIndex={-1} />
+                  <kbd>esc</kbd>
+                </div>
+                <div className="search-dialog-progress" />
+                <div className="search-dialog-body">
+                  <p className="search-dialog-group">
+                    文章 <em>2</em>
+                  </p>
+                  <a className="search-result" href="#components" data-active="true">
+                    <span className="search-result-dot" />
+                    <span className="search-result-main">
+                      <span className="search-result-title">流动性、杠杆与周期的共振</span>
+                      <span className="search-result-snippet">
+                        当<mark>流动性</mark>转向，杠杆会放大回撤；本文拆解三者之间的时滞。
+                      </span>
+                    </span>
+                    <span className="search-result-meta">2026-11-04 · 约 9 分钟</span>
+                  </a>
+                  <a className="search-result" href="#components">
+                    <span className="search-result-dot" />
+                    <span className="search-result-main">
+                      <span className="search-result-title">风险平价的第二次进化</span>
+                      <span className="search-result-snippet">
+                        从全天候到<mark>风险平价</mark>，组合管理的假设发生了什么变化。
+                      </span>
+                    </span>
+                    <span className="search-result-meta">2026-10-21 · 约 12 分钟</span>
+                  </a>
+                  <p className="search-dialog-group">
+                    页面 <em>1</em>
+                  </p>
+                  <a className="search-result" data-kind="page" href="#components">
+                    <span className="search-result-dot" />
+                    <span className="search-result-main">
+                      <span className="search-result-title">关于作者</span>
+                      <span className="search-result-snippet">
+                        作者槐序，00 后，梦想成为自由职业者。
+                      </span>
+                    </span>
+                    <span className="search-result-meta">页面</span>
+                  </a>
+                </div>
+                <div className="search-dialog-foot">
+                  <span className="search-dialog-key">
+                    <kbd>↑</kbd>
+                    <kbd>↓</kbd> 选择
+                  </span>
+                  <span className="search-dialog-key">
+                    <kbd>↵</kbd> 打开
+                  </span>
+                  <span className="search-dialog-count">共 3 条结果 · 2ms</span>
+                </div>
+              </div>
+              <p className="mt-3 text-xs leading-5 text-faint">
+                结果来自 <span className="font-mono">/api/search</span>（服务端 Fuse，索引不进浏览器）；高亮用
+                <span className="font-mono"> mark </span>承载 accent 淡底，正文仍是 --muted。
+              </p>
+            </Specimen>
+
+            <Specimen
+              title="开源项目卡片"
+              note="Portfolio（/about 正文之后）；复用 .card + card-spotlight，精选占满整行，其余两列。"
+            >
+              <div className="grid grid-cols-1 gap-3">
+                <a
+                  href="https://github.com/hxlog/balanced-portfolio"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="card card-interactive card-spotlight group relative flex flex-col p-5 sm:flex-row sm:items-end sm:gap-8"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="eyebrow mb-1">精选</p>
+                    <p className="card-title text-2xl font-semibold tracking-tight text-foreground">
+                      Balanced Portfolio
+                    </p>
+                    <p className="mt-2 text-sm leading-6 text-muted">
+                      机构级投资管理工具：全天候风险平价组合与回测、股指期货统计看板、场外期权定价。
+                    </p>
+                  </div>
+                  <div className="mt-auto flex items-center justify-between gap-3 pt-5 text-xs text-faint sm:mt-0 sm:flex-col sm:items-end">
+                    <span className="font-mono text-[0.7rem]">hxlog/balanced-portfolio</span>
+                    <span className="flex items-center gap-3">
+                      <span>★ 48</span>
+                      <span>⑂ 25</span>
+                    </span>
+                  </div>
+                </a>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {[
+                    ["Prologue", "这个站点本身：内容优先的 Next.js 博客。", "41", "10"],
+                    ["DSH MCP Tools", "DeepSeek Harness 的 MCP 管理器。", "3", "0"],
+                  ].map(([name, desc, stars, forks]) => (
+                    <a
+                      key={name}
+                      href="https://github.com/hxlog"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="card card-interactive card-spotlight group relative flex flex-col p-5"
+                    >
+                      <p className="card-title text-lg font-semibold tracking-tight text-foreground">
+                        {name}
+                      </p>
+                      <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted">{desc}</p>
+                      <div className="mt-auto flex items-center justify-between gap-3 pt-4 text-xs text-faint">
+                        <span className="truncate font-mono text-[0.7rem]">hxlog/{name.toLowerCase()}</span>
+                        <span className="shrink-0">
+                          ★ {stars} · ⑂ {forks}
+                        </span>
+                      </div>
+                    </a>
+                  ))}
                 </div>
               </div>
             </Specimen>
