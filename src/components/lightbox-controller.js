@@ -59,7 +59,13 @@ export default function Lightbox() {
   const restoreRef = useRef(null);
 
   const openAt = useCallback((img) => {
-    const images = Array.from(document.querySelectorAll(IMAGE_SELECTOR));
+    /* Only the article the reader is actually in. React's <Activity> keeps
+       navigated-away routes mounted but hidden, so a document-wide query picks
+       up every article visited this session — that is how paging in one post
+       used to wander into another post's images. */
+    const scope = img.closest("article") || img.closest("main");
+    if (!scope) return;
+    const images = Array.from(scope.querySelectorAll("img.lightbox-image"));
     const index = images.indexOf(img);
     if (index === -1) return;
 

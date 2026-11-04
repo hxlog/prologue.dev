@@ -48,6 +48,13 @@ function clampOffset(next, zoomValue, img) {
  */
 export default function LightboxViewer({ slides, startIndex, morph, origin, onClose }) {
   const [index, setIndex] = useState(startIndex);
+  /* Crossfade + directional slide between slides. Two layers are painted for
+     ~180 ms: the outgoing slide (the previous index) and the incoming one.
+     Without the outgoing layer the old bitmap disappears on the same frame the
+     new one appears, which reads as a flicker rather than a transition. */
+  const [prevIndex, setPrevIndex] = useState(null);
+  const [direction, setDirection] = useState(1);
+  const [navigated, setNavigated] = useState(false);
   const [zoom, setZoom] = useState(MIN_ZOOM);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   /* Both are derived, not mirrored: the displayed URL is "the cached one, then
@@ -80,11 +87,21 @@ export default function LightboxViewer({ slides, startIndex, morph, origin, onCl
   const go = useCallback(
     (delta) => {
       if (total < 2) return;
+      setDirection(delta);
+      setPrevIndex(index);
+      setNavigated(true);
       setIndex((current) => (current + delta + total) % total);
       resetView();
     },
-    [resetView, total]
+    [index, resetView, total]
   );
+
+  /* Drop the outgoing layer once its 180 ms exit has finished. */
+  useEffect(() => {
+    if (prevIndex === null) return undefined;
+    const timer = setTimeout(() => setPrevIndex(null), 230);
+    return () => clearTimeout(timer);
+  }, [prevIndex, index]);
 
   /* The morph itself. Runs before the first paint so the viewer never shows up
      at its final size and then jumps back to the thumbnail. The source image's
@@ -291,7 +308,22 @@ export default function LightboxViewer({ slides, startIndex, morph, origin, onCl
 
   const closeOnBackdrop = (event) => {
     const target = event.target;
-    if (target === rootRef.current || target === stageRef.current) requestClose();
+    if (!(target instanceof Element)) {
+      if (target === rootRef.current) requestClose();
+      return;
+    }
+    /* Clicking the scrim, the stage, a slide layer or the letterboxed area of
+       a figure closes; clicking the bitmap itself does not (it may be a drag or
+       a double-click zoom). */
+    if (
+      target === rootRef.current ||
+      target === stageRef.current ||
+      target.classList.contains("lightbox-layer") ||
+      (target.classList.contains("lightbox-figure") &&
+        !target.closest("img"))
+    ) {
+      requestClose();
+    }
   };
 
   if (!slide) return null;
@@ -322,6 +354,61 @@ export default function LightboxViewer({ slides, startIndex, morph, origin, onCl
       </button>
 
       <div ref={stageRef} className="lightbox-stage">
+        {prevIndex !== null && slides[prevIndex] ? (
+          <div
+            className="lightbox-layer lightbox-layer--ghost"
+            data-anim="out"
+            data-dir={direction > 0 ? "next" : "prev"}
+            aria-hidden="true"
+          >
+            <figure className="lightbox-figure">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={slides[prevIndex].src}
+                alt=""
+                draggable="false"
+                data-loaded="true"
+              />
+            </figure>
+          </div>
+        ) : null}
+
+        <div
+          key={index}
+          className="lightbox-layer"
+          data-anim={navigated ? "in" : undefined}
+          data-dir={direction > 0 ? "next" : "prev"}
+        >
+          <figure
+            className="lightbox-figure"
+            data-morph={morph && !navigated ? "true" : undefined}
+            style={{
+              transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${zoom})`,
+              cursor: zoom > MIN_ZOOM ? "grab" : "zoom-in",
+            }}
+          >
+            {/* A plain <img>, not next/image: the point is to paint the exact
+                URL the page already downloaded (currentSrc). Routing it back
+                through the optimizer would request a different width and cost a
+                second round trip on the one action that has to feel instant. */}
+            {/* width/height are the source bitmap's intrinsic size: they reserve
+                the right box before the bitmap decodes, which is what lets the
+                morph measure a real target rect on the same frame as the click. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              ref={imageRef}
+              src={src}
+              alt={slide.alt}
+              width={slide.width || undefined}
+              height={slide.height || undefined}
+              decoding="async"
+              draggable="false"
+              onLoad={() => setLoadedSrc(src)}
+              data-loaded={loaded ? "true" : undefined}
+            />
+          </figure>
+        </div>
+
         {total > 1 ? (
           <button
             type="button"
@@ -337,35 +424,6 @@ export default function LightboxViewer({ slides, startIndex, morph, origin, onCl
             </svg>
           </button>
         ) : null}
-
-        <figure
-          className="lightbox-figure"
-          data-morph={morph ? "true" : undefined}
-          style={{
-            transform: `translate3d(${offset.x}px, ${offset.y}px, 0) scale(${zoom})`,
-            cursor: zoom > MIN_ZOOM ? "grab" : "zoom-in",
-          }}
-        >
-          {/* A plain <img>, not next/image: the point is to paint the exact
-              URL the page already downloaded (currentSrc). Routing it back
-              through the optimizer would request a different width and cost a
-              second round trip on the one action that has to feel instant. */}
-          {/* width/height are the source bitmap's intrinsic size: they reserve
-              the right box before the bitmap decodes, which is what lets the
-              morph measure a real target rect on the same frame as the click. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            ref={imageRef}
-            src={src}
-            alt={slide.alt}
-            width={slide.width || undefined}
-            height={slide.height || undefined}
-            decoding="async"
-            draggable="false"
-            onLoad={() => setLoadedSrc(src)}
-            data-loaded={loaded ? "true" : undefined}
-          />
-        </figure>
 
         {total > 1 ? (
           <button
@@ -383,6 +441,12 @@ export default function LightboxViewer({ slides, startIndex, morph, origin, onCl
           </button>
         ) : null}
       </div>
+
+      {slide.caption ? (
+        <p key={index} className="lightbox-caption">
+          {slide.caption}
+        </p>
+      ) : null}
 
       <div className="lightbox-bar">
         <span className="lightbox-counter" aria-hidden="true">
@@ -428,8 +492,6 @@ export default function LightboxViewer({ slides, startIndex, morph, origin, onCl
           </svg>
         </button>
       </div>
-
-      {slide.caption ? <p className="lightbox-caption">{slide.caption}</p> : null}
     </div>
   );
 }

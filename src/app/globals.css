@@ -1529,32 +1529,94 @@ html.dark .shiki span {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex: 1 1 0;
   width: 100%;
-  height: 100%;
   min-height: 0;
+  overflow: hidden;
 }
 
+/* Two layers are painted for ~180 ms while paging: the outgoing slide slides
+ * and fades out while the incoming slide slides in from the direction of
+ * travel. `translate` (not `transform`) animates the layer, because the
+ * figure inside it owns `transform` for the zoom/pan state. */
+.lightbox-layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lightbox-layer[data-anim="in"][data-dir="next"] {
+  animation: lightbox-in-next 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.lightbox-layer[data-anim="in"][data-dir="prev"] {
+  animation: lightbox-in-prev 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.lightbox-layer[data-anim="out"] {
+  pointer-events: none;
+}
+.lightbox-layer[data-anim="out"][data-dir="next"] {
+  animation: lightbox-out-next 180ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+.lightbox-layer[data-anim="out"][data-dir="prev"] {
+  animation: lightbox-out-prev 180ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+@keyframes lightbox-in-next {
+  from {
+    opacity: 0;
+    translate: 22px 0;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes lightbox-in-prev {
+  from {
+    opacity: 0;
+    translate: -22px 0;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes lightbox-out-next {
+  from {
+    opacity: 1;
+    translate: 0 0;
+  }
+  to {
+    opacity: 0;
+    translate: -14px 0;
+  }
+}
+@keyframes lightbox-out-prev {
+  from {
+    opacity: 1;
+    translate: 0 0;
+  }
+  to {
+    opacity: 0;
+    translate: 14px 0;
+  }
+}
+
+/* The figure fills the stage so the bitmap's percentage max-width/max-height
+ * resolve against the real available box. Before this, the figure was sized by
+ * its content and `max-height: 100%` on the img resolved against an auto
+ * height — a 4096 px-tall photo overflowed the stage, covered the toolbar and
+ * rendered already "zoomed". */
 .lightbox-figure {
   display: flex;
   align-items: center;
   justify-content: center;
-  max-width: 100%;
-  max-height: 100%;
+  width: 100%;
+  height: 100%;
   margin: 0;
   will-change: transform;
   transition: transform var(--duration-fast) var(--ease-out-expo);
-  animation: lightbox-figure-in var(--duration-enter) var(--ease-out-expo) both;
 }
-.lightbox-figure[data-morph] {
-  animation: none;
-}
-@keyframes lightbox-figure-in {
-  from {
-    opacity: 0;
-    transform: scale(0.94);
-  }
-}
-
 .lightbox-figure img {
   display: block;
   max-width: 100%;
@@ -1575,7 +1637,11 @@ html.dark .shiki span {
   opacity: 1;
   transition: none;
 }
-
+.lightbox-layer--ghost img {
+  opacity: 1;
+  transition: none;
+  box-shadow: none;
+}
 /* Chrome: one glass recipe for every button in the overlay. */
 .lightbox-close,
 .lightbox-nav,
@@ -1634,6 +1700,7 @@ html.dark .shiki span {
 
 .lightbox-bar {
   display: flex;
+  flex: none;
   align-items: center;
   gap: 0.5rem;
   flex-wrap: wrap;
@@ -1650,7 +1717,10 @@ html.dark .shiki span {
   padding-inline: 0.25rem;
 }
 
+/* Sits between the image and the toolbar, so a caption never hides the
+ * controls (and the toolbar never hides the caption). */
 .lightbox-caption {
+  flex: none;
   max-width: 48rem;
   margin: 0;
   padding-inline: 0.5rem;
@@ -1658,6 +1728,17 @@ html.dark .shiki span {
   font-size: var(--text-sm);
   line-height: 1.5;
   color: rgb(238 240 247 / 0.78);
+  animation: lightbox-caption-in 220ms var(--ease-out-expo) both;
+}
+@keyframes lightbox-caption-in {
+  from {
+    opacity: 0;
+    translate: 0 4px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
 }
 
 @media (max-width: 640px) {
@@ -1675,10 +1756,326 @@ html.dark .shiki span {
 
 @media (prefers-reduced-motion: reduce) {
   .lightbox,
-  .lightbox-figure {
+  .lightbox-layer,
+  .lightbox-caption {
     animation: none;
   }
   .lightbox-figure {
     transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Site-wide search dialog (src/components/search-dialog.js)
+ *
+ * A command palette over the glass surface used by the modals: same blur, same
+ * hairline border, plus the 2px brand topline and the stardust highlight wash.
+ * The scrim is light in light mode (the page stays paper-coloured) and dark in
+ * dark mode, so the panel never floats on a colour it was not designed for.
+ * ------------------------------------------------------------------------- */
+.search-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, var(--background) 66%, transparent);
+  backdrop-filter: blur(6px) saturate(110%);
+}
+.dark .search-dialog-backdrop {
+  background: rgb(10 11 15 / 0.62);
+}
+
+/* The viewport does not eat clicks: outside-click closes through the backdrop. */
+.search-dialog-viewport {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 12vh 1rem 1rem;
+  pointer-events: none;
+}
+
+.search-dialog-panel {
+  pointer-events: auto;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(640px, 100%);
+  max-height: min(72vh, 640px);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background-color: color-mix(in srgb, var(--surface) 94%, transparent);
+  backdrop-filter: blur(18px) saturate(120%);
+  box-shadow:
+    var(--shadow-pop),
+    0 44px 100px -42px rgb(20 22 30 / 0.55);
+}
+
+.search-dialog-topline {
+  flex: none;
+  height: 2px;
+  background: var(--gradient-brand);
+}
+
+.search-dialog-input {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.7rem;
+  height: 3.5rem;
+  padding-inline: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.search-dialog-input input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--foreground);
+  font: inherit;
+  font-size: 0.95rem;
+}
+.search-dialog-input input::placeholder {
+  color: var(--faint);
+}
+.search-dialog-input input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+}
+.search-dialog kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.15rem;
+  padding-inline: 0.3rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 0.3rem;
+  background: var(--surface-2);
+  color: var(--faint);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  line-height: 1;
+}
+
+/* 2px progress line: the only "busy" chrome. Old results stay visible, dimmed,
+   so a keystroke does not flash the panel empty. */
+.search-dialog-progress {
+  flex: none;
+  height: 2px;
+  background: var(--gradient-brand);
+  transform: scaleX(0);
+  transform-origin: 0 50%;
+  opacity: 0;
+}
+.search-dialog-progress[data-active] {
+  opacity: 1;
+  animation: search-dialog-progress 1.1s var(--ease-out-expo) infinite;
+}
+@keyframes search-dialog-progress {
+  0% {
+    transform: scaleX(0);
+  }
+  55% {
+    transform: scaleX(0.72);
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 0.2;
+  }
+}
+
+.search-dialog-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 0.5rem;
+  transition: opacity var(--duration-fast) ease;
+}
+.search-dialog-body[data-loading] {
+  opacity: 0.55;
+}
+
+.search-dialog-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.5rem 0.6rem 0.25rem;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--muted);
+}
+.search-dialog-group em {
+  font-style: normal;
+  font-weight: 500;
+  color: var(--faint);
+}
+
+.search-result {
+  display: grid;
+  grid-template-columns: 0.5rem minmax(0, 1fr) auto;
+  gap: 0.7rem;
+  align-items: start;
+  padding: 0.65rem 0.7rem;
+  border-radius: 0.6rem;
+  color: inherit;
+  text-decoration: none;
+}
+.search-result[data-active] {
+  background: color-mix(in srgb, var(--accent-pastel) 18%, transparent);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--accent) 20%, transparent);
+}
+.search-result-dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  margin-top: 0.5rem;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+}
+.search-result[data-kind="page"] .search-result-dot {
+  background: var(--secondary);
+}
+.search-result-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.search-result-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  color: var(--foreground);
+}
+.search-result-snippet {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.search-result-snippet mark {
+  padding-inline: 1px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--accent-pastel) 46%, transparent);
+  color: var(--accent-strong);
+}
+.search-result-meta {
+  margin-top: 0.15rem;
+  font-size: 0.68rem;
+  color: var(--faint);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.search-dialog-foot {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 0.8rem;
+  height: 2.4rem;
+  padding-inline: 0.9rem;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-2) 60%, transparent);
+  font-size: 0.7rem;
+  color: var(--faint);
+}
+.search-dialog-key {
+  align-items: center;
+  gap: 0.25rem;
+}
+.search-dialog-count {
+  margin-left: auto;
+}
+
+.search-dialog-hint,
+.search-dialog-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  font-size: 0.8rem;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.search-dialog-empty b {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+.search-dialog-retry {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.7rem;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.search-dialog-retry:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.search-skeleton {
+  padding: 0.5rem;
+}
+.search-skeleton-row {
+  padding: 0.7rem 0.6rem;
+}
+.search-skeleton-line {
+  height: 0.5rem;
+  margin-top: 0.4rem;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(
+    90deg,
+    var(--surface-2),
+    var(--surface-3),
+    var(--surface-2)
+  );
+  background-size: 220% 100%;
+  animation: search-skeleton 1.8s linear infinite;
+}
+.search-skeleton-line:first-child {
+  margin-top: 0;
+}
+@keyframes search-skeleton {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: -220% 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .search-dialog-viewport {
+    padding: 7vh 0.75rem 0.75rem;
+  }
+  .search-dialog-panel {
+    max-height: 80vh;
+  }
+  .search-dialog-foot {
+    gap: 0.5rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-dialog-progress,
+  .search-skeleton-line {
+    animation: none;
   }
 }
