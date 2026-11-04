@@ -2030,7 +2030,6 @@ __metadata:
     unist-util-remove: "npm:^4.0.0"
     unist-util-visit: "npm:^5.2.0"
     yaml: "npm:^2.9.1"
-    yet-another-react-lightbox: "npm:^3.33.0"
   languageName: unknown
   linkType: soft
 
@@ -7487,23 +7486,6 @@ __metadata:
   bin:
     yaml: bin.mjs
   checksum: 10c0/9d06676ef02b89559a8b10a71882bd2cdae81e8393dc8dbc871615c3259475d9609ad973d19cb3c9e71e72d6206e3d1e7aa241c7e55f3d16fd2e77db305827d6
-  languageName: node
-  linkType: hard
-
-"yet-another-react-lightbox@npm:^3.33.0":
-  version: 3.33.0
-  resolution: "yet-another-react-lightbox@npm:3.33.0"
-  peerDependencies:
-    "@types/react": ^16 || ^17 || ^18 || ^19
-    "@types/react-dom": ^16 || ^17 || ^18 || ^19
-    react: ^16.8.0 || ^17 || ^18 || ^19
-    react-dom: ^16.8.0 || ^17 || ^18 || ^19
-  peerDependenciesMeta:
-    "@types/react":
-      optional: true
-    "@types/react-dom":
-      optional: true
-  checksum: 10c0/7aa2e915f52a424a736a918c07d660e92334f51d49adfe603ec5b2a76f0cd1895aed3916f66a5976565bb4518b129afee217816b1c8c02fb40f41b7b31b7a092
   languageName: node
   linkType: hard
 

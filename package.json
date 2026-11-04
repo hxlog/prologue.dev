@@ -49,8 +49,7 @@
     "tailwindcss": "^4.3.4",
     "unist-util-remove": "^4.0.0",
     "unist-util-visit": "^5.2.0",
-    "yaml": "^2.9.1",
-    "yet-another-react-lightbox": "^3.33.0"
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.20",

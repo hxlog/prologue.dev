@@ -1,14 +1,11 @@
 import "./globals.css";
-import dynamic from "next/dynamic";
-import { Suspense } from "react";
 import { Providers } from "../components/providers";
 import Navbar from "../components/navbar";
 import Footer from "../components/footer";
 import Spotlight from "../components/spotlight";
 import siteMetadata from "../../data/sitemetadata";
 import UmamiAnalytics from "../components/umami-analytics";
-
-const ImageLightbox = dynamic(() => import("../components/ImageLightbox"));
+import Lightbox from "../components/lightbox-controller";
 
 /**
  * Typography: system fonts only — this app makes no font requests at all.
@@ -76,14 +73,12 @@ export default function RootLayout({ children }) {
             <main id="content">{children}</main>
             <Footer />
           </div>
-          {/* ImageLightbox reads the pathname to re-scan the DOM after a
-              navigation. Under Cache Components that URL read must not sit in
-              the static shell; a Suspense boundary keeps the layout
-              prerenderable and the lightbox resolves on the client. It
-              renders nothing until an image is clicked. */}
-          <Suspense fallback={null}>
-            <ImageLightbox />
-          </Suspense>
+          {/* The lightbox controller is a ~1 KB client component with one
+              delegated listener; the viewer itself is a separate chunk that is
+              only warmed on pointer intent. It reads the DOM at click time (not
+              at render time), so it needs no pathname and no Suspense boundary
+              — the layout stays prerenderable with nothing to resolve. */}
+          <Lightbox />
           {/* One delegated pointermove listener for every .card-spotlight. */}
           <Spotlight />
         </Providers>
