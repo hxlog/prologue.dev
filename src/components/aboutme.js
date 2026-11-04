@@ -3,9 +3,14 @@ import Image from "next/image";
 import { getPosts } from "../lib/content";
 import siteMetadata from "../../data/sitemetadata";
 
+/**
+ * Sidebar author card, shared by the homepage and the post page.
+ *
+ * Server component: the post/word counts come from the content loader at
+ * render time. `getPosts()` is a function rather than an array precisely so
+ * these numbers follow a content edit; see src/lib/content/load.js.
+ */
 export default function AboutMe() {
-  // Computed per render, not at module scope: a module constant would freeze
-  // the first count it saw and keep showing it after a content edit.
   const allPosts = getPosts();
   const POSTS_NUM = allPosts.filter((p) => p.draft !== true).length;
   const TOTAL_WORDS = allPosts
@@ -13,52 +18,50 @@ export default function AboutMe() {
     .toLocaleString();
 
   return (
-    <>
-      <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted">
-        <span
-          className="inline-block h-3 w-1 rounded-full"
-          style={{ background: "var(--gradient-brand)" }}
-          aria-hidden="true"
-        />
-        关于作者
-      </h2>
-      <Link href="/about">
-        <Image
-          src={siteMetadata.avatar}
-          alt="Avatar"
-          width="100"
-          height="100"
-          className="mx-auto mt-6 max-w-md rounded-full drop-shadow-sm ring-2 ring-border transition-all duration-300 hover:scale-105 hover:ring-accent"
-        />
+    <div className="text-center">
+      <h2 className="section-label">关于作者</h2>
+
+      <Link href="/about" className="group mt-6 inline-block">
+        <span className="block rounded-full bg-[var(--gradient-brand)] p-[2px] transition-transform duration-base ease-out-expo group-hover:scale-105">
+          <Image
+            src={siteMetadata.avatar}
+            alt={siteMetadata.author}
+            width={96}
+            height={96}
+            className="h-24 w-24 rounded-full object-cover ring-2 ring-background"
+          />
+        </span>
       </Link>
-      <p className="pt-4 text-center text-lg font-medium text-foreground">
+
+      <p className="mt-3 text-lg font-medium text-foreground">
         {siteMetadata.author}
       </p>
 
-      <div className="mx-auto grid grid-cols-2 divide-x divide-border py-4">
-        <div className="grid grid-rows-2 px-2 text-center">
+      <div className="mx-auto mt-4 grid grid-cols-2 divide-x divide-border">
+        <div className="px-2">
           <Link
             href="/blog"
-            className="font-semibold text-foreground transition-colors duration-200 hover:text-accent"
+            className="block font-semibold text-foreground transition-colors duration-fast hover:text-accent"
           >
             {POSTS_NUM}
           </Link>
-          <p className="pt-1 text-sm text-faint">文章</p>
+          <p className="mt-1 text-sm text-faint">文章</p>
         </div>
-
-        <div className="grid grid-rows-2 px-2 text-center">
-          <span className="font-semibold text-foreground">{TOTAL_WORDS}</span>
-          <p className="pt-1 text-sm text-faint">字数</p>
+        <div className="px-2">
+          <span className="block font-semibold text-foreground">
+            {TOTAL_WORDS}
+          </span>
+          <p className="mt-1 text-sm text-faint">字数</p>
         </div>
       </div>
-      <p className="mx-auto mb-2 py-2 text-center leading-7 text-muted">
+
+      <p className="mx-auto mt-4 text-sm leading-7 text-muted">
         {siteMetadata.authorDesc}
       </p>
-      <Link href="/about" passHref>
-        <p className="pt-2 text-right text-sm text-muted transition-colors duration-300 hover:text-accent hover:underline">
-          了解更多 →
-        </p>
+
+      <Link href="/about" className="link mt-3 inline-block text-sm">
+        了解更多 →
       </Link>
-    </>
+    </div>
   );
 }

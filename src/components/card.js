@@ -7,11 +7,15 @@ import { formatDate } from "../lib/date";
  * posts. Server component — date formatting happens at build time and no
  * client JS ships for the card itself.
  *
- * Anatomy (danarnoux-inspired, hybrid with nextjs.org's hairline ring):
+ * Anatomy:
  *   meta row (date · reading time)
  *   title            → stretched link covers the whole card
- *   serif excerpt    → line-clamped
+ *   muted excerpt    → line-clamped
  *   tag chips        → real links, sit above the stretched link (z-10)
+ *
+ * `prefetch` is on: a card is an explicit "read this next" signal, and every
+ * post is static, so the per-link prefetch resolves params from the static
+ * cache instead of the runtime.
  */
 export default function Card({
   slug,
@@ -22,9 +26,7 @@ export default function Card({
   readingTime,
 }) {
   return (
-    <article
-      className="card card-interactive card-spotlight group relative flex flex-col p-5"
-    >
+    <article className="card card-interactive card-spotlight group relative flex flex-col p-5">
       <div className="flex items-center gap-2 text-xs text-faint">
         <time dateTime={publishDate}>{formatDate(publishDate)}</time>
         {readingTime ? (
@@ -35,9 +37,10 @@ export default function Card({
         ) : null}
       </div>
 
-      <h3 className="card-title mt-2.5 text-lg font-semibold leading-7 tracking-tight text-foreground transition-colors duration-200">
+      <h3 className="card-title mt-2.5 text-lg font-semibold leading-7 tracking-tight text-foreground transition-colors duration-fast">
         <Link
           href={slug}
+          prefetch={true}
           className="after:absolute after:inset-0 after:content-['']"
         >
           {title}
@@ -45,7 +48,7 @@ export default function Card({
       </h3>
 
       {description ? (
-        <p className="mt-2 line-clamp-3 text-sm leading-6 text-foreground/70">
+        <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted">
           {description}
         </p>
       ) : null}

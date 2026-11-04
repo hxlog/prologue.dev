@@ -67,7 +67,7 @@ export default function Modal({ open, onClose, title, children }) {
                     type="button"
                     onClick={onClose}
                     aria-label="关闭"
-                    className="shrink-0 rounded-full p-1.5 text-muted transition-colors duration-150 hover:bg-surface-2 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+                    className="btn-icon h-8 w-8 shrink-0"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"

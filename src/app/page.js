@@ -4,25 +4,10 @@ import siteMetadata from "../../data/sitemetadata";
 import AboutMe from "../components/aboutme";
 import Articles from "../components/articles";
 import MicroblogSnippet from "../components/microblog-snippet";
-import TerminalQuotes from "../components/terminal-quotes";
 import PageTransition from "../components/page-transition";
 import RouteTransition from "../components/route-transition";
 import { getSortedTags } from "../lib/tag-counts";
-import { getMicroblog } from "../lib/microblog";
-
-/**
- * Short quotes for the terminal block. Reads through the same loader as the
- * microblog page and feed -- this used to be a second, independent reader of
- * the same YAML file that swallowed its own errors, so a broken entry silently
- * emptied the block instead of failing.
- */
-function getMicroblogQuotes() {
-  return getMicroblog()
-    .map((entry) => entry.paragraphs[0] || "")
-    .filter((text) => text.length >= 8)
-    .slice(0, 8)
-    .map((text) => (text.length > 64 ? text.slice(0, 64) + "…" : text));
-}
+import { readingTimeLabel } from "../lib/date";
 
 export default function Home() {
   // getPosts() re-reads when the content files change; copy before sorting,
@@ -37,44 +22,46 @@ export default function Home() {
       slug: post.slug,
       tags: post.tags,
       publishDate: post.publishDate,
-      readingTime: post.readingTime?.text,
+      readingTime: readingTimeLabel(post.readingTime),
     }));
 
   // Top-3 tags by post count (sortedTags desc); fewer if the taxonomy is small.
   const topTags = getSortedTags().slice(0, 3);
 
-  const quotes = getMicroblogQuotes();
-
   return (
     <div className="relative">
       <RouteTransition>
         <PageTransition>
-          <section className="mx-auto max-w-3xl pt-16 pb-8">
+          {/* overflow-x-clip: the aurora bleeds 30% past each side by design,
+              and without the clip that bleed is real horizontal overflow on a
+              narrow window (155px at 919px wide). It has to be `clip`, not
+              `hidden`: clip does not create a scroll container, so the pinned
+              column further down still sticks. */}
+          <section className="relative mx-auto max-w-3xl overflow-x-clip pt-16 pb-10">
+            {/* Atmosphere, not decoration: the three brand colours as one wash
+                behind the opening line. Painted by CSS, no image asset. */}
+            <div className="hero-aurora" aria-hidden="true" />
             <p className="eyebrow">{siteMetadata.title}</p>
-            <h1 className="mt-4 text-3xl font-semibold leading-tight tracking-tight text-foreground sm:text-4xl">
+            <h1 className="mt-4 text-display font-semibold leading-tight tracking-tight text-foreground">
               {siteMetadata.headerTitle}
             </h1>
-            <p className="mt-4 font-serif text-lg leading-8 text-foreground/70">
+            <p className="mt-4 text-lead text-muted">
               {siteMetadata.description}
             </p>
           </section>
         </PageTransition>
 
-        <div className="max-w-7xl pt-8 lg:grid lg:grid-cols-9 lg:gap-8">
-          <PageTransition className="col-span-7 max-w-4xl pt-6">
+        <div className="pt-8 lg:grid lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-10">
+          <PageTransition className="min-w-0 pt-6">
             <Articles articles={posts} topTags={topTags} />
           </PageTransition>
 
-          <div className="col-span-2 mx-auto max-w-lg">
-            <div
-              className="sticky pt-10"
-              style={{ top: "calc(var(--nav-height) + 1rem)" }}
-            >
+          <aside className="mx-auto w-full max-w-lg lg:mx-0">
+            <div className="sticky-below-nav pt-10">
               <AboutMe />
-              {quotes.length > 0 && <TerminalQuotes quotes={quotes} />}
               <MicroblogSnippet />
             </div>
-          </div>
+          </aside>
         </div>
       </RouteTransition>
     </div>

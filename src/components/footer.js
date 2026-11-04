@@ -1,45 +1,47 @@
-"use client";
-
 import Link from "next/link";
 import EmailModal from "./email-modal";
 import sitemetadata, { siteRepo } from "../../data/sitemetadata";
-import { currentYear } from "../lib/date";
+import { getSiteYear } from "../lib/site-year";
 
-export default function Footer() {
+/**
+ * Server component, even though it renders client widgets (the email modal,
+ * the icon buttons). Nothing here reads the route or the request, so the whole
+ * footer is part of the static shell.
+ *
+ * `getSiteYear()` is async because the year is read inside a cached scope:
+ * `new Date()` is banned in the prerendered shell under Cache Components, and
+ * a cached read pins the value to a revalidation boundary instead. See
+ * src/lib/site-year.js.
+ */
+export default async function Footer() {
+  const year = await getSiteYear();
+
   return (
     <footer className="mt-16 border-t border-border">
-      <div className="container mx-auto flex select-none flex-col items-center px-8 py-8 sm:flex-row">
-        <div className="text-sm text-muted">
-          © {currentYear()} {sitemetadata.publishName}
-        </div>
-        <p className="mt-4 text-sm text-muted sm:ml-4 sm:mt-0 sm:border-l sm:border-border sm:pl-4">
+      <div className="flex select-none flex-col items-center gap-4 py-8 text-sm text-muted sm:flex-row sm:gap-0">
+        <p>
+          © {year} {sitemetadata.publishName}
+        </p>
+        <p className="sm:ml-4 sm:border-l sm:border-border sm:pl-4">
           Powered by{" "}
-          <Link
-            href="https://nextjs.org/"
-            target="_blank"
-            className="transition-colors duration-200 hover:text-accent"
-          >
+          <Link href="https://nextjs.org/" target="_blank" className="link">
             Next.js
           </Link>{" "}
           and{" "}
-          <Link
-            href="https://vercel.com/"
-            target="_blank"
-            className="transition-colors duration-200 hover:text-accent"
-          >
+          <Link href="https://vercel.com/" target="_blank" className="link">
             Vercel
           </Link>
         </p>
 
-        <span className="mt-4 inline-flex items-center gap-1 sm:ml-auto sm:mt-0">
+        <span className="inline-flex items-center gap-1 sm:ml-auto">
           <Link
             href={`https://www.github.com/${sitemetadata.github}/${siteRepo}`}
             aria-label="Github"
             target="_blank"
-            className="rounded-full p-1 text-faint transition-all duration-200 hover:scale-105 hover:text-accent"
+            className="btn-icon"
           >
             <svg
-              className="h-6 w-6"
+              className="h-5 w-5"
               fill="currentColor"
               viewBox="0 0 24 24"
               aria-hidden="true"

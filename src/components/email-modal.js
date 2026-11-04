@@ -21,7 +21,7 @@ export default function EmailModal() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Email"
-        className="rounded-full p-1 text-faint transition-all duration-200 hover:scale-105 hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+        className="btn-icon"
       >
         <svg
           className="h-6 w-6 fill-current"
@@ -50,10 +50,10 @@ export default function EmailModal() {
           <button
             type="button"
             onClick={() => copy(email)}
-            className={`shrink-0 rounded-md px-2.5 py-1 text-xs font-medium transition-colors duration-150 ${
+            className={`shrink-0 rounded-md px-2.5 py-1 text-xs font-medium transition-colors duration-fast ${
               state === "copied"
                 ? "bg-accent-soft text-accent"
-                : "bg-accent text-white hover:bg-accent-strong"
+                : "bg-accent-strong text-on-accent hover:bg-accent-strong/90"
             }`}
           >
             {state === "copied" ? "已复制 ✓" : "复制"}
@@ -70,7 +70,7 @@ export default function EmailModal() {
           或者{" "}
           <a
             href={`mailto:${email}`}
-            className="text-accent underline decoration-accent/40 underline-offset-2 transition-colors hover:text-accent-strong"
+            className="link"
           >
             打开邮件应用
           </a>

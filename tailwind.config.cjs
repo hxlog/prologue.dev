@@ -4,9 +4,13 @@
  * live here: the class-based dark-mode strategy (next-themes) and the
  * @tailwindcss/typography plugin for the `.prose` article body.
  *
- * The actual prose rhythm, accent link colors, and inline-code treatment are
- * overridden in src/app/globals.css (CJK-friendly 1.85 line-height, cyan
- * links, violet inline code), so no typography theme extension is needed here.
+ * The actual prose rhythm, accent link colours, and inline-code treatment are
+ * overridden in src/app/globals.css: that block also maps the ENTIRE
+ * --tw-prose-* family (headings, bold, quotes, captions, table borders) onto
+ * the site's semantic tokens. It has to, because typography only swaps its
+ * defaults under .prose-invert and this site toggles dark mode with a class on
+ * <html> -- leaving the defaults in place is what made every H1/H2 near-black
+ * on the dark background. No typography theme extension is needed here.
  *
  * @type {import('tailwindcss').Config}
  */

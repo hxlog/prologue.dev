@@ -1,59 +1,47 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import headerNavLinks from "../../data/headerNavLinks";
+import { Suspense } from "react";
+import Link from "next/link";
+import siteMetadata from "../../data/sitemetadata";
 import ThemeSwitch from "./themeswitch";
 import MobileNav from "./mobilenav";
 import RssModal from "./rss-modal";
-import Link from "next/link";
-import siteMetadata from "../../data/sitemetadata";
-import { usePathname } from "next/navigation";
+import NavLinks, { NavLinkList } from "./nav-links";
 
+/**
+ * Sticky glass header.
+ *
+ * Server component. The only route-dependent part is the active-link
+ * highlight, which needs `usePathname` (client) and therefore lives in
+ * <NavLinks>, wrapped in <Suspense>: under Cache Components a shared layout
+ * that reads URL data cannot be part of the static shell for routes with
+ * dynamic params, so the boundary is what keeps the header prerendered. The
+ * fallback renders the same links unstyled-as-active, so the shell's height
+ * and contents match.
+ *
+ * The scroll-elevate shadow is CSS-only (`animation-timeline: scroll()`), not
+ * a scroll listener — see `.glass-header` in globals.css.
+ */
 export default function Navbar() {
-  const pathname = usePathname();
-  const [scrolled, setScrolled] = useState(false);
-
-  // Scroll-elevate shadow (danarnoux-style): header gains depth after scroll.
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
   return (
     <header
-      className={`glass-header sticky top-0 z-40 border-b px-4 py-2 transition-shadow duration-300 ${
-        scrolled ? "shadow-[0_14px_34px_-18px_var(--shadow-tint)]" : ""
-      }`}
+      className="glass-header sticky top-0 z-40 border-b"
+      style={{ height: "var(--nav-height)" }}
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between">
-        <Link href="/" aria-label={siteMetadata.publishName}>
-          <span className="select-none rounded-lg px-3 py-1 text-xl font-semibold tracking-tight text-foreground transition-colors duration-200 hover:text-accent">
+      <div className="shell flex h-full items-center justify-between gap-4">
+        <Link
+          href="/"
+          prefetch={true}
+          aria-label={siteMetadata.publishName}
+          className="select-none rounded-control px-1 py-1"
+        >
+          <span className="text-gradient text-lg font-semibold tracking-tight">
             {siteMetadata.publishName}
           </span>
         </Link>
 
-        <nav className="flex items-center leading-6">
-          <div className="hidden sm:block">
-            {headerNavLinks.map((link) => {
-              const active = pathname === link.href;
-              return (
-                <Link
-                  key={link.title}
-                  href={link.href}
-                  aria-current={active ? "page" : undefined}
-                  className={`select-none rounded-lg px-3 py-2 text-sm transition-all duration-200 ${
-                    active
-                      ? "bg-accent-soft font-semibold text-accent"
-                      : "text-muted hover:bg-surface-2 hover:text-accent"
-                  }`}
-                >
-                  {link.title}
-                </Link>
-              );
-            })}
-          </div>
+        <nav className="hidden items-center gap-0.5 sm:flex">
+          <Suspense fallback={<NavLinkList />}>
+            <NavLinks />
+          </Suspense>
         </nav>
 
         {/* Icon toolbar: every button shares the same 36px box and 20px icon
