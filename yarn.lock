@@ -1985,54 +1985,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"Prologue Blog@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "Prologue Blog@workspace:."
-  dependencies:
-    "@giscus/react": "npm:^3.1.0"
-    "@headlessui/react": "npm:^2.2.10"
-    "@shikijs/rehype": "npm:^4.6.0"
-    "@tailwindcss/postcss": "npm:^4.3.4"
-    "@tailwindcss/typography": "npm:^0.5.20"
-    date-fns: "npm:^4.4.0"
-    eslint: "npm:^9"
-    eslint-config-next: "npm:^16.4.4"
-    eslint-config-prettier: "npm:^10.1.8"
-    feed: "npm:^6.0.0"
-    fuse.js: "npm:^7.5.0"
-    github-slugger: "npm:^2.0.0"
-    gray-matter: "npm:^4.0.3"
-    hast-util-whitespace: "npm:^3.0.0"
-    hastscript: "npm:^9.0.3"
-    mdast-util-to-string: "npm:^4.0.0"
-    mermaid: "npm:^12.2.0"
-    next: "npm:^16.4.4"
-    next-themes: "npm:^0.4.6"
-    pako: "npm:^3.0.3"
-    postcss: "npm:^8.5.32"
-    prettier: "npm:^3.9.10"
-    react: "npm:^19.3.1"
-    react-dom: "npm:^19.3.1"
-    reading-time: "npm:^1.5.0"
-    rehype-katex: "npm:^7.0.1"
-    rehype-slug: "npm:^6.0.0"
-    rehype-stringify: "npm:^10.0.1"
-    remark-directive: "npm:^4.0.0"
-    remark-gemoji: "npm:^8.0.0"
-    remark-gfm: "npm:^4.0.1"
-    remark-math: "npm:^6.0.0"
-    remark-parse: "npm:^11.0.0"
-    remark-rehype: "npm:^11.1.2"
-    server-only: "npm:^0.0.1"
-    shiki: "npm:^4.6.0"
-    tailwindcss: "npm:^4.3.4"
-    typescript: "npm:~6.0"
-    unist-util-remove: "npm:^4.0.0"
-    unist-util-visit: "npm:^5.2.0"
-    yaml: "npm:^2.9.1"
-  languageName: unknown
-  linkType: soft
-
 "acorn-jsx@npm:^5.3.2":
   version: 5.3.2
   resolution: "acorn-jsx@npm:5.3.2"
@@ -6083,6 +6035,54 @@ __metadata:
   checksum: 10c0/0b3531593aa6fb36ac6baf629cb058bda472c59a6938774f931fe55283a07c62e6f56e621b043a82d8a3e21fc284c08c34f9e539fc70072635f79b7bae1a1067
   languageName: node
   linkType: hard
+
+"prologue-blog@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "prologue-blog@workspace:."
+  dependencies:
+    "@giscus/react": "npm:^3.1.0"
+    "@headlessui/react": "npm:^2.2.10"
+    "@shikijs/rehype": "npm:^4.6.0"
+    "@tailwindcss/postcss": "npm:^4.3.4"
+    "@tailwindcss/typography": "npm:^0.5.20"
+    date-fns: "npm:^4.4.0"
+    eslint: "npm:^9"
+    eslint-config-next: "npm:^16.4.4"
+    eslint-config-prettier: "npm:^10.1.8"
+    feed: "npm:^6.0.0"
+    fuse.js: "npm:^7.5.0"
+    github-slugger: "npm:^2.0.0"
+    gray-matter: "npm:^4.0.3"
+    hast-util-whitespace: "npm:^3.0.0"
+    hastscript: "npm:^9.0.3"
+    mdast-util-to-string: "npm:^4.0.0"
+    mermaid: "npm:^12.2.0"
+    next: "npm:^16.4.4"
+    next-themes: "npm:^0.4.6"
+    pako: "npm:^3.0.3"
+    postcss: "npm:^8.5.32"
+    prettier: "npm:^3.9.10"
+    react: "npm:^19.3.1"
+    react-dom: "npm:^19.3.1"
+    reading-time: "npm:^1.5.0"
+    rehype-katex: "npm:^7.0.1"
+    rehype-slug: "npm:^6.0.0"
+    rehype-stringify: "npm:^10.0.1"
+    remark-directive: "npm:^4.0.0"
+    remark-gemoji: "npm:^8.0.0"
+    remark-gfm: "npm:^4.0.1"
+    remark-math: "npm:^6.0.0"
+    remark-parse: "npm:^11.0.0"
+    remark-rehype: "npm:^11.1.2"
+    server-only: "npm:^0.0.1"
+    shiki: "npm:^4.6.0"
+    tailwindcss: "npm:^4.3.4"
+    typescript: "npm:~6.0"
+    unist-util-remove: "npm:^4.0.0"
+    unist-util-visit: "npm:^5.2.0"
+    yaml: "npm:^2.9.1"
+  languageName: unknown
+  linkType: soft
 
 "prop-types@npm:^15.8.1":
   version: 15.8.1
