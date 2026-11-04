@@ -3,6 +3,12 @@ import { readingTimeLabel } from "../date";
 
 const SITE = String(siteMetadata.siteUrl || "").replace(/\/+$/, "");
 
+// Bump when the card's visual language changes. The /og response sends
+// `s-maxage=31536000, immutable`, so a card URL that stays the same keeps
+// serving the old artwork from social-platform and browser caches for up to a
+// year; the version parameter is what makes the redesign reach those caches.
+const OG_VERSION = "4";
+
 /** Absolute site origin without a trailing slash. */
 export function siteUrl() {
   return SITE;
@@ -47,6 +53,7 @@ export function ogImageUrl(input) {
   if (params.title) search.set("title", String(params.title));
   if (params.date) search.set("date", String(params.date));
   if (params.read) search.set("read", String(params.read));
+  search.set("v", OG_VERSION);
   if (Array.isArray(params.tags) && params.tags.length) {
     search.set("tags", params.tags.join(","));
   }
