@@ -91,7 +91,7 @@ export default function TableofContent({ headings }) {
               data-level={heading.level}
               data-active={isActive || isAncestor ? "true" : undefined}
               href={`#${heading.id}`}
-              className={`relative block rounded-control px-3 py-1 text-sm leading-7 transition-colors duration-fast ${
+              className={`relative block rounded-control px-3 py-1 text-sm leading-7 transition-colors duration-(--duration-fast) ${
                 isActive || isAncestor
                   ? "font-semibold text-foreground"
                   : "font-normal text-muted hover:text-foreground"

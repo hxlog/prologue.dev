@@ -50,7 +50,7 @@ export default function EmailModal() {
           <button
             type="button"
             onClick={() => copy(email)}
-            className={`shrink-0 rounded-md px-2.5 py-1 text-xs font-medium transition-colors duration-fast ${
+            className={`shrink-0 rounded-md px-2.5 py-1 text-xs font-medium transition-colors duration-(--duration-fast) ${
               state === "copied"
                 ? "bg-accent-soft text-accent"
                 : "bg-accent-strong text-on-accent hover:bg-accent-strong/90"

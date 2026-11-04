@@ -63,7 +63,7 @@ const ThemeSwitch = () => {
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 20 20"
         fill="currentColor"
-        className="h-5 w-5 transition-transform duration-base ease-out-expo hover:scale-110"
+        className="h-5 w-5 transition-transform duration-(--duration-base) ease-out-expo hover:scale-110"
       >
         {mounted && (resolvedTheme === "dark") ? (
           <path

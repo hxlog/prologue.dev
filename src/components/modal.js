@@ -20,7 +20,7 @@ export default function Modal({ open, onClose, title, children }) {
         {/* Backdrop */}
         <TransitionChild
           as={Fragment}
-          enter="ease-out duration-200"
+          enter="ease-out duration-(--duration-fast)"
           enterFrom="opacity-0"
           enterTo="opacity-100"
           leave="ease-in duration-150"
@@ -37,7 +37,7 @@ export default function Modal({ open, onClose, title, children }) {
           <div className="flex min-h-full items-center justify-center p-4">
             <TransitionChild
               as={Fragment}
-              enter="ease-out duration-200"
+              enter="ease-out duration-(--duration-fast)"
               enterFrom="opacity-0 scale-95 translate-y-2"
               enterTo="opacity-100 scale-100 translate-y-0"
               leave="ease-in duration-150"

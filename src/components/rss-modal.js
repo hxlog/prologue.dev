@@ -80,7 +80,7 @@ export default function RssModal() {
               <button
                 type="button"
                 onClick={() => copyFeed(feed)}
-                className="group flex w-full items-center justify-between gap-3 rounded-control border border-border bg-surface px-4 py-3 text-left transition-[transform,border-color,box-shadow] duration-fast ease-out-expo hover:-translate-y-px hover:border-accent hover:shadow-card-hover"
+                className="group flex w-full items-center justify-between gap-3 rounded-control border border-border bg-surface px-4 py-3 text-left transition-[transform,border-color,box-shadow] duration-(--duration-fast) ease-out-expo hover:-translate-y-px hover:border-accent hover:shadow-card-hover"
               >
                 <span className="min-w-0">
                   <span className="block text-sm font-semibold text-foreground group-hover:text-accent">
@@ -91,7 +91,7 @@ export default function RssModal() {
                   </span>
                 </span>
                 <span
-                  className={`shrink-0 rounded-md px-2 py-1 text-xs font-medium transition-colors duration-fast ${
+                  className={`shrink-0 rounded-md px-2 py-1 text-xs font-medium transition-colors duration-(--duration-fast) ${
                     state === "copied" && copiedKey === feed.key
                       ? "bg-accent-soft text-accent"
                       : "bg-surface-2 text-muted group-hover:bg-accent-strong group-hover:text-on-accent"
