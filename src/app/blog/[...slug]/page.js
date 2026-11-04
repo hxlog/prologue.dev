@@ -3,7 +3,6 @@ import { Suspense } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
-import "katex/dist/katex.min.css";
 import { getPosts } from "../../../lib/content";
 import { getCachedPost, getCachedPosts } from "../../../lib/content/cached";
 import siteMetadata from "../../../../data/sitemetadata";
@@ -106,6 +105,17 @@ export function generateStaticParams() {
  * prerenderable while `params` is still readable -- see lib/content/cached.js
  * for why the body render behind it is cached rather than repeated per request.
  */
+/* Cache Components gates (Next 16.4).
+   - instant = true: assert that a navigation into this route paints UI
+     immediately. Validation runs in development and names the component that
+     would block it; the build is unaffected.
+   - ensureStatic = "shell": the App Shell for this route must stay prerendered
+     at build time. It is a ratchet against a later change quietly turning the
+     route request-rendered — the failure mode is a build error, not a slow
+     page nobody measures. */
+export const instant = true;
+export const ensureStatic = "shell";
+
 export default function PostPage({ params }) {
   return (
     <Suspense fallback={<ArticleSkeleton />}>
@@ -211,14 +221,14 @@ async function PostView({ params }) {
               <Link
                 href="https://creativecommons.org/licenses/by-nc-sa/4.0/"
                 target="_blank"
-                className="transition-colors duration-fast hover:text-accent"
+                className="transition-colors duration-(--duration-fast) hover:text-accent"
               >
                 CC BY-NC-SA 4.0
               </Link>
               <Link
                 href={`https://github.com/${siteMetadata.github}/${siteMetadata.siteRepo}/blob/master/data/content${post.urlslug}.md`}
                 target="_blank"
-                className="transition-colors duration-fast hover:text-accent"
+                className="transition-colors duration-(--duration-fast) hover:text-accent"
               >
                 在 GitHub 上查看
               </Link>
@@ -249,7 +259,7 @@ async function PostView({ params }) {
                   <p className="text-xs uppercase tracking-wide text-faint">
                     上一篇
                   </p>
-                  <p className="mt-1 text-sm text-muted transition-colors duration-fast group-hover:text-accent">
+                  <p className="mt-1 text-sm text-muted transition-colors duration-(--duration-fast) group-hover:text-accent">
                     {adjacentPosts.previousPostTitle}
                   </p>
                 </Link>
@@ -265,7 +275,7 @@ async function PostView({ params }) {
                   <p className="text-xs uppercase tracking-wide text-faint">
                     下一篇
                   </p>
-                  <p className="mt-1 text-sm text-muted transition-colors duration-fast group-hover:text-accent">
+                  <p className="mt-1 text-sm text-muted transition-colors duration-(--duration-fast) group-hover:text-accent">
                     {adjacentPosts.nextPostTitle}
                   </p>
                 </Link>

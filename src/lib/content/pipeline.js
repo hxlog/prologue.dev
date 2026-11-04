@@ -115,7 +115,14 @@ async function getProcessor() {
         .use(remarkGfm)
         .use(remarkMath)
         .use(remarkGemoji)
-        .use(rehypeKatex, { strict: false, trust: true, output: "htmlAndMathml" })
+        // MathML only. KaTeX's HTML output needs katex.min.css, which declares
+        // 20 @font-face rules -- the last webfont request on the site, 10-25 KB
+        // on each of the 18 math posts. Native MathML renders from the platform
+        // math font instead: zero font requests everywhere. Trade-off taken
+        // deliberately -- KaTeX's own layout is slightly more refined than the
+        // browser's MathML rendering (fractions, big operators), and that was
+        // judged cheaper than shipping fonts. One line to revert.
+        .use(rehypeKatex, { strict: false, trust: true, output: "mathml" })
         .use(rehypeSlug) // no options: it has no slugger hook, and needs none
         .use(rehypeFigure)
         .use(rehypeMermaidPre)

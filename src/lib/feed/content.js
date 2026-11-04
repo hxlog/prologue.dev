@@ -21,48 +21,6 @@ function coverLeadImage(post) {
   return `<img src="${absolutize(image)}" alt="${escapeAttr(post.title)}" />`;
 }
 
-const KATEX_HTML_MARKER = '<span class="katex-html" aria-hidden="true">';
-
-/**
- * Remove KaTeX's presentation layer (`katex-html`) while keeping the semantic
- * MathML (`katex-mathml`). The presentation spans rely entirely on KaTeX CSS,
- * which feed readers never load, so they render as garbled, duplicated text.
- * MathML renders natively in capable readers and degrades to its text content
- * elsewhere. The span is removed with a balanced-tag scan because it nests.
- */
-function stripKatexPresentation(html) {
-  if (!html.includes(KATEX_HTML_MARKER)) return html;
-
-  let result = html;
-  let index = result.indexOf(KATEX_HTML_MARKER);
-
-  while (index !== -1) {
-    const scanner = /<span\b|<\/span>/g;
-    scanner.lastIndex = index;
-    let depth = 0;
-    let end = -1;
-    let token;
-
-    while ((token = scanner.exec(result)) !== null) {
-      if (token[0] === "</span>") {
-        depth -= 1;
-        if (depth === 0) {
-          end = scanner.lastIndex;
-          break;
-        }
-      } else {
-        depth += 1;
-      }
-    }
-
-    if (end === -1) break;
-    result = result.slice(0, index) + result.slice(end);
-    index = result.indexOf(KATEX_HTML_MARKER);
-  }
-
-  return result;
-}
-
 /** Index just past the </span> that closes the span starting at `start`. */
 function matchSpanEnd(html, start) {
   const scanner = /<span\b|<\/span>/g;
@@ -181,7 +139,9 @@ function fixVoidTags(html) {
 export function buildFeedContent(post) {
   let html = post.body.html || "";
   html = transformMermaidDiagrams(html);
-  html = stripKatexPresentation(html);
+  // KaTeX no longer emits an HTML presentation layer (the pipeline renders
+  // MathML directly), so there is nothing to strip: the only thing feeds need
+  // is the block-vs-inline promotion below, which keys on the `katex` wrapper.
   html = markDisplayMath(html);
   html = absolutizeUrls(html, post.slug);
   html = normalizeImages(html);
