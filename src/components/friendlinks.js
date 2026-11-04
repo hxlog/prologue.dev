@@ -32,7 +32,6 @@ export default function FriendLinks({ friends }) {
             rel="noopener noreferrer"
             className="card card-interactive card-spotlight group p-6 text-center"
           >
-            <span className="card-ring" aria-hidden="true" />
             <span className="ring-gradient mx-auto mb-4 inline-block">
               {/* SVG/ICO avatars 400 through /_next/image when
                   dangerouslyAllowSVG is off (the site never enables it), so

@@ -3,7 +3,8 @@
 import { useEffect } from "react";
 
 /**
- * Cursor-following spotlight for every `.card-spotlight` on the page.
+ * Cursor-tracking coordinates for the aurora ring on every `.card-spotlight`
+ * on the page (see `.card::before` in globals.css).
  *
  * One delegated `pointermove` listener on `document`, registered once, instead
  * of a listener (and React handler) per card. The cards are mostly server
@@ -17,19 +18,19 @@ import { useEffect } from "react";
  * move at 60–120 Hz. A React state update per move would re-render the tree
  * under the pointer. Writing two CSS custom properties goes straight to the
  * style engine, and `@property` (see globals.css) makes them typed and
- * interpolable, so the glow eases to the pointer instead of teleporting.
+ * interpolable, so the ring eases to the pointer instead of teleporting.
  *
  * Coordinates are percentages relative to the card, so the gradient works at
  * any card size and needs no resize recalculation.
  *
  * THE BUG THIS FILE USED TO HAVE: an `if (card === current) return` guard meant
  * the position was written once, on the first move after entering a card, and
- * every later move inside that same card was dropped -- the glow froze where
+ * every later move inside that same card was dropped -- the ring froze where
  * the pointer had crossed the edge. `current` now only tracks which card owns
  * the cached rect, never whether to update.
  *
- * The hover state itself is CSS (`.card-spotlight:hover { --spot-a: 1 }`);
- * this script only positions the light.
+ * The hover state itself is CSS (`.card-interactive:hover::before { opacity: 1 }`);
+ * this script only positions the ring.
  */
 export default function Spotlight() {
   useEffect(() => {

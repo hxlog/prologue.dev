@@ -22,14 +22,14 @@
  * Pastels moved up with it (#c9cdf5 / #f7d4e6), and the gradients gained a sky
  * mid-stop so a brand gradient is no longer a two-colour ramp.
  *
- * A fourth hue, sky #b4e0ec, exists ONLY inside gradients and the cursor glow.
+ * A fourth hue, sky #b4e0ec, exists ONLY inside gradients and the card hover.
  * It never carries text or a control, so it cannot fail contrast.
  *
- * The cursor glow and the hover wash read their colours from --glow-* /
+ * The card hover ring and the chip wash read their colours from --aurora-* /
  * --wash-* so dark mode can dim them without touching any gradient definition:
  * the same 42 % pale-lavender alpha that looks like a soft light on white
- * composites to #5f637c (L 0.128) on #1c1f28, which is the "white hover too
- * bright" report. Dark mode therefore runs the same three hues at a third of
+ * composites to #5f637c (L 0.128) on #1c1f28, which was the "white hover too
+ * bright" report. Dark mode therefore runs the same three hues at a fraction of
  * the alpha.
  * ------------------------------------------------------------------------- */
 @theme inline {
@@ -154,43 +154,34 @@
      control, so it carries no contrast obligation. */
   --sky: #b4e0ec;
 
-  /* The hover system is three layers, and each layer gets its own tokens so
-     dark mode can dim the same three hues by overriding values instead of
-     rewriting gradients:
+  /* The card hover is ONE layer: a pointer-centred conic "aurora" ring on
+     .card::before. It replaces the v4 trio (band wash + 1px rim + radial glow),
+     which read as a tinted surface rather than as three colours and needed
+     three separate token families kept in sync.
 
-       1. --wash-*    the holographic band on .card::before
-       2. --glow-*    the pointer-following light on .card-spotlight::after
-       3. --ring-*    the 1px tri-colour rim (a conic gradient inside a mask)
+     The ring is a conic gradient in three 120° sectors -- sky, lavender, pink --
+     with narrow 12° blends, masked by an ELLIPTICAL radial gradient into a soft
+     band. The ellipse is what makes three hues readable on a wide, short card: a
+     circular ring of the same size is clipped top and bottom by the card, so its
+     top sector never renders (measured on a 397x208 card: sky 1 %, lavender
+     74 %). A 210x100 ellipse fits inside the card and measures an even
+     32 / 33 / 35 % split.
 
-     v4 moved in two directions at once: alpha DOWN (the 0.16 wash made a grid
-     of cards read as tinted paper) and chroma UP. "Very light" and "washed
-     out" are not the same thing, and the old values were the second one. */
-  /* The hues are SATURATED and the alphas stay low. That combination is the
-     whole trick: a pale hue at high alpha disappears into "tinted paper", while
-     a saturated one at low alpha still composites to a light surface (L ≈ 0.90)
-     with real chroma. v3 used pale hues at 0.16 and measured C ≈ 0.02 — visible
-     as "a bit purple", not as three colours. */
-  --glow-sky: rgb(74 198 236 / 0.3);
-  --glow-lav: rgb(146 152 248 / 0.24);
-  --glow-pink: rgb(248 140 190 / 0.28);
-  --glow-core: rgb(255 255 255 / 0.16);
+     The hues are saturated pastels at ~0.5 alpha, not pale tints at high alpha:
+     the latter composites to "tinted paper" (v3 measured C ≈ 0.02), while these
+     land at L 0.982 -- still "very light" -- with max C 0.074 on the band. */
+  --aurora-sky: rgb(84 208 238 / 0.55);
+  --aurora-lav: rgb(170 160 252 / 0.5);
+  --aurora-pink: rgb(252 156 200 / 0.5);
+  /* Ellipse radii, consumed by the mask on .card::before. */
+  --aurora-rx: 210px;
+  --aurora-ry: 100px;
+  /* Chips keep the linear three-hue wash: a pill is too small for a ring, and
+     the same tokens would make it read as a second visual language. */
   --wash-sky: rgb(74 198 236 / 0.24);
   --wash-lav: rgb(146 152 248 / 0.2);
   --wash-pink: rgb(248 140 190 / 0.22);
-  /* Top highlight on the sheen. It lifts the composite lightness in light mode
-     and is almost absent in dark mode, where "light hover" is exactly the
-     wrong direction. */
-  --sheen-hi: rgb(255 255 255 / 0.16);
-  --ring-gradient: conic-gradient(
-    from 210deg,
-    #7fd6ee,
-    #b9bdf6 30%,
-    #f7b3d3 60%,
-    #b9bdf6 80%,
-    #7fd6ee
-  );
-  /* Both stay at zero until the pointer arrives: a card is flat at rest. */
-  --ring-a: 0;
+  /* Stays at zero until the pointer arrives: a card is flat at rest. */
   --card-lift: 3%;
 
   /* Fills and decoration — safe at any size, never used for text. */
@@ -245,52 +236,21 @@
 
   --sky: #b4e0ec;
 
-  /* Same three hues at roughly a tenth of the light alpha. Colour in dark mode
-     is carried by the rim, not by a bright surface patch: at v3's 0.16 the
-     pale wash composited to L 0.05 over #1c1f28 (the "hover is too white"
-     report). These land near L 0.03 — dim, and still three separable hues.
-     The rim is the exception: it is 1px of high-chroma ink, so it can be
-     brighter (0.62) without lifting the card's overall lightness. */
-  /* Dark mode spends a different currency: over #1c1f28, alpha is what costs
-     brightness, so the wash uses MID-saturation, mid-luminance hues at ~0.13.
-     A saturated deep cyan at low alpha adds hue without lifting the card's
-     luminance the way the old pale-lavender wash did (that is the "hover is too
-     white" report). The three colours are then named by the rim, which is 1px of
-     high-chroma ink and can afford 0.75 opacity. */
-  /* Near-white tints, not coloured ones: in dark mode the bands and the rim
-     carry the hue, and a coloured glow would repaint the band it sits on (the
-     previous periwinkle glow pulled 64% of the card into the lavender bucket).
-     These only add the pointer light. */
-  --glow-sky: rgb(240 250 252 / 0.065);
-  --glow-lav: rgb(246 246 252 / 0.058);
-  --glow-pink: rgb(252 244 248 / 0.06);
-  --glow-core: rgb(255 255 255 / 0.03);
-  /* Alphas sized against measurement, not taste: the whole overlay composites
-     to Y ≈ 0.032 on the #1c1f28 card (rest surface is Y 0.0138), which is dim
-     enough to read as a faint light rather than as the old bright patch.
-
-     The band inks are more saturated than the light-mode ones on purpose.
-     Compositing over a blue-leaning dark base compresses hue: the first dark
-     set (rgb(56 156 196) @ .09 and friends) measured **249° / 277° / 309°**,
-     i.e. the "sky" band had drifted into blue-violet and 78 % of the card
-     landed in one bucket -- the "dark mode still doesn't show three colours"
-     report. Saturated inks at a slightly higher alpha pull the composite back
-     to **223° / 280° / 336°** with a 37 / 34 / 29 % split and max chroma 0.069,
-     for +0.002 Y. Brightness is the scarce resource here, hue separation is
-     not. */
+  /* Dark mode spends alpha, not lightness: the same ring at roughly two-fifths
+     of the light alpha composites to +0.018 L over the #1c1f28 card, so hover is
+     a faint coloured halo rather than the old bright patch. The inks are MORE
+     saturated than in light mode because compositing over a blue-leaning base
+     rotates hue: the ring's sky sector measures 232° here against 213° in light
+     mode, and the three hues still land ~48° apart (232 / 279 / 327). */
+  --aurora-sky: rgb(52 210 225 / 0.22);
+  --aurora-lav: rgb(140 138 245 / 0.2);
+  --aurora-pink: rgb(240 118 168 / 0.2);
+  --aurora-rx: 210px;
+  --aurora-ry: 100px;
+  /* Chips keep their linear wash; see the light-mode note. */
   --wash-sky: rgb(0 200 210 / 0.13);
   --wash-lav: rgb(110 110 245 / 0.125);
   --wash-pink: rgb(235 80 120 / 0.135);
-  --sheen-hi: rgb(255 255 255 / 0.012);
-  --ring-gradient: conic-gradient(
-    from 210deg,
-    #6fd0ea,
-    #b0b6f5 30%,
-    #f2a8cb 60%,
-    #b0b6f5 80%,
-    #6fd0ea
-  );
-  --ring-a: 0;
   --card-lift: 2%;
 
   --gradient-brand: linear-gradient(120deg, #c9cdf5, #e6f4fb 46%, #f7d4e6);
@@ -356,17 +316,19 @@
 }
 
 /* ---------------------------------------------------------------------------
- * Registered spotlight coordinates.
+ * Registered pointer coordinates.
  *
  * Registering them makes them typed and interpolable -- without @property a
  * custom property is an unparsed token stream and changes snap from one value
- * to the next. They MUST inherit: the glow is painted by the card's
- * ::before/::after, which cannot be given inline styles of their own.
- * spotlight.js writes the values on the card; the pseudo-elements inherit the
- * computed values and run the transitions declared on them.
+ * to the next, so the aurora ring would teleport between pointer positions.
+ * They MUST inherit: the ring is painted by the card's ::before, which cannot
+ * be given an inline style of its own. spotlight.js writes the values on the
+ * card; the pseudo-element inherits the computed values and runs the
+ * transition declared on it.
  *
- * If the script is absent the glow keeps its registered initial values
- * (centre, alpha 0), so the CSS degrades to a plain card.
+ * If the script is absent the ring keeps its registered initial values (the
+ * card centre), and since it only appears on :hover the CSS degrades to a plain
+ * card.
  * ------------------------------------------------------------------------- */
 @property --spot-x {
   syntax: "<percentage>";
@@ -377,11 +339,6 @@
   syntax: "<percentage>";
   inherits: true;
   initial-value: 50%;
-}
-@property --spot-a {
-  syntax: "<number>";
-  inherits: true;
-  initial-value: 0;
 }
 
 /* ---------------------------------------------------------------------------
@@ -619,21 +576,18 @@
   /* -------------------------------------------------------------------------
    * Surfaces
    * ----------------------------------------------------------------------- */
-  /* Card: flat surface, hairline ring, no shadow at rest. Hover is three
-     layers, in paint order:
+  /* Card: flat surface, hairline ring, no shadow at rest. Hover is ONE
+     decorative layer -- a pointer-centred conic "aurora" ring on .card::before
+     (see the token block above for why the ring is elliptical and why its
+     sectors are 120° with 12° blends).
 
-       1. .card::before      a holographic band -- sky -> lavender -> pink ->
-                             lavender -> sky across 112deg -- that fades in.
-                             A gradient cannot be transitioned, opacity can, and
-                             eight cards fading at once still reads as paper.
-       2. .card-ring         a 1px tri-colour rim (conic gradient clipped to the
-                             border box). This is the layer that names the three
-                             colours in dark mode, where the surface barely
-                             moves; a rim of high-chroma ink costs no
-                             brightness.
-       3. .card-spotlight::after  the pointer light: three SMALL hues offset
-                             around the pointer so they stay separable instead
-                             of averaging into one lavender smudge.
+     The ring replaced three layers that each existed only to rescue the others:
+     a band wash (which tinted the whole surface instead of naming hues), a 1px
+     rim (needed because the wash was too faint in dark mode to show colour), and
+     a three-blob radial glow (added because the wash read as one purple smudge).
+     One ring with three explicit sectors does the job of all three, costs one
+     gradient and one mask, and keeps its centre hole clear of the pointer, so
+     nothing sits under the reader's cursor.
 
      The surface itself only drifts --card-lift (3% / 2%) and rises 1px. */
   .card {
@@ -658,57 +612,47 @@
     pointer-events: none;
     border-radius: inherit;
     opacity: 0;
-    transition: opacity var(--duration-base) var(--ease-out-expo);
-    /* Three BANDS of roughly equal area — sky, lavender, pink — across the
-       112deg axis, separated by narrow blend zones rather than a long ramp.
-       This is the part v3 got structurally wrong: its five-stop ramp put
-       lavender at 32% and again at 78%, so the middle half of every card was a
-       lavender-to-lavender blend and the result measured 57% lavender / 0% sky.
-       Equal bands make the three hues readable at a glance, and because the
-       band axis runs through the diagonal, each band still gets a gradient
-       direction of its own instead of reading as a stripe.
-       The second layer is a plain top highlight: it lifts the composite
-       lightness (the target is L ≈ 0.90, i.e. still "very light") without
-       touching the hue distribution. */
-    background:
-      linear-gradient(
-        112deg,
-        var(--wash-sky) 0%,
-        var(--wash-sky) 30%,
-        var(--wash-lav) 36%,
-        var(--wash-lav) 56%,
-        var(--wash-pink) 62%,
-        var(--wash-pink) 100%
-      ),
-      linear-gradient(180deg, var(--sheen-hi), transparent 58%);
-  }
-
-  /* 1px tri-colour rim. The classic gradient-border recipe: a background
-     painted only inside a 1px padding, then masked away from the content box.
-     Lightning CSS emits the -webkit- prefix, so do not hand-write it. The mask
-     keyword pair is written in the shorthand-free form on purpose -- the
-     two-value `mask` shorthand with a clip keyword is not consistently parsed. */
-  .card-ring {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    border-radius: inherit;
-    padding: 1px;
-    background: var(--ring-gradient);
-    opacity: var(--ring-a);
-    transition: opacity var(--duration-base) var(--ease-out-expo);
-    /* Standard properties only: Lightning CSS emits the -webkit- pair itself,
-       and a hand-written prefix makes it drop the standard one instead. */
-    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0) border-box;
-    mask-composite: exclude;
-  }
-  @supports not (mask-composite: exclude) {
-    /* Without content-box masking the rim cannot be drawn; fall back to the
-       hairline that v3 used, so the card is never left without a hover edge. */
-    .card-ring {
-      display: none;
-    }
+    /* Hover fades the ring in. The pointer position is a registered custom
+       property, so the ring TRAVELS to the pointer instead of teleporting; the
+       transition has to be declared here, on the pseudo-element that paints it,
+       because --spot-x/--spot-y are inherited from the card and a transition on
+       the card would animate its own (unused) computed value. */
+    transition:
+      opacity var(--duration-base) var(--ease-out-expo),
+      --spot-x 140ms linear,
+      --spot-y 140ms linear;
+    /* Three 120° sectors — sky, lavender, pink — with narrow 12° blends, so each
+       hue owns a third of the ring. The blends cannot be wider: a conic
+       gradient interpolates in sRGB, and the sky->lavender ramp passes straight
+       through lavender, so wide blends hand the middle of the ring back to one
+       hue (a 50-60° blend measured 74 % lavender / 1 % sky). The sector
+       widths are measured, not guessed: 8-12° blends with an equal split inside
+       the mask give a 35 / 29 / 35 % hue area in light mode and 26 / 46 / 27 %
+       in dark, where the blue-leaning base rotates every hue towards lavender. */
+    background: conic-gradient(
+      from -30deg at var(--spot-x, 50%) var(--spot-y, 50%),
+      var(--aurora-sky) 0deg,
+      var(--aurora-sky) 104deg,
+      var(--aurora-lav) 112deg,
+      var(--aurora-lav) 204deg,
+      var(--aurora-pink) 212deg,
+      var(--aurora-pink) 330deg,
+      var(--aurora-sky) 338deg,
+      var(--aurora-sky) 360deg
+    );
+    /* An ELLIPSE, not a circle. A circular ring large enough to read on a
+       397x208 card is taller than the card, so its top sector -- the sky one --
+       never renders (measured 1 % sky). The ellipse fits the card, and 44-57 %
+       is the band core while the 86 % stop is the outer bloom. */
+    mask-image: radial-gradient(
+      ellipse var(--aurora-rx) var(--aurora-ry) at var(--spot-x, 50%)
+        var(--spot-y, 50%),
+      transparent 0 44%,
+      rgb(0 0 0 / 0.45) 52%,
+      #000 57%,
+      rgb(0 0 0 / 0.45) 64%,
+      transparent 86%
+    );
   }
 
   /* Brand ring for a fixed-size round image (author avatar, friend avatars).
@@ -735,14 +679,7 @@
     .card-interactive:hover::before {
       opacity: 1;
     }
-    .card-interactive:hover .card-ring {
-      --ring-a: 0.45;
-    }
-    /* The rim is the layer that carries the three colours in dark mode, so it
-       is brighter there — 1px of ink costs no overall brightness. */
-    .dark .card-interactive:hover .card-ring {
-      --ring-a: 0.75;
-    }
+
   }
   .card-interactive:hover .card-title {
     color: var(--accent);
@@ -752,91 +689,34 @@
   }
 
   /* -------------------------------------------------------------------------
-   * Cursor-following spotlight.
+   * Pointer-tracked cards.
    *
-   * One layer holding THREE equal-weight radial gradients around the pointer:
-   * sky leading it, lavender under it, pink trailing it. Equal weight is the
-   * point -- the previous version was a single 42% lavender layer with two
-   * much fainter side washes, so most of the visible colour was purple and the
-   * glow read as a purple dot. The radii (420-460px, fading out at 68-70%) are
-   * deliberately larger than the old 240-380px so the three overlap into one
-   * wash: at any pointer position all three hues are on screen at once.
+   * .card-spotlight clips the aurora ring to the card and inherits the pointer
+   * coordinates; spotlight.js only writes --spot-x / --spot-y (registered as
+   * <percentage>, so the ring eases towards the pointer instead of jumping).
+   * Without the script the registered initial values (50% / 50%) leave the ring
+   * centred, and because it only appears on :hover the card is still a plain
+   * .card for a reader who never touches it.
    *
-   * spotlight.js only moves --spot-x / --spot-y; without it the registered
-   * initial values (centre, alpha 0) make the card look like a plain .card.
+   * The v4 three-blob ::after glow is gone: with the ring present it only
+   * muddied the middle of the card into one hue, which is the exact failure
+   * this iteration was asked to fix. Fewer layers, same pointer feedback.
    * ----------------------------------------------------------------------- */
   .card-spotlight {
     position: relative;
     overflow: hidden;
     isolation: isolate;
   }
-  /* z-index: -1 is deliberate and is NOT "behind the card". `isolation`
-     creates a stacking context on the card, so the negative layer paints
-     after the card's own background but before every in-flow child --
+  /* .card::before paints at z-index: -1 and that is NOT "behind the card".
+     `isolation` creates a stacking context on the card, so the negative layer
+     paints after the card's own background but before every in-flow child --
      i.e. above the surface, below the text. It must not be z-index: 0: a
      positioned layer with z-index 0 paints above non-positioned in-flow
-     content and would tint the title under the glow.
+     content and would tint the title under the ring.
      Do not instead lift the children with `> * { position: relative }`: the
      card title's `after:absolute after:inset-0` stretched link resolves
      against the nearest *positioned* ancestor, so making the <h3> positioned
      would shrink the click target from the whole card to the title. */
-  .card-spotlight::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    pointer-events: none;
-    opacity: var(--spot-a);
-    transform-origin: var(--spot-x, 50%) var(--spot-y, 50%);
-    /* The values are inherited from the card, so the transition has to be
-       declared here, on the pseudo-element that paints the glow -- a
-       transition on the card would animate its own (unused) computed value
-       and the pseudo-element would still jump. */
-    transition:
-      --spot-x 140ms linear,
-      --spot-y 140ms linear,
-      --spot-a var(--duration-base) ease;
-    /* v3 put three 420-460px blobs almost on top of each other, so their
-       alphas averaged into a single lavender patch -- the "it is all purple"
-       report. v4 keeps the same three hues but shrinks each one and pushes the
-       offsets out, so at any pointer position there is sky in one place,
-       lavender in another and pink in a third, with only soft edges crossing.
-       The white core is the bottom layer: it lightens the middle without
-       desaturating the hues that sit over it. */
-    background: radial-gradient(
-        320px circle at calc(var(--spot-x, 50%) - 12%)
-          calc(var(--spot-y, 50%) - 9%),
-        var(--glow-sky),
-        transparent 58%
-      ),
-      radial-gradient(
-        300px circle at calc(var(--spot-x, 50%) + 10%)
-          calc(var(--spot-y, 50%) + 7%),
-        var(--glow-pink),
-        transparent 56%
-      ),
-      radial-gradient(
-        330px circle at calc(var(--spot-x, 50%) + 1%)
-          calc(var(--spot-y, 50%) - 3%),
-        var(--glow-lav),
-        transparent 60%
-      ),
-      radial-gradient(
-        220px circle at var(--spot-x, 50%) var(--spot-y, 50%),
-        var(--glow-core),
-        transparent 72%
-      );
-  }
-  /* Hover only flips --spot-a on the card; the pseudo-element inherits it and
-     eases it with the transition above, in step with the card lift. */
-  @media (hover: hover) and (pointer: fine) {
-    .card-spotlight:hover {
-      --spot-a: 1;
-    }
-    .card-spotlight:hover::after {
-      animation: spot-breathe 4s ease-in-out infinite;
-    }
-  }
 
   /* Tag pill: the same three-hue wash as a card, at pill scale. A gradient
      instead of a flat tint so a tag row reads as part of the same colour
@@ -1029,25 +909,6 @@
     font-size: 0.85rem;
     color: var(--foreground);
     word-break: break-all;
-  }
-}
-
-/* ---------------------------------------------------------------------------
- * Spotlight breathing — a slow shimmer while hovered.
- *
- * Transform, not opacity: opacity is already the fade-in channel (driven by
- * the registered --spot-a), and an animation on the same property would snap
- * to its own 0.82 start value instead of easing in. A 4% scale pulse with its
- * origin on the pointer reads as the glow breathing without fighting the fade
- * (the wash is far lighter than it used to be, so 6% read as a jump).
- * ------------------------------------------------------------------------- */
-@keyframes spot-breathe {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.04);
   }
 }
 
@@ -1302,12 +1163,6 @@ html:not(.theme-vt)::view-transition-old(root) {
   }
   .reveal-rise,
   .toc-pill {
-    animation: none;
-  }
-  /* The breathing glow is decorative; the pointer-follow itself is a
-     transition and stays (reduced motion is about movement, not about
-     colour). */
-  .card-spotlight:hover::after {
     animation: none;
   }
   /* No scrolled reveal either: show the buttons from the start rather than
