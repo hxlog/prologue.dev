@@ -237,8 +237,8 @@
 
   --sky: #b4e0ec;
 
-  /* Dark mode spends alpha, not lightness: the rim runs at 0.40, the hairline
-     at 0.12 and the glow at 0.12 / 0.06, which keeps hover within a faint
+  /* Dark mode spends alpha, not lightness: the rim runs at 0.35, the hairline
+     at 0.08 and the glow at 0.07 / 0.033, which keeps hover within a faint
      coloured halo instead of the old bright patch. The inks are MORE saturated
      than in light mode because compositing over a blue-leaning base rotates
      hue, so the same triplets are reused and only their alphas drop. */
