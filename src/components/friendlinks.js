@@ -1,40 +1,18 @@
-"use client";
-
-import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import Comments from "./comments";
 
-// Small, fast, deterministic PRNG (mulberry32) — pure function, safe to use
-// during render. The shuffle exists so every friend gets the top slots
-// sometimes; it runs after mount (the seed is client state) and keeps the
-// server-rendered order as the fallback, so the markup hydrates identically.
-function mulberry32(seed) {
-  return function () {
-    let t = (seed += 0x6d2b79f5);
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
+/**
+ * Friend links. A Server Component on purpose: the list arrives already ordered
+ * from the page (src/lib/rotation.js rotates it once per day inside a cache
+ * scope), so there is no mount-time shuffle. The old version picked a random
+ * seed in an effect and re-sorted the grid after paint -- that is a CLS event
+ * by definition (measured 0.099 on /links, a single shift, source = the card
+ * link) and it also made the markup differ between the server render and the
+ * hydrated one. Sending this from the server also drops the component's hooks
+ * and the PRNG from the client bundle.
+ */
 export default function FriendLinks({ friends }) {
-  const [seed, setSeed] = useState(null);
-  useEffect(() => {
-    const id = setTimeout(() => setSeed(Math.floor(Math.random() * 2 ** 31)), 0);
-    return () => clearTimeout(id);
-  }, []);
-
-  const shuffledFriends = useMemo(() => {
-    const arr = [...(friends || [])];
-    if (seed === null) return arr;
-    const rnd = mulberry32(seed);
-    return arr
-      .map((f) => ({ f, key: Math.floor(rnd() * 2 ** 31) }))
-      .sort((a, b) => a.key - b.key)
-      .map((x) => x.f);
-  }, [friends, seed]);
-
   return (
     <div className="py-12">
       <p className="eyebrow mx-auto w-fit">Friends</p>
@@ -46,7 +24,7 @@ export default function FriendLinks({ friends }) {
       </p>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {shuffledFriends.map((friend) => (
+        {(friends || []).map((friend) => (
           <Link
             key={friend.name}
             href={friend.blog_url}
@@ -54,16 +32,21 @@ export default function FriendLinks({ friends }) {
             rel="noopener noreferrer"
             className="card card-interactive card-spotlight group p-6 text-center"
           >
-            <span className="mx-auto mb-4 inline-block rounded-full bg-[var(--gradient-brand)] p-[2px]">
+            <span className="card-ring" aria-hidden="true" />
+            <span className="ring-gradient mx-auto mb-4 inline-block">
+              {/* SVG/ICO avatars 400 through /_next/image when
+                  dangerouslyAllowSVG is off (the site never enables it), so
+                  they are served as-is instead of through the optimizer. */}
               <Image
                 src={friend.avatar}
                 height={80}
                 width={80}
                 alt=""
+                unoptimized={/\.svg$/i.test(friend.avatar)}
                 className="h-20 w-20 rounded-full object-cover"
               />
             </span>
-            <h2 className="card-title text-lg font-semibold text-foreground transition-colors duration-fast">
+            <h2 className="card-title text-lg font-semibold text-foreground transition-colors duration-(--duration-fast)">
               {friend.name}
             </h2>
             <p className="pt-1 text-sm text-muted">{friend.description}</p>

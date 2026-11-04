@@ -1,33 +1,34 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
+/**
+ * Floating "back to top" / "jump to comments" actions.
+ *
+ * The reveal is a CSS scroll-driven animation (`.scroll-actions`, globals.css):
+ * no scroll listener, no React state, no re-render per scroll event — the
+ * compositor drives it. Browsers without `animation-timeline` simply show the
+ * buttons at all times; the control is never missing, only never hidden.
+ *
+ * The handlers stay smooth-scroll unless the reader asked for reduced motion.
+ */
 const ScrollTopAndComment = () => {
-  const [show, setShow] = useState(false);
-
-  useEffect(() => {
-    const handleWindowScroll = () => {
-      setShow(window.scrollY > 50);
-    };
-    handleWindowScroll();
-    window.addEventListener("scroll", handleWindowScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleWindowScroll);
-  }, []);
-
-  const handleScrollTop = () => window.scrollTo({ top: 0, behavior: "smooth" });
-  const handleScrollToComment = () =>
-    document.getElementById("comments")?.scrollIntoView({ behavior: "smooth" });
+  const scrollTo = (target) => {
+    const behavior = window.matchMedia("(prefers-reduced-motion: reduce)")
+      .matches
+      ? "auto"
+      : "smooth";
+    if (target === "top") {
+      window.scrollTo({ top: 0, behavior });
+    } else {
+      document.getElementById("comments")?.scrollIntoView({ behavior });
+    }
+  };
 
   return (
-    <div
-      className={`fixed bottom-8 right-8 flex-col gap-3 transition-[opacity,transform] duration-base ease-out-expo ${
-        show ? "flex opacity-100" : "pointer-events-none flex translate-y-2 opacity-0"
-      }`}
-    >
+    <div className="scroll-actions">
       <button
         aria-label="Scroll To Comment"
         type="button"
-        onClick={handleScrollToComment}
+        onClick={() => scrollTo("comments")}
         className="btn-icon h-9 w-9 bg-surface shadow-card"
       >
         <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -42,7 +43,7 @@ const ScrollTopAndComment = () => {
       <button
         aria-label="Scroll To Top"
         type="button"
-        onClick={handleScrollTop}
+        onClick={() => scrollTo("top")}
         className="btn-icon h-9 w-9 bg-surface shadow-card"
       >
         <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">

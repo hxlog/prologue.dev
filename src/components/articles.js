@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Tab, TabGroup, TabList, TabPanel, TabPanels } from "@headlessui/react";
 import Card from "./card";
-import { usePostSearch } from "../lib/use-post-search";
+import { usePostSearch, warmSearch } from "../lib/use-post-search";
 import { tagLabel } from "../../data/tagLabels";
 
 const PAGE_SIZE = 8;
@@ -171,6 +171,8 @@ export default function Articles({ articles, topTags = [] }) {
                 type="search"
                 aria-label="搜索文章"
                 placeholder="搜索文章、标签…"
+                onFocus={warmSearch}
+                onPointerEnter={warmSearch}
                 value={query}
                 onChange={(e) => {
                   setQuery(e.target.value);

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Card from "./card";
-import { usePostSearch } from "../lib/use-post-search";
+import { usePostSearch, warmSearch } from "../lib/use-post-search";
 
 const PAGE_SIZE = 8;
 
@@ -65,6 +65,8 @@ export default function SearchGrid({ posts, className = "" }) {
             setVisible(PAGE_SIZE);
           }}
           placeholder="搜索文章、标签…"
+          onFocus={warmSearch}
+          onPointerEnter={warmSearch}
           className="input pr-10"
         />
         <svg

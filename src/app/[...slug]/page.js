@@ -60,6 +60,17 @@ export function generateStaticParams() {
  * a <Suspense> child. Anything that awaited `params` up here would leave the
  * route with no static shell and fail the build (blocking-prerender-dynamic).
  */
+/* Cache Components gates (Next 16.4).
+   - instant = true: assert that a navigation into this route paints UI
+     immediately. Validation runs in development and names the component that
+     would block it; the build is unaffected.
+   - ensureStatic = "shell": the App Shell for this route must stay prerendered
+     at build time. It is a ratchet against a later change quietly turning the
+     route request-rendered — the failure mode is a build error, not a slow
+     page nobody measures. */
+export const instant = true;
+export const ensureStatic = "shell";
+
 export default function PagePage({ params }) {
   return (
     <>
@@ -114,7 +125,7 @@ async function PageBody({ params }) {
             alt="Avatar"
             width={100}
             height={100}
-            className="rounded-full ring-2 ring-border transition-transform duration-base ease-out-expo hover:scale-105"
+            className="rounded-full ring-2 ring-border transition-transform duration-(--duration-base) ease-out-expo hover:scale-105"
           />
         </div>
       ) : null}

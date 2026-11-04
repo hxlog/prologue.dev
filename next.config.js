@@ -9,6 +9,13 @@ const nextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
 
+  // Vercel version-skew protection. Next attaches the deployment id to RSC
+  // requests; when a client prefetched from an older deployment navigates after
+  // a rollout, the server answers with the right behaviour instead of mixing
+  // payloads from two builds (the "Failed to fetch RSC payload" class of error).
+  // Vercel injects VERCEL_DEPLOYMENT_ID; undefined locally, which disables it.
+  deploymentId: process.env.VERCEL_DEPLOYMENT_ID,
+
   images: {
     formats: ["image/avif", "image/webp"],
     unoptimized: false,

@@ -9,6 +9,17 @@ import RouteTransition from "../components/route-transition";
 import { getSortedTags } from "../lib/tag-counts";
 import { readingTimeLabel } from "../lib/date";
 
+/* Cache Components gates (Next 16.4).
+   - instant = true: assert that a navigation into this route paints UI
+     immediately. Validation runs in development and names the component that
+     would block it; the build is unaffected.
+   - ensureStatic = "shell": the App Shell for this route must stay prerendered
+     at build time. It is a ratchet against a later change quietly turning the
+     route request-rendered — the failure mode is a build error, not a slow
+     page nobody measures. */
+export const instant = true;
+export const ensureStatic = "shell";
+
 export default function Home() {
   // getPosts() re-reads when the content files change; copy before sorting,
   // since the array it returns is the shared snapshot.
