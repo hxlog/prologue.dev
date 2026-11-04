@@ -7,32 +7,37 @@ import { tagLabel } from "../../../data/tagLabels";
 import { formatDate, readingTimeLabel } from "../../lib/date";
 
 /**
- * Open Graph card — 1200×630, light mode, anime-blog aesthetic.
+ * Open Graph card — 1200×630, light mode, v4 "stardust edge".
  *
- * Composition:
- *   ┌──────────────────────────────────────────────────────────┐
- *   │  (lavender→pink hairline along the top)                  │
+ * Composition (article card):
+ *   ┌──────────────────────────────────────────────────────────┐ 2px tri-hue rim
+ *   │ · ·                                              (stars) │
+ *   │   2026年10月19日 · 约 8 分钟                              │
  *   │                                                          │
- *   │   meta row:  2026年10月19日 · 约 8 分钟                   │
- *   │                                                          │
- *   │   Title (up to three lines, 72px)                        │
- *   │                                                          │
- *   │   ◯ avatar  槐序            [ 哲学 ] [ 技术 ] +2          │
- *   │              prologue.dev · 槐序的序章                    │
+ *   │   Title (62px / 600, up to three lines)                   │
+ *   │   ──────────────────────────────────────────────         │
+ *   │   ◯ 槐序    [ 金融 ] [ 数据科学 ] [ 技术 ] +1             │
+ *   │      prologue.dev                                        │
  *   └──────────────────────────────────────────────────────────┘
  *
- * Page cards (no date/tags) use the same frame with the title vertically
- * centred and the same author strip.
+ * Page cards reuse the frame with the title centred and no meta/tag rows.
+ *
+ * The "stardust" language is the site's chip treatment scaled up: a 2px
+ * tri-hue rim around a white card, two 4–5px star dots in the top-right
+ * corner, a gradient hairline above the footer and 6% tri-hue chip washes.
+ * Nothing here is decorative-only for its own sake — it is the same rim +
+ * stardust vocabulary the reader sees on every card and tag pill.
  *
  * Everything is drawn with Satori-safe primitives only: flexbox, absolute
- * positioning, `linear-gradient`/`radial-gradient`, `boxShadow` and
- * `borderRadius`. Satori has no `filter: blur` and no CSS grid, so the soft
- * blooms behind the card are stacked radial gradients, not blurred blobs.
+ * positioning, `linear-gradient`/`radial-gradient`, `boxShadow`, `border`
+ * and `borderRadius`. Satori has no `filter: blur` and no CSS grid, so the
+ * soft blooms are stacked radial gradients, and the rim is drawn as a padded
+ * gradient box rather than with `mask-composite` (unsupported).
  *
  * Fonts: Noto Sans SC is fetched per card from Google Fonts with a `text=`
  * subset built from the exact characters being drawn, which keeps each font
  * payload to a few KB instead of the whole CJK face. Three weights are
- * requested (400 meta, 600 tags, 700 title); a weight that fails to load is
+ * requested (400 meta, 600 tags/title); a weight that fails to load is
  * simply omitted from the `fonts` array and Satori falls back.
  *
  * Headers: `s-maxage=31536000, immutable` is safe because the URL carries
@@ -63,9 +68,12 @@ const palette = {
 };
 
 // v3 brand gradient: the same three stops as --gradient-brand (lavender ->
-// sky -> pink). Defined once so the hairline, the dot and the avatar ring
+// sky -> pink). Defined once so the rim, the avatar ring and the hairline
 // cannot drift apart.
 const brandGradient = `linear-gradient(120deg, ${palette.lavender}, ${palette.sky} 46%, ${palette.pink})`;
+const rimGradient = `linear-gradient(135deg, rgba(201,205,245,0.95), rgba(180,224,236,0.85) 46%, rgba(247,212,230,0.95))`;
+const hairlineGradient =
+  "linear-gradient(90deg, rgba(170,160,252,0.28), rgba(84,208,238,0.22) 56%, rgba(252,156,200,0.28))";
 
 const fontCache = new Map();
 
@@ -90,9 +98,9 @@ export async function GET(request) {
     read,
     blogName(),
     domain(),
+    siteMetadata.author,
     ...tags.map(tagLabel),
     "+0123456789",
-    "文章",
   ].join("");
 
   const avatar = await avatarDataUri();
@@ -103,10 +111,9 @@ export async function GET(request) {
     (
       <div
         style={{
-          width: "100%",
-          height: "100%",
+          width: WIDTH,
+          height: HEIGHT,
           display: "flex",
-          flexDirection: "column",
           position: "relative",
           backgroundColor: palette.paper,
           color: palette.ink,
@@ -114,208 +121,232 @@ export async function GET(request) {
           overflow: "hidden",
         }}
       >
-        {/* Decorative blooms. Two large radial gradients, the lavender one
-            top-right and the pink one bottom-left, so the panel reads as
-            lit from two corners rather than tinted flat. */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            background:
-              "radial-gradient(720px 480px at 88% -10%, rgba(201,205,245,0.52), transparent 62%)," +
-              "radial-gradient(560px 440px at 6% 100%, rgba(180,224,236,0.42), transparent 62%)," +
-              "radial-gradient(680px 520px at 4% 108%, rgba(247,212,230,0.52), transparent 60%)",
-          }}
-        />
-
-        {/* Brand hairline */}
+        {/* Three soft blooms, same three hues as the rim. Satori has no blur,
+            so each is a wide radial gradient that fades to transparent well
+            before its box edge. */}
         <div
           style={{
             position: "absolute",
             top: 0,
             left: 0,
             right: 0,
-            height: 10,
+            bottom: 0,
             display: "flex",
-            background: brandGradient,
+            background:
+              "radial-gradient(760px 560px at 14% 8%, rgba(201,205,245,0.72), transparent 72%)," +
+              "radial-gradient(720px 520px at 86% 6%, rgba(180,224,236,0.62), transparent 74%)," +
+              "radial-gradient(820px 520px at 64% 104%, rgba(247,212,230,0.66), transparent 74%)",
           }}
         />
 
-        {/* Card */}
+        {/* 2px tri-hue rim: an outer box painted with the gradient and 2px of
+            padding, with the white card sitting inside it. Satori cannot mask
+            a conic border, and a real border cannot hold a gradient. */}
         <div
           style={{
-            position: "relative",
+            position: "absolute",
+            top: 40,
+            left: 40,
+            right: 40,
+            bottom: 40,
             display: "flex",
             flexDirection: "column",
-            flexGrow: 1,
-            margin: "44px 48px 48px",
-            padding: "52px 60px 44px",
-            borderRadius: 32,
-            backgroundColor: "rgba(255,255,255,0.86)",
-            border: `1px solid ${palette.border}`,
-            boxShadow: "0 24px 60px -28px rgba(47,52,70,0.32)",
+            padding: 2,
+            borderRadius: 28,
+            background: rimGradient,
           }}
         >
-          {/* Site line */}
           <div
             style={{
+              position: "relative",
               display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              marginBottom: isPost ? 30 : 0,
+              flexDirection: "column",
+              flexGrow: 1,
+              padding: "40px 54px 36px",
+              borderRadius: 26,
+              backgroundColor: palette.surface,
+              overflow: "hidden",
+              boxShadow: "0 26px 60px -34px rgba(47,52,70,0.42)",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {/* Two star dots, a 5px one over a 4px one. The white ring is a
+                1px border; Satori has no spread box-shadow. */}
+            <div
+              style={{
+                position: "absolute",
+                top: 26,
+                right: 28,
+                display: "flex",
+                width: 5,
+                height: 5,
+                borderRadius: 999,
+                backgroundColor: "rgba(170,160,252,0.95)",
+                border: "1px solid rgba(255,255,255,0.85)",
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                top: 38,
+                right: 44,
+                display: "flex",
+                width: 4,
+                height: 4,
+                borderRadius: 999,
+                backgroundColor: "rgba(252,156,200,0.95)",
+                border: "1px solid rgba(255,255,255,0.85)",
+              }}
+            />
+
+            {/* Meta row (posts only). The separator is a dot, not a glyph, so
+                it never depends on the font subset. */}
+            {isPost ? (
               <div
                 style={{
                   display: "flex",
-                  width: 10,
-                  height: 10,
-                  borderRadius: 999,
-                  background: brandGradient,
-                }}
-              />
-              <div
-                style={{
-                  display: "flex",
-                  fontSize: 26,
-                  fontWeight: 600,
-                  letterSpacing: 1,
-                  color: palette.accent,
+                  alignItems: "center",
+                  gap: 12,
+                  fontSize: 22,
+                  lineHeight: 1.4,
+                  color: palette.muted,
                 }}
               >
-                {blogName()}
+                {date ? <span>{formatDate(date)}</span> : null}
+                {date && read ? (
+                  <div
+                    style={{
+                      display: "flex",
+                      width: 5,
+                      height: 5,
+                      borderRadius: 999,
+                      backgroundColor: "rgba(47,52,70,0.22)",
+                    }}
+                  />
+                ) : null}
+                {read ? <span>{read}</span> : null}
+              </div>
+            ) : null}
+
+            {/* Title. flexGrow pushes the footer down and lets the page card
+                centre a short title in the whole card. */}
+            <div
+              style={{
+                display: "flex",
+                flexGrow: 1,
+                minHeight: 0,
+                marginTop: isPost ? 22 : 0,
+                alignItems: isPost ? "flex-start" : "center",
+                justifyContent: isPost ? "flex-start" : "center",
+                fontSize: isPost ? titleSize(title) : 68,
+                fontWeight: 600,
+                lineHeight: isPost ? 1.2 : 1.24,
+                letterSpacing: -0.8,
+                color: palette.ink,
+              }}
+            >
+              <div
+                style={{
+                  display: "-webkit-box",
+                  WebkitBoxOrient: "vertical",
+                  WebkitLineClamp: 3,
+                  overflow: "hidden",
+                  textAlign: isPost ? "left" : "center",
+                }}
+              >
+                {title}
               </div>
             </div>
-            <div style={{ display: "flex", fontSize: 24, color: palette.faint }}>
-              {domain()}
-            </div>
-          </div>
 
-          {isPost ? (
+            <div
+              style={{
+                display: "flex",
+                height: 1,
+                marginBottom: 22,
+                background: hairlineGradient,
+              }}
+            />
+
+            {/* Author strip + stardust chips. The gradient hairline above is
+                the only rule on the card; there is no border under the footer. */}
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 14,
-                marginBottom: 22,
-                fontSize: 24,
-                color: palette.muted,
+                justifyContent: isPost ? "space-between" : "center",
+                gap: 20,
               }}
             >
-              {date ? <span>{formatDate(date)}</span> : null}
-              {date && read ? (
-                <span style={{ color: palette.lavender }}>·</span>
-              ) : null}
-              {read ? <span>{read}</span> : null}
-            </div>
-          ) : null}
-
-          {/* Title. flexGrow centres it on page cards, where there is no meta
-              row or tag row to fill the column. lineClamp is honoured by
-              Satori and keeps a long title from colliding with the footer. */}
-          <div
-            style={{
-              display: "flex",
-              flexGrow: 1,
-              alignItems: "center",
-              fontSize: title.length > 34 ? 58 : 70,
-              fontWeight: 700,
-              lineHeight: 1.32,
-              letterSpacing: -1,
-              color: palette.ink,
-            }}
-          >
-            <div
-              style={{
-                display: "-webkit-box",
-                WebkitBoxOrient: "vertical",
-                WebkitLineClamp: 3,
-                overflow: "hidden",
-              }}
-            >
-              {title}
-            </div>
-          </div>
-
-          {/* Author strip */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 24,
-              marginTop: 28,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-              <AvatarImage dataUri={avatar} />
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    fontSize: 30,
-                    fontWeight: 600,
-                    color: palette.ink,
-                  }}
-                >
-                  {siteMetadata.author}
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    fontSize: 22,
-                    marginTop: 4,
-                    color: palette.faint,
-                  }}
-                >
-                  {domain()}
-                </div>
-              </div>
-            </div>
-
-            {tags.length > 0 ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                {tags.slice(0, 3).map((tag) => (
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <AvatarImage dataUri={avatar} />
+                <div style={{ display: "flex", flexDirection: "column" }}>
                   <div
-                    key={tag}
                     style={{
                       display: "flex",
-                      alignItems: "center",
-                      height: 44,
-                      padding: "0 18px",
-                      borderRadius: 999,
-                      fontSize: 22,
+                      fontSize: 26,
                       fontWeight: 600,
-                      color: palette.secondary,
-                      backgroundColor: "rgba(242,198,220,0.34)",
-                      border: `1px solid rgba(242,198,220,0.92)`,
+                      color: palette.ink,
+                      lineHeight: 1.25,
                     }}
                   >
-                    {tagLabel(tag)}
+                    {siteMetadata.author}
                   </div>
-                ))}
-                {tags.length > 3 ? (
                   <div
                     style={{
                       display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      height: 44,
-                      padding: "0 16px",
-                      borderRadius: 999,
-                      fontSize: 22,
-                      fontWeight: 600,
+                      fontSize: 20,
+                      marginTop: 3,
                       color: palette.faint,
-                      border: `1px dashed rgba(47,52,70,0.26)`,
+                      lineHeight: 1.3,
                     }}
                   >
-                    +{tags.length - 3}
+                    {domain()}
                   </div>
-                ) : null}
+                </div>
               </div>
-            ) : null}
+
+              {isPost && tags.length > 0 ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  {tags.slice(0, 3).map((tag) => (
+                    <div
+                      key={tag}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        height: 40,
+                        padding: "0 18px",
+                        borderRadius: 999,
+                        fontSize: 20,
+                        fontWeight: 500,
+                        color: palette.muted,
+                        background:
+                          "linear-gradient(140deg, rgba(170,160,252,0.066), rgba(84,208,238,0.048) 55%, rgba(252,156,200,0.066))",
+                        border: "1px solid rgba(170,160,252,0.14)",
+                      }}
+                    >
+                      {tagLabel(tag)}
+                    </div>
+                  ))}
+                  {tags.length > 3 ? (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        height: 40,
+                        padding: "0 15px",
+                        borderRadius: 999,
+                        fontSize: 20,
+                        fontWeight: 600,
+                        color: palette.faint,
+                        border: "1px dashed rgba(47,52,70,0.26)",
+                      }}
+                    >
+                      +{tags.length - 3}
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       </div>
@@ -334,19 +365,25 @@ export async function GET(request) {
   return response;
 }
 
+/** Title size: 62px base, stepping down so a long headline still fits 3 lines. */
+function titleSize(title) {
+  if (title.length > 56) return 46;
+  if (title.length > 40) return 54;
+  return 62;
+}
+
 /** Circular avatar with the brand gradient ring, falling back to an initial. */
 function AvatarImage({ dataUri }) {
-  const ring = brandGradient;
   if (dataUri) {
     return (
       <div
         style={{
           display: "flex",
-          width: 84,
-          height: 84,
+          width: 64,
+          height: 64,
           borderRadius: 999,
-          padding: 4,
-          background: ring,
+          padding: 3,
+          background: brandGradient,
         }}
       >
         {/* next/og accepts an <img> with a data URI; Satori needs the explicit
@@ -357,8 +394,8 @@ function AvatarImage({ dataUri }) {
         <img
           src={dataUri}
           alt=""
-          width={76}
-          height={76}
+          width={58}
+          height={58}
           style={{ borderRadius: 999, objectFit: "cover" }}
         />
       </div>
@@ -371,12 +408,12 @@ function AvatarImage({ dataUri }) {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        width: 84,
-        height: 84,
+        width: 64,
+        height: 64,
         borderRadius: 999,
-        padding: 4,
-        background: ring,
-        fontSize: 36,
+        padding: 3,
+        background: brandGradient,
+        fontSize: 28,
         fontWeight: 700,
         color: palette.accent,
       }}
@@ -415,11 +452,10 @@ function blogName() {
  *
  * The source file is the author's 871 KB 1077×1078 PNG. next/og inlines every
  * asset it is handed, so passing it through unresolved would blow the
- * function's 500 KB bundle budget; sharp resizes it to a 152 px square (2× the
- * 76 px display size) before it becomes an argument. `outputFileTracingIncludes`
- * in next.config.js is what makes the file present at runtime at all — a
- * `fs.readFile` on a path Next did not see during tracing is missing from the
- * deployed function.
+ * function's 500 KB bundle budget; sharp resizes it to a 152 px square before
+ * it becomes an argument. `outputFileTracingIncludes` in next.config.js is
+ * what makes the file present at runtime at all — a `fs.readFile` on a path
+ * Next did not see during tracing is missing from the deployed function.
  *
  * Read once per process; the buffer is tiny and identical for every card.
  */
