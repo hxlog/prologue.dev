@@ -200,6 +200,10 @@ function buildDocument(file, { requirePublishDate = true } = {}) {
     // styling on it has to be named here and rendered by the page template
     // instead of written in the body. Pages only; posts never set it.
     avatar: optionalString(file, data, "avatar"),
+    // Opt-in /about portfolio block (data/projects.yaml). Same reasoning as the
+    // avatar: it is a page-level enhancement rendered by the page template, not
+    // markdown. Pages only; posts never set it.
+    portfolio: booleanField(file, data, "portfolio"),
     draft: booleanField(file, data, "draft"),
     featured: booleanField(file, data, "featured"),
     tags: stringList(file, data, "tags"),

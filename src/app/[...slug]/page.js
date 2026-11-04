@@ -11,6 +11,7 @@ import ScrollTopAndComment from "../../components/scroll";
 import PageTransition from "../../components/page-transition";
 import RouteTransition from "../../components/route-transition";
 import { PageSkeleton } from "../../components/skeletons";
+import Portfolio from "../../components/portfolio";
 import { ogImageUrl } from "../../lib/feed/urls";
 
 const Comments = dynamic(() => import("../../components/comments"), {
@@ -130,6 +131,9 @@ async function PageBody({ params }) {
         </div>
       ) : null}
       <OptimizedHTMLRenderer htmlContent={page.html} />
+      {/* Opt-in via `portfolio: true` in the page frontmatter — the starter
+          template ships this page without the flag. */}
+      {page.portfolio ? <Portfolio /> : null}
       <hr />
       <Suspense fallback={<div className="h-32" aria-hidden="true" />}>
         <Comments />

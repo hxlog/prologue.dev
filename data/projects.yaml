@@ -1,0 +1,39 @@
+# 开源项目 —— /about 页面的 portfolio 区块
+#
+# 这里的文案是展示用的 CURATED COPY，不是 GitHub 的实时描述：
+# 排序（stars + forks）与计数由 src/lib/projects.js 从 GitHub API 读取，
+# 构建时抓取并缓存一天；抓不到时回退到这里的 stars/forks（缺省 0）。
+#
+# 字段：
+#   repo         必填，owner/name，也是卡片链接的目标
+#   name         卡片标题
+#   description  一句话介绍（不要换行）
+#   stars/forks  可选，仅在 API 失败时兜底
+#
+# 页面按 score = stars + forks 降序，其次 stars、再按 name 升序。
+projects:
+  - repo: hxlog/balanced-portfolio
+    name: Balanced Portfolio
+    description: 机构级投资管理工具：全天候风险平价组合与回测、股指期货统计看板、场外期权定价。
+    stars: 48
+    forks: 25
+  - repo: hxlog/prologue.dev
+    name: Prologue
+    description: 这个站点本身：Next.js 16 + React 19 的内容优先博客，公式、Mermaid、Feed、全站搜索。
+    stars: 41
+    forks: 10
+  - repo: hxlog/dsh-mcp-tools
+    name: DSH MCP Tools
+    description: DeepSeek Harness 的 MCP 管理器：添加服务器、请求头、连通性测试与逐工具开关。
+    stars: 3
+    forks: 0
+  - repo: hxlog/dsh-skills-tools
+    name: DSH Skills Tools
+    description: DeepSeek Harness 的 Skills 管理器：从 Git 仓库导入、分组、启用停用与补齐技能。
+    stars: 1
+    forks: 0
+  - repo: hxlog/prologue-blog-template
+    name: Prologue Template
+    description: 可直接 fork 的 Next.js 博客模板，由本站发布流程自动同步。
+    stars: 1
+    forks: 0

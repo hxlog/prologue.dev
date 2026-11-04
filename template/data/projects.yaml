@@ -1,0 +1,12 @@
+# 开源项目清单 —— 在 data/content/pages/about.md 的 frontmatter 里加上
+#   portfolio: true
+# 即可在关于页正文与评论区之间渲染。区块默认关闭，空列表也不会渲染。
+#
+# 字段：
+#   repo         owner/name（卡片链接目标，必填）
+#   name         卡片标题
+#   description  一句话介绍
+#   stars/forks  可选兜底值；正常情况下构建时从 GitHub API 读取
+#
+# 排序：score = stars + forks（等权），并列时按 stars、再按 name。
+projects: []

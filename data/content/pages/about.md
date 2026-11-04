@@ -2,6 +2,7 @@
 title: 关于作者
 description: 作者槐序，00后，梦想成为自由职业者
 avatar: /static/favicons/avatar.png
+portfolio: true
 ---
 
 ## 关于作者

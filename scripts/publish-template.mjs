@@ -221,6 +221,12 @@ jobs:
     path.join(TEMPLATE_ROOT, "data", "microblog.yaml"),
     path.join(worktreeRoot, "data", "microblog.yaml")
   );
+  // The /about portfolio block reads this file; ship it (default empty list) so
+  // a template user who sets `portfolio: true` does not crash on a missing YAML.
+  copyFile(
+    path.join(TEMPLATE_ROOT, "data", "projects.yaml"),
+    path.join(worktreeRoot, "data", "projects.yaml")
+  );
   copyFile(
     path.join(TEMPLATE_ROOT, "data", "links.yaml"),
     path.join(worktreeRoot, "data", "links.yaml")
@@ -349,6 +355,7 @@ function ensureTemplateInputs() {
     path.join(TEMPLATE_ROOT, "data", "headerNavLinks.js"),
     path.join(TEMPLATE_ROOT, "data", "links.yaml"),
     path.join(TEMPLATE_ROOT, "data", "microblog.yaml"),
+    path.join(TEMPLATE_ROOT, "data", "projects.yaml"),
     path.join(TEMPLATE_ROOT, "data", "tagLabels.js"),
     path.join(TEMPLATE_ROOT, "public", "static"),
   ];
