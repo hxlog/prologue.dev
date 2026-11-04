@@ -283,14 +283,19 @@ async function PostView({ params }) {
             </nav>
           </article>
 
+          {/* The TOC is the sticky element, not the whole column: the author
+              card scrolls up out of the way and the outline stays pinned while
+              the reader is in the article. It has to be a direct child of the
+              aside (the grid row is full article height) — nested one level
+              deeper, its sticky range would end at the card's bottom. */}
           <aside className="hidden xl:block">
-            <div className="sticky-below-nav pt-10">
+            <div className="pt-10">
               <AboutMe />
-              <div className="mt-10">
-                <h2 className="section-label">目录</h2>
-                <div className="mt-3">
-                  <TableofContent headings={post.headings} />
-                </div>
+            </div>
+            <div className="sticky-below-nav toc-panel mt-10">
+              <h2 className="section-label">目录</h2>
+              <div className="mt-3">
+                <TableofContent headings={post.headings} />
               </div>
               <Link href="/" className="link mt-6 inline-block text-sm">
                 ← 返回首页

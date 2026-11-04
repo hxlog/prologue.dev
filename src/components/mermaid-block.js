@@ -20,11 +20,24 @@ export function MermaidBlock({ chart }) {
     (async () => {
       const mermaid = (await import("mermaid")).default;
       const theme = resolvedTheme === "dark" ? "dark" : "default";
+      const fontFamily =
+        getComputedStyle(document.documentElement)
+          .getPropertyValue("--font-sans")
+          .trim() || "sans-serif";
 
       mermaid.initialize({
         startOnLoad: false,
         theme,
+        // Mermaid 12 changed the flowchart default to `look: "neo"`, which
+        // draws a drop-shadow halo and a gradient stroke around every node and
+        // cluster. That is a second elevation under the site's flat hairline
+        // surfaces, and next to GitHub's flat render it reads as duplicated
+        // shadowing. The classic look is the flat one; globals.css carries the
+        // same reset as an !important fallback so a mermaid upgrade cannot
+        // silently bring the halo back.
+        look: "classic",
         securityLevel: "loose",
+        themeVariables: { fontFamily },
       });
 
       if (cancelled || !containerRef.current) return;

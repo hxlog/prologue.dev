@@ -82,7 +82,7 @@ export default function PagePage({ params }) {
             </Suspense>
           </PageTransition>
           <aside className="hidden xl:block">
-            <div className="sticky-below-nav pt-12">
+            <div className="sticky-below-nav toc-panel pt-12">
               <h2 className="section-label">目录</h2>
               <div className="mt-3">
                 <Suspense fallback={<div className="h-24" aria-hidden="true" />}>

@@ -409,6 +409,36 @@
     top: calc(var(--nav-height) + 1rem);
   }
 
+  /* The post outline, pinned under the header while the author card above it
+     scrolls away. Long outlines (a 20-heading article overflows a viewport)
+     scroll inside the panel instead of dragging the page: a sticky box taller
+     than the viewport can never reveal its own bottom. */
+  .toc-panel {
+    max-height: calc(100dvh - var(--nav-height) - 2.5rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 0.25rem;
+    scrollbar-width: thin;
+  }
+
+  /* Mermaid renders client-side into an inline SVG. Mermaid 12's default "neo"
+     look paints a drop-shadow halo and a gradient stroke on every node and
+     cluster: a second elevation sitting under the site's flat hairline surfaces,
+     which reads as duplicated shadowing against GitHub's flat render. The
+     component opts into the classic look; these rules keep that reset
+     version-proof and pull the SVG onto the site's type stack (the library
+     otherwise types diagrams in Trebuchet MS). */
+  .mermaid svg [data-look="neo"],
+  .mermaid svg [data-look="neo"] * {
+    filter: none !important;
+  }
+  .mermaid svg text,
+  .mermaid svg .label,
+  .mermaid svg .nodeLabel,
+  .mermaid svg .edgeLabel {
+    font-family: var(--font-sans) !important;
+  }
+
   .skip-link {
     position: fixed;
     top: 0.5rem;
