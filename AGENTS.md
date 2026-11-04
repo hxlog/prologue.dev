@@ -9,23 +9,32 @@ A content-first personal blog (Chinese, `prologue.dev`) built on **Next.js 16 Ap
 ## Commands
 
 ```bash
-npm run dev            # build search index + next dev --turbopack
-npm run build          # same prep, then next build --turbopack
-npm run start          # serve production build
-npm run lint           # eslint (flat config in eslint.config.mjs)
+corepack enable        # once per machine — makes `yarn` resolve to the pinned Yarn 4
+yarn install           # install dependencies (node-modules linker)
 
-npm run check          # the offline gates (see below)
-node scripts/check.mjs prerendered   # every prerendered page's anchors resolve
-node scripts/check.mjs feeds         # all four feeds, against a running server
-node scripts/check.mjs all           # all three groups
+yarn dev               # build search index + next dev --turbopack
+yarn build             # same prep, then next build --turbopack
+yarn start             # serve production build
+yarn lint              # eslint (flat config in eslint.config.mjs)
 
-npm run publish        # build the template snapshot locally (dry run — no push)
-npm run publish -- --push            # force-push template to hxlog/prologue-blog-template
+yarn publish           # build the template snapshot locally (dry run — no push)
+yarn publish -- --push # force-push template to hxlog/prologue-blog-template
 ```
 
-`npm run check` runs four gates as separate child processes and prints a PASS/FAIL table: heading-id parity, render equivalence (63 posts, 37 expected diffs), document shape (63 posts), and the starter template's own files.
+CI (`.github/workflows/ci.yml`) runs `lint` and `build`.
 
-There is **no test suite**. These gates are the acceptance gate — run them after touching the content layer, the markdown pipeline, or anything that renders. They are **not** part of `build`, and three of them cannot be: the `prerendered` group reads the output in `.next/server/app/**`, `feeds` needs a running server (`npm run start`), and the `template` gate inspects starter files this site never uses. Folding them into `build` would also break the public template, whose clones carry no `scripts/fixtures/` to compare against. CI (`.github/workflows/ci.yml`) runs `lint`, `check` and `build`.
+## Package manager
+
+**Yarn 4 (Berry)**, pinned by `packageManager` in `package.json` and driven through Corepack: run `corepack enable` once per machine, after which `yarn` resolves to the pinned release anywhere in this repo. `yarn.lock` is committed; there is no `package-lock.json`. `.yarnrc.yml` sets `nodeLinker: node-modules` — Next.js/Turbopack and Vercel both need a real `node_modules` tree, so Plug'n'Play is not an option here.
+
+CI enables Corepack before every job and installs with `yarn install --immutable`, which fails instead of rewriting `yarn.lock` (the `npm ci` equivalent).
+
+Two dependencies are deliberately not on `latest`, both because of peer ranges rather than preference:
+
+- **`eslint` on the latest 9.x** — `eslint-config-next@16` pulls in `eslint-plugin-import`, `eslint-plugin-react` and `eslint-plugin-jsx-a11y`, whose peer ranges stop at `^9`. ESLint 10 is a real peer conflict there (npm fails with `ERESOLVE`), so 9.x is the conflict-free latest.
+- **`typescript` on the latest 6.0.x** — `eslint-config-next` imports `typescript-eslint`, which `require`s `typescript` at lint time even in a JavaScript project, so it is a real devDependency (npm used to install it as a transitive peer; Yarn does not). Its peer range is `>=4.8.4 <6.1.0`, and TypeScript 7 is out but unsupported.
+
+Everything else is on `latest` as of the migration. `yarn up -i` is the interactive upgrader; `yarn up tailwindcss @tailwindcss/postcss` picks up the one patch release that Yarn's default 24-hour `npmMinimalAgeGate` (supply-chain quarantine of freshly published versions) held back.
 
 ## Content layer
 
@@ -61,11 +70,11 @@ Configured in `src/lib/content/pipeline.js` (remark: gfm, math, gemoji; rehype: 
 
 Routes: `src/app/rss`, `src/app/atomfeed`, `src/app/jsonfeed`. All three call `createFeed()` in `src/lib/feed/build-feed.js`, which builds a single `Feed` instance; each route only picks the serializer (`rss2`/`atom1`/`json1`). Per-item HTML is produced by `buildFeedContent()` in `src/lib/feed/content.js`, which strips KaTeX presentation layers (keeps MathML), promotes block math, absolutizes URLs, and normalizes images. Format-specific fixes the `feed` library can't express (inject `<dc:creator>`, JSON Feed per-item `image`) live in `src/lib/feed/finalize.js` — note `imageByUrl()` is a function, not a module constant, for the same staleness reason as the loader. URL helpers in `src/lib/feed/urls.js` derive absolute URLs from `siteMetadata.siteUrl`; `coverImageUrl()` falls back to the `/og` generator when a post has no `image`.
 
-Feeds are edge-cached (`s-maxage=600, stale-while-revalidate=86400`): content only changes on deploy, so a 10-min staleness window is safe and keeps readers off the function path.
+Feed XML comes from `getFeedXml(format)` in `src/lib/feed/cached.js`: `'use cache'` + `cacheLife({ stale: 600, revalidate: 3600, expire: 86400 })` around `createFeed(now)`. `createFeed()` renders all 64 post bodies through Shiki, and it used to run per request (it awaited `io()` for a clock read, which forced the route dynamic), so every poll paid the corpus. The three routes are now `○`; the stale window matches the `s-maxage` they send. `now` is an argument because a `'use cache'` scope may read the clock and a static request handler may not — do not put `new Date()` back inside `createFeed()`.
 
 ## Template publishing (important)
 
-This repo is mirrored to a public template (`hxlog/prologue-blog-template`) **without the author's posts, maintainer-only files, or personal assets**. On every push to `master`, `.github/workflows/publish-template.yml` runs `npm run publish`, which executes `scripts/publish-template.mjs`. That script:
+This repo is mirrored to a public template (`hxlog/prologue-blog-template`) **without the author's posts, maintainer-only files, or personal assets**. On every push to `master`, `.github/workflows/publish-template.yml` runs `yarn publish`, which executes `scripts/publish-template.mjs`. That script:
 
 1. Creates a detached git worktree of `HEAD`.
 2. `applyStarterTemplate()` deletes maintainer-only paths (`template/`, `docs/`, `.idea/`, `scripts/`, the publish workflows), wipes `data/content/*` and `public/static`, then copies the starter overrides from `template/`.
@@ -76,11 +85,42 @@ This repo is mirrored to a public template (`hxlog/prologue-blog-template`) **wi
 - Anything new added for the template must be placed under `template/` (or whitelisted in `applyStarterTemplate`), or it won't ship. `ensureTemplateInputs()` asserts the required ones exist, so a missing file fails the publish rather than shipping a broken clone.
 - Template-critical files that live in `src/` or `scripts/` are copied explicitly by `applyStarterTemplate`: `scripts/build-search-index.mjs` — the only script the shipped `package.json` invokes. **Anything the shipped `dev`/`build` scripts invoke must be in that list**, or a fresh clone fails on its first command.
 - `template/data/{microblog.yaml,links.yaml,sitemetadata.js,headerNavLinks.js,tagLabels.js}` and `template/public/static/` are required inputs; five `src/` files import the two `.js` data modules, so a template without them does not build.
-- Locally, `npm run publish` builds and inspects the snapshot under `.tmp/` (gitignored) and stops; `npm run publish -- --push` is what force-pushes. CI passes `--push`.
+- Locally, `yarn publish` builds and inspects the snapshot under `.tmp/` (gitignored) and stops; `yarn publish -- --push` is what force-pushes. CI passes `--push`.
 
 ## Design system
 
-Semantic tokens live in `src/app/globals.css` under `@theme inline` (`background/foreground/surface/surface-2/surface-3/muted/faint/border/border-strong/accent/accent-strong/accent-soft/secondary/secondary-soft`, radii, shadows, motion), mapped to CSS variables that flip under `.dark`. **Primary accent = cyan, secondary = violet** (analogous cool pair); interactive states use `accent`, emphasis/badges use the cyan→violet `--gradient-brand`. The v3-style `tailwind.config.js` (loaded via `@config`) holds only `darkMode: ["class"]` + the typography plugin. Fonts are self-hosted via `next/font/google` in `layout.js` (Noto Sans SC / Noto Serif SC / JetBrains Mono).
+Semantic tokens live in `src/app/globals.css` under `@theme inline`, mapped to CSS variables that flip under `.dark`.
+
+**Brand primitives: lavender `#b5b5e5`, pink `#e6c9d9`, warm stone `#a8a29e`** (`--color-brand-*`) are the historical source swatches and carry no semantics. The pastels actually painted are `--accent-pastel #c9cdf5` / `--secondary-pastel #f7d4e6` / `--sky #b4e0ec`. None carry text; everything reads a semantic token.
+
+**v3 "ice lavender" palette.** v2 ("cool paper") moved the neutrals from warm stone to cool slate; v3 pushes the accent one step lighter, because the purple still read as heavy:
+
+- **Light**: background `#f7f8fc`, ink `#2f3446` (11.6:1), surfaces `#ffffff` / `#f1f3fa` / `#e5e8f3`, `--muted #5d6579` (5.49:1), `--faint #767e92` (3.83:1, metadata only), accent `#6a6fcd` (**4.15:1** on the page, 4.40:1 on a white card), secondary `#b85680` (4.23:1). **The accent is deliberately below AA for small text, but only for chrome** — eyebrows, the active nav pill, card-title hover, tints. Body copy does not use it: prose links and inline code use `--accent-strong` / `--secondary-strong` (≥5:1), and any *fill carrying a label* uses `--accent-strong` too (5.35:1 with white). Link hover goes lighter, not darker.
+- **Dark**: background `#14161d`, surfaces `#1c1f28` / `#242832` / `#2f3441`, ink `#eef0f7` (15.9:1), `--muted #b3b8c6` (9.1:1), `--faint #979db0` (6.7:1), accent `#ccd0f8`, secondary `#f4cede`. `--border-strong` is `0.14`, not `0.18` — the brighter hairline was half of the "dark hover is too white" report.
+- **Sky `#b4e0ec`** (`--sky`) exists for gradients and the cursor glow only — never text, never a control, so it cannot fail contrast.
+- `--accent-strong` means "more contrast against the current background" (darker in light mode, lighter in dark). `--on-accent` is white in light mode / `#1b1d26` in dark.
+- Gradients: `--gradient-brand` is the **fill**, now **three stops** (lavender → `#dff0f9` sky → pink) so a brand rule reads as a gradient instead of a two-colour ramp; `--gradient-brand-text` is the **text** gradient (`bg-clip-text` must use it); `--gradient-aurora` is the lavender→sky→pink wash behind the homepage hero (`.hero-aurora`, CSS-only, and its section is `overflow-x-clip` because the wash bleeds 30% past each side).
+- Type (`--text-caption/sm/base/lead/title/h2/h1/display`), radii (`control/card/panel/pill`), containers, shadows and motion (`--duration-*`, `--ease-out-expo`) are tokens; prefer them over arbitrary values.
+
+The v3-style `tailwind.config.js` (loaded via `@config`) holds only `darkMode: ["class"]` + the typography plugin.
+
+**Fonts: system only — ZERO font requests.** No `next/font` import exists. `--font-sans` is the latin faces followed by the platform CJK stack and is the *only* family (`--font-serif` was deleted; its three `font-serif` call sites folded in). `--font-mono` is the platform mono, used only by code and `.copy-field`.
+
+Two rounds got here by measurement: the two `Noto_*_SC` families (101 unicode-range slices each, **33 woff2 / 1.99 MB** on one article, every arriving slice repainting the text and minting a new LCP candidate — p75 13.2 s on a 196 KB page), then the last latin mono (`JetBrains_Mono`, 40 KB), whose `display: "swap"` still painted code in the fallback first on every code-heavy article. **The swap repaint is the mechanism, not the byte count** — do not reintroduce a webfont without re-measuring LCP.
+
+The one exception is not a text font: `katex.min.css` (imported by the post route) declares 20 `@font-face` rules, of which the browser fetches only the math faces an article actually uses (1-3 woff2, 10-25 KB, measured; 18 of 64 posts contain math). Native MathML output would remove even those at a cost in formula quality — a deliberate decision, not a perf tweak.
+
+**Map the whole `--tw-prose-*` family.** `@tailwindcss/typography` only swaps its defaults under `.prose-invert`, and dark mode here is a class on `<html>` — its `--tw-prose-headings` (`#111827`) therefore painted every H1/H2 near-black on the dark background. The `.prose` block in `globals.css` points headings, bold, links, quotes, captions, bullets, code and table borders (plus their `-invert` twins) at semantic tokens; add new prose rules *after* that block.
+
+**No animation library.** `framer-motion` was removed: the root `<MotionConfig>` alone pulled it into every route's shared chunk to honour an OS preference. Reduced motion is CSS; the tab cascade is `.reveal-rise`, the TOC marker is `.toc-pill`.
+
+**Component classes** (in `@layer components`, `globals.css`): `.shell`, `.sticky-below-nav`, `.skip-link`, `.btn*`, `.input`, `.nav-item` (a pill), `.card` / `.card-interactive` / `.card-spotlight`, `.chip*`, `.eyebrow` / `.section-label` (not uppercase, not tracked — the labels are Chinese), `.link`, `.text-gradient`, `.glass-header`, `.hero-aurora`, `.reveal-rise`, `.toc-pill`, `.modal-panel`, `.copy-field`.
+
+Cards are flat at rest: `--shadow-card` is an inset hairline ring (no themed drop shadow). Hover is a 1px lift, a 4% `--accent-pastel` drift of the surface colour, plus a **three-colour wash that fades in** (sky / lavender / pink) drawn by `.card::before` at `--wash-*` alpha — a pseudo-element because a gradient cannot be transitioned but opacity can.
+
+**Cursor spotlight**: `<Spotlight />` in `layout.js` (`spotlight.js`) — one delegated `pointermove` listener writes `--spot-x`/`--spot-y` percentages onto the hovered `.card-spotlight`; hover is pure CSS (`--spot-a: 1`). It updates on **every** move inside a card (an early `card === current` guard froze the glow at the edge), batches writes into one `requestAnimationFrame`, and caches the rect until scroll/resize. The glow is **one layer with three equal-weight radial gradients** (460/420/430 px, sky leading, lavender under, pink trailing, each fading at 68-70%) so all three hues are on screen at any pointer position — the old single 42% lavender layer is why most of the dot read as purple. Colours are `--glow-sky` / `--glow-lav` / `--glow-pink` (fixed rgba, overridden per theme). The dark values are a third of the light ones on purpose: at 0.42 the pale lavender composited to `#5f637c` (L 0.128) over `#1c1f28` — the "dark hover is too bright" report; now L ≈ 0.043-0.048. Breathing pulse 1.04 and disabled under `prefers-reduced-motion`. The `@property` registrations (`--spot-x/y` `<percentage>`, `--spot-a` `<number>`, `inherits: true`) must stay **outside** `@layer components` or they are not emitted. Pseudo-element layers are `z-index: -1` under `isolation: isolate` so the stretched link keeps working.
+
+**Never write `-webkit-backdrop-filter` by hand** — Lightning CSS then drops the standard `backdrop-filter`, which silently killed the navbar blur. Declare only the unprefixed property.
 
 Shared UI primitives: `card.js` (hairline ring + hover lift; used by home, `/blog`, `/tags/*`, related posts), `tag-chips.js` (responsive +N collapse, expand-in-place), `modal.js` (+ `rss-modal.js` / `email-modal.js`, both copy-to-clipboard with manual-copy fallback), `search-grid.js` (shared search + load-more list). Custom `.prose` overrides in globals.css must keep their `:not(.not-prose *)` guards or they leak into card UI.
 
@@ -96,15 +136,36 @@ CSS lives in `globals.css` next to the theme block. Two details there are load-b
 
 Tags: canonical slugs are English (15-tag taxonomy), Chinese display labels live in `data/tagLabels.js`. Tag URLs are `/tags/<EnglishSlug>`; `/tags/Web3` permanently redirects to `/tags/Crypto` (`next.config.js` redirects).
 
+## Rendering model (Cache Components)
+
+`next.config.js` sets `cacheComponents: true` **and** `partialPrefetching: true` — the latter is *not* implied by the former: unset behaves like `false` and logs a warning (`node_modules/next/dist/docs/01-app/03-api-reference/05-config/01-next-config-js/partialPrefetching.md`). In Next 16 these change what a render may do:
+
+- **No synchronous IO during prerender.** `new Date()`, `Math.random()`, `cookies()`/`headers()` throw with `blocking-prerender-current-time`. Wrap the read in `'use cache'` + `cacheLife()` instead of moving the page to request time — see `src/lib/site-year.js` (footer year, `cacheLife("days")`) and `sitemap.js`, which derives `lastModified` from frontmatter so it does not need a clock at all.
+- **Request-bound work sits behind `<Suspense>`.** `layout.js` wraps `ImageLightbox` (reads the pathname) and the navbar's `NavList` (`nav-links.js`, a `usePathname` client component) so the static shell still prerenders.
+- **A page whose first statement is `await params` has no static shell.** Partial Prefetching renders one URL-independent App Shell per route, so awaiting `props.params` early fails `next build` with `blocking-prerender-dynamic` (or `instant-shell-url-data` at runtime). The three params routes are solved identically: a **non-async** route component renders the frame and passes the `params` *promise* down; an inner async component awaits it inside `<Suspense fallback={<ArticleSkeleton />}>`; content reads go through `src/lib/content/cached.js` (`'use cache'` + `cacheLife("max")`, keyed by slug) so the hole resolves as a cache read and Shiki never runs per request. They report `◐` — expected for a params route, and **not** a reason to use `export const instant = false`, which drops the prerender entirely.
+- **`runtime` route segment config is rejected.** No `export const runtime = "edge"`; `/og` is Node-only because it reads the avatar from disk.
+- Build table buckets: `○` static, `◐` partially prerendered, `ƒ` on demand. A route drifting to `ƒ` is usually an accident.
+- DOM queries must be scoped (`main`, `main article`): React `<Activity>` keeps navigated-away routes mounted but hidden.
+
+## Open Graph card
+
+`src/app/og/route.js` draws a 1200×630 light-mode card with `next/og` (Satori). Everything the card depends on travels in the query string (`title`, `date`, `read`, `tags`), which is why `s-maxage=31536000, immutable` is safe; call sites build it with `URLSearchParams` (`src/lib/feed/urls.js`).
+
+- Satori has no grid and no `filter: blur` — blooms are stacked radial gradients, and every element with children needs `display: "flex"`.
+- The palette is duplicated in the file: Satori resolves inline styles outside the document and cannot read CSS custom properties. Keep it in sync with `:root`.
+- The avatar is read from disk and resized by `sharp` to a 152 px PNG data URI (the source is 871 KB and would blow the 500 KB function bundle); `outputFileTracingIncludes` in `next.config.js` is what puts the file in the deployed function. Failure degrades to an initial-letter avatar.
+- Fonts are fetched per card as a Google Fonts `text=` subset of the exact glyphs drawn; a failed weight is dropped, not retried.
+- Post cards carry date / reading time / 3 tags + `+N`; page cards drop those rows and centre the title. Both always show blog name, domain and author.
+
 ## Routing overview
 
-- `/` — home (`src/app/page.js`): featured grid + Latest/tag/Search tabs (client-side `Articles`, load-more in batches of 8) + about/terminal/microblog sidebar.
+- `/` — home (`src/app/page.js`): featured grid + Latest/tag/Search tabs (client-side `Articles`, load-more in batches of 8) + about/microblog sidebar (the terminal / 随想 block is gone).
 - `/blog` — archive with tag sidebar, site-wide Fuse.js search and load-more (numbered pagination removed; `/blog/page/*` redirects to `/blog`).
 - `/blog/[...slug]` — a post. Matches via `post.slugAsParams` against `getPosts()`; includes related posts (`lib/related.js`: tag overlap + recency, excludes prev/next) and a CSS scroll-driven reading-progress bar.
 - `/[...slug]` — markdown pages (e.g. `/about`, plain markdown, no JSX). Matches via `getPages()`.
 - `/tags/[...slug]` — tag pages, **statically prerendered** via `generateStaticParams` from `lib/tag-counts.js`; same cards/search/load-more as `/blog`. `getTagCounts()`/`getSortedTags()` are functions, not constants, for the same staleness reason as the loader.
 - `/microblog`, `/links` — microblog, friend links. `/microblog/rss` is a standalone RSS 2.0 feed for the microblog (full text + images via `content:encoded`, first image as enclosure).
-- `/og` — dynamic Open Graph image (Node runtime, per-title Noto Sans SC subset, CDN-cached).
+- `/og` — Open Graph image, Node runtime, CDN-cached (see "Open Graph card" above).
 - `sitemap.js`, `robots.js`, and the feed routes handle SEO/discovery; tag pages are listed in both.
 
 ## Conventions & gotchas
@@ -113,17 +174,20 @@ Tags: canonical slugs are English (15-tag taxonomy), Chinese display labels live
 - **Turbopack is required and `next.config.js` is plain** — no `withContentlayer` wrapper, no plugin. `next dev`/`next build` run directly against the app.
 - Tailwind is **v4** (`@tailwindcss/postcss` + `@import "tailwindcss"` in `globals.css`) loading a minimal v3-style `tailwind.config.js` via `@config` (typography plugin + `darkMode: ["class"]`). All colors/radii/shadows/motion are tokens in `globals.css` `@theme inline`.
 - `/_next/image` responses carry `Content-Disposition: inline` natively via `images.contentDispositionType` in `next.config.js` (Next's optimizer defaults to `attachment`, which makes direct opens download). There is no middleware and no vercel.json; don't re-add override layers.
-- Analytics is self-hosted **Umami** (`src/components/umami-analytics.js`, config in `siteMetadata.umami`); it only loads in production. Comments are **Giscus** (`src/components/comments.js`).
-- Search is **one site-wide Fuse.js implementation** (`src/lib/use-post-search.js`) over a build-time slim index `public/search-index.json` (`scripts/build-search-index.mjs`, gitignored, regenerated by `npm run build`/`dev`; the publish script whitelists the generator for the template). The index includes Chinese tag labels so CJK queries hit English tags.
+- Analytics is self-hosted **Umami** (`src/components/umami-analytics.js`, config in `siteMetadata.umami`); it only loads in production, with `strategy="lazyOnload"`. Comments are **Giscus**, split in two: `comments.js` is the lazy shell (`#comments` anchor, `min-h-[320px]` reservation, `IntersectionObserver` with a 600px rootMargin) and `giscus-embed.js` is the widget, loaded via `next/dynamic({ ssr: false })` only when the reader nears it. A third-party iframe on every article was the largest avoidable cost on the article path; measured 0 `giscus-widget` before scrolling, 1 after, 0 requests to giscus.app on load.
+- **Prefetching is a budget.** `<Link prefetch={true}>` is for links that predict the next click (post cards, prev/next, primary nav); tag chips (`tag-chips.js`) and the tag sidebar (`bloglistlayout.js`) are `prefetch={false}` — a page of eight cards used to fire up to 24 tag prefetches for links nobody clicks, competing with the article prefetch that does predict the read.
+- `images.minimumCacheTTL` is 31 days: optimized URLs carry a content hash, and Next's 60s default re-runs the optimizer on every repeat view of an unchanged file.
+- Search is **one site-wide Fuse.js implementation** (`src/lib/use-post-search.js`) over a build-time slim index `public/search-index.json` (`scripts/build-search-index.mjs`, gitignored, regenerated by `yarn build`/`dev`; the publish script whitelists the generator for the template). The index includes Chinese tag labels so CJK queries hit English tags. **Fuse and the index load on the first query, not on mount** — loading them at mount made every visitor download 40 KB of index plus the library while the page was still painting, for a feature most never use.
+- **Tag hygiene**: `node scripts/check-tags.mjs` (add `--json`) reports unknown tags (which would 404), single-tag posts, tags with fewer than three posts and the full distribution, from `public/search-index.json`. It is deliberately not wired into `package.json` — the publish script deletes `scripts/` apart from the search-index generator, so a shipped `check:tags` script would be a broken command in the template.
 - **Image lightbox is wired through CSS classes, not props**: `rehype-figure` tags every post image with `lightbox-image`, `OptimizedHTMLRenderer` preserves that class when swapping in `next/image`, and the globally mounted `ImageLightbox` (root layout) scans the DOM for `img.lightbox-image` and opens a `yet-another-react-lightbox`. Dropping the class anywhere breaks zoom.
-- Dates are formatted with `src/lib/date.js` (Intl, zh-CN long form; Beijing time when a clock time is involved) and sorted with `date-fns` (`compareDesc`). Never reintroduce moment.
+- Dates are formatted with `src/lib/date.js` (Intl, zh-CN long form; Beijing time when a clock time is involved) and sorted with `date-fns` (`compareDesc`). Never reintroduce moment. Reading time uses `readingTimeLabel()` (`约 N 分钟`) and the footer year `yearInBeijing()` via `getSiteYear()`.
 - Shiki emits only `--shiki-light`/`--shiki-dark` vars (`defaultColor: false` in the pipeline); the active color is applied by CSS in globals.css.
 - `data/.obsidian/` and `.obsidian/` are gitignored and must **never** reach the published template — they can carry plugin credentials (e.g. Livesync).
 - `.next`, `.tmp`, and `public/search-index.json` are generated — never edit by hand.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
-# This is NOT the Next.js you know
+### This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
 
