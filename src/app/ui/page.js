@@ -9,7 +9,7 @@ import RevealDemo from "../../components/ui-standard/reveal-demo";
 import CopyFieldDemo from "../../components/ui-standard/copy-field-demo";
 
 /**
- * /UI — the living UI standard.
+ * /ui — the living UI standard.
  *
  * This page is deliberately NOT a copy of the design system: its palette,
  * type ladder, radii, shadows and motion values are read from the running
@@ -23,7 +23,7 @@ export const metadata = {
   title: "UI 标准 / UI Standard",
   description:
     "prologue.dev 的颜色、字体、形状、动效与组件标准：本页直接读取生产 CSS，与实际站点同源。",
-  alternates: { canonical: "/UI" },
+  alternates: { canonical: "/ui" },
 };
 
 /* Cache Components gates (Next 16.4) — same contract as the other static pages:
@@ -629,7 +629,7 @@ export default function UiStandardPage() {
                 </p>
                 <p className="mt-2">
                   <span className="font-mono text-xs text-foreground">src/components/ui-standard/*.js</span> ——
-                  各分区的预览组件；<span className="font-mono text-xs text-foreground">src/app/UI/page.js</span>{" "}
+                  各分区的预览组件；<span className="font-mono text-xs text-foreground">src/app/ui/page.js</span>{" "}
                   是这一页。
                 </p>
               </div>
@@ -649,7 +649,7 @@ export default function UiStandardPage() {
           </div>
 
           <p className="mt-6 text-xs leading-5 text-faint">
-            页面路径 /UI · 与线上 CSS 同源 · 变更随 globals.css 自动生效。最后同步：悬停系统 07 上线时。
+            页面路径 /ui · 与线上 CSS 同源 · 变更随 globals.css 自动生效。最后同步：悬停系统 07 上线时。
           </p>
         </Section>
       </PageTransition>

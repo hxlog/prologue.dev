@@ -1,7 +1,7 @@
 /**
  * Read the design tokens out of the RUNNING stylesheet.
  *
- * The /UI standards page must never restate a colour or a size that could
+ * The /ui standards page must never restate a colour or a size that could
  * drift from globals.css: every swatch and every number on it is produced by
  * asking the browser what `var(--token)` resolves to right now, in the :root
  * scope and in the .dark scope. This file is the thin layer that does the

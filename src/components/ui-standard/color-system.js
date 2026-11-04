@@ -11,7 +11,7 @@ import {
 } from "../../lib/css-probe";
 
 /**
- * The palette section of /UI.
+ * The palette section of /ui.
  *
  * Two panels stand side by side: `Light` is scoped to :root, `Dark` to .dark.
  * Both scopes are built from the stylesheet itself (see lib/css-probe.js), so
