@@ -15,14 +15,12 @@ export default function TagChips({ tags, className = "" }) {
 
   if (!tags?.length) return null;
 
+  // prefetch={false} on purpose. A tag row is not a "read this next" signal,
+  // and every chip used to be prefetch={true}: a page of eight cards issued up
+  // to 24 tag-page prefetches for links the reader is unlikely to click.
   const renderChips = (list) =>
     list.map((tag) => (
-      <Link
-        key={tag}
-        href={`/tags/${tag}`}
-        className="pill"
-        title={tag}
-      >
+      <Link key={tag} href={`/tags/${tag}`} prefetch={false} className="chip" title={tag}>
         {tagLabel(tag)}
       </Link>
     ));
@@ -33,9 +31,16 @@ export default function TagChips({ tags, className = "" }) {
     return (
       <button
         type="button"
-        className="pill-more"
+        className="chip-more"
         aria-label={`展开其余 ${hidden} 个标签`}
-        onClick={() => setExpanded(true)}
+        aria-expanded={expanded}
+        onClick={(event) => {
+          // The card title's stretched link covers the whole card; a click on
+          // +N must expand the chips, not navigate.
+          event.preventDefault();
+          event.stopPropagation();
+          setExpanded(true);
+        }}
       >
         +{hidden}
       </button>

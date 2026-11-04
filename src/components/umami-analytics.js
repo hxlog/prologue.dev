@@ -1,6 +1,15 @@
 import Script from "next/script";
 import siteMetadata from "../../data/sitemetadata";
 
+/**
+ * Self-hosted Umami. Production only.
+ *
+ * Both tags are `lazyOnload`: the analytics script is not part of the first
+ * paint and used to be preloaded from <head>, where it competed with the
+ * article's own bytes for bandwidth. Umami reads web vitals from the browser's
+ * buffered PerformanceEntry list, so deferring the script does not lose LCP /
+ * INP / CLS -- it only stops the measurement from slowing the thing it measures.
+ */
 export default function UmamiAnalytics() {
   const { umami } = siteMetadata;
   if (process.env.NODE_ENV !== "production" || !umami?.websiteId) {
@@ -17,7 +26,7 @@ export default function UmamiAnalytics() {
         data-do-not-track="true"
         data-exclude-search="true"
         data-performance="true"
-        strategy="afterInteractive"
+        strategy="lazyOnload"
       />
       <Script
         id="umami-recorder"
