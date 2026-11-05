@@ -6,9 +6,11 @@ import MicroblogEntry from "./microblog-entry";
  *
  * Entries are grouped by year and each year gets its own spine: the year label
  * sits before the cards, never inside one, and the line resets for the next
- * year. The cards are static surfaces; the only interactive target is an image,
- * which the globally mounted lightbox opens. `compact` changes the rail width,
- * card padding, type and paragraph clamp only.
+ * year. On the full /microblog feed the label sticks below the navbar while its
+ * section is in view; `compact` (home sidebar) deliberately keeps it static.
+ * Cards carry the article-card hover decoration, but the only clickable target
+ * remains an image, which the globally mounted lightbox opens. `compact`
+ * changes the rail width, card padding, type and paragraph clamp only.
  */
 export default function MicroblogTimeline({ entries, compact = false }) {
   if (!entries?.length) {

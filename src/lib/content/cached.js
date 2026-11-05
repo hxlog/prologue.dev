@@ -54,12 +54,3 @@ export async function getCachedPage(slug) {
   if (!doc) return null;
   return { ...toMeta(doc), html: await getBodyHtml(doc) };
 }
-
-/** Non-draft posts, newest first. Sorting happens on a copy. */
-export async function getCachedPublishedPosts() {
-  "use cache";
-  cacheLife("max");
-  return getPosts()
-    .filter((post) => post.draft !== true)
-    .map(toMeta);
-}

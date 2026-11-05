@@ -17,9 +17,6 @@
  * site imports. Putting it here would make this file unimportable from a plain
  * `node scripts/...` run, which is how every check in this repo works.
  */
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import path from "node:path";
-
 import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
@@ -36,8 +33,6 @@ import { visit } from "unist-util-visit";
 import rehypeFigure from "../../components/rehype-figure.js";
 import rehypeMermaidPre from "../../components/rehype-mermaid-pre.js";
 
-const CONTENT_DIR = path.join(process.cwd(), "data", "content");
-const BLOG_DIR = path.join(CONTENT_DIR, "blog");
 const YOUTUBE_ID = /^[\w-]{11}$/;
 const YOUTUBE_ALLOW =
   "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share";
@@ -148,32 +143,4 @@ export async function renderMarkdown(raw) {
 /** Strip a leading `---` frontmatter block. */
 export function stripFrontmatter(raw) {
   return raw.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, "");
-}
-
-function walk(dir, out = []) {
-  for (const entry of readdirSync(dir)) {
-    const full = path.join(dir, entry);
-    if (statSync(full).isDirectory()) walk(full, out);
-    else if (entry.endsWith(".md") || entry.endsWith(".mdx")) out.push(full);
-  }
-  return out;
-}
-
-/**
- * Render every blog post. Used by the equivalence harness; the site itself goes
- * through load.js, which memoizes per document. Verified to produce exactly the
- * 63 slugs the Contentlayer2 baseline contains.
- */
-export async function renderAll() {
-  const out = {};
-  for (const file of walk(BLOG_DIR)) {
-    const raw = readFileSync(file, "utf8");
-    const flattened = path
-      .relative(CONTENT_DIR, file)
-      .replace(/\.(md|mdx)$/, "")
-      .split(path.sep)
-      .join("/");
-    out[`/${flattened}`.toLowerCase()] = await renderMarkdown(stripFrontmatter(raw));
-  }
-  return out;
 }

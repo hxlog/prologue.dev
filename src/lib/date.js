@@ -39,32 +39,20 @@ export function readingTimeLabel(readingTime) {
 }
 
 /**
- * Current year, e.g. for the footer copyright.
+ * Month/day + year for the microblog timeline rail: "Oct. 4" and "2026".
  *
- * Synchronous `new Date()` is banned during prerendering under Cache
- * Components (it is one of the blocking-prerender-current-time operations), so
- * this must not be called from a component that renders into the static shell.
- * The footer goes through `getSiteYear()` in src/lib/site-year.js instead,
- * which runs the read inside a cached scope: the value is then fixed at a
- * build/revalidation boundary rather than read per request.
+ * The day is intentionally not zero-padded ("Oct. 4", not "Oct. 04"); May is
+ * the one English month written without a trailing period. Split into two
+ * lines by the rail, so the parts are returned separately instead of one
+ * formatted string. Asia/Shanghai is pinned for the same reason as
+ * yearInBeijing(): the site's dates are Beijing dates regardless of where the
+ * build or the reader runs.
  */
-export function currentYear() {
-  return new Date().getFullYear();
-}
-
-/**
- * Month/day + year for the microblog timeline rail: "11.04" and "2026".
- *
- * Split into two lines by the rail, so the parts are returned separately
- * instead of one formatted string. Asia/Shanghai is pinned for the same reason
- * as yearInBeijing(): the site's dates are Beijing dates regardless of where
- * the build or the reader runs.
- */
-const railDate = new Intl.DateTimeFormat("en-CA", {
+const railDate = new Intl.DateTimeFormat("en-US", {
   timeZone: "Asia/Shanghai",
   year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
+  month: "short",
+  day: "numeric",
 });
 
 export function formatRailDate(dateLike) {
@@ -74,7 +62,8 @@ export function formatRailDate(dateLike) {
   for (const part of railDate.formatToParts(date)) {
     if (part.type !== "literal") parts[part.type] = part.value;
   }
-  return { monthDay: `${parts.month}.${parts.day}`, year: parts.year };
+  const month = parts.month === "May" ? "May" : `${parts.month}.`;
+  return { monthDay: `${month} ${parts.day}`, year: parts.year };
 }
 
 /** The year in Beijing time for a given instant (defaults to now). */

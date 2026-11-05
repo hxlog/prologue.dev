@@ -13,7 +13,7 @@
  */
 
 /** Parse a computed color string (rgb/rgba) into channels. */
-export function parseColor(value) {
+function parseColor(value) {
   if (!value) return null;
   const match = value.match(/^rgba?\(([^)]+)\)$/i);
   if (!match) return null;
@@ -47,7 +47,7 @@ export function compositeOver(fg, bg) {
 }
 
 /** WCAG relative luminance. */
-export function luminance({ r, g, b }) {
+function luminance({ r, g, b }) {
   const [rr, gg, bb] = [r, g, b].map((v) => {
     const c = v / 255;
     return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;

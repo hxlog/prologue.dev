@@ -756,9 +756,12 @@
    *
    * The year is a marker before the group, never inside a card. Each year has
    * its own spine and node set; a 28px gap separates one year's line from the
-   * next. Cards are static surfaces (only images open the article lightbox), so
-   * they keep .card but deliberately omit .card-interactive. The date is
-   * month.day only and nowrap; the year is already carried by the section.
+   * next. On the full feed the year label sticks below the navbar until its
+   * section scrolls past; the compact home sidebar keeps it static so it cannot
+   * fight the sidebar's own sticky container. Cards use the article-card hover
+   * decoration, but the only clickable target remains an image (lightbox);
+   * text and empty card space stay inert. The date is month/day only and nowrap
+   * ("Oct. 4", no leading zero); the year is carried by the section.
    * ----------------------------------------------------------------------- */
   .microblog-feed {
     display: flex;
@@ -779,6 +782,11 @@
     letter-spacing: -0.03em;
     color: var(--foreground);
     font-variant-numeric: tabular-nums;
+  }
+  .microblog-feed:not(.microblog-feed--compact) .microblog-year-label {
+    position: sticky;
+    top: calc(var(--nav-height) + 1rem);
+    z-index: 2;
   }
   .microblog-year-label::after {
     content: "";
@@ -1391,13 +1399,6 @@ html.theme-vt::view-transition-new(root) {
   .page-enter {
     animation: page-fade var(--duration-enter) var(--ease-out-expo) both;
   }
-  .reveal {
-    animation: fade-rise 0.5s var(--ease-out-expo) both;
-  }
-  .reveal-1 { animation-delay: 60ms; }
-  .reveal-2 { animation-delay: 120ms; }
-  .reveal-3 { animation-delay: 180ms; }
-  .reveal-4 { animation-delay: 240ms; }
 }
 
 /* ---------------------------------------------------------------------------

@@ -5,13 +5,15 @@ import { formatRailDate } from "../lib/date";
  * One microblog card inside a year section.
  *
  * The card is a plain <article>, not a button: text and empty card space are
- * deliberately inert. The only clickable target is an image, which keeps the
- * `lightbox-image` class so the global article lightbox pages through the
- * images inside this card. The lightbox caption comes from the image alt /
- * figcaption, so `desc` is what a reader sees under the enlarged image.
+ * deliberately inert even though the surface now carries the article-card
+ * hover decoration (lift, tri-hue rim, pointer glow). The only clickable
+ * target is an image, which keeps the `lightbox-image` class so the global
+ * article lightbox pages through the images inside this card. The lightbox
+ * caption comes from the image alt / figcaption, so `desc` is what a reader
+ * sees under the enlarged image.
  *
  * The year lives in MicroblogTimeline, outside the card; this component only
- * renders the month.day label. Images keep the 1 / 2 / 3 Weibo grid, with a
+ * renders the month/day label. Images keep the 1 / 2 / 3 Weibo grid, with a
  * surface border and hairline shadow so they read as inset plates rather than
  * edge-to-edge tiles.
  */
@@ -23,9 +25,7 @@ export default function MicroblogEntry({ entry, compact = false }) {
 
   return (
     <li id={entry.id} className="microblog-entry scroll-offset">
-      <article
-        className={`microblog-card card${compact ? " microblog-card--compact" : ""}`}
-      >
+      <article className="microblog-card card card-interactive card-spotlight">
         <div className="microblog-top">
           <time className="microblog-date" dateTime={entry.date}>
             {monthDay}
