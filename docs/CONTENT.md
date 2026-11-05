@@ -115,16 +115,23 @@ editor.
 ## The YAML data files
 
 `data/microblog.yaml` is a list of entries, each with a `date` and a `content`
-string. Paragraphs are separated by a blank line; images are ordinary markdown
-inside the content:
+string. Paragraphs are separated by a blank line. Images are a separate
+`images` array, not markdown inside the content:
 
 ```yaml
 - date: 2026-03-14
   content: |
     正文第一段。
 
-    ![配图说明](/static/photos/a.jpg)
+    第二段。
+  images:
+    - src: /static/photos/a.jpg
+      desc: 配图说明
+    - /static/photos/b.jpg   # string shorthand, no caption
 ```
+
+`desc` is the lightbox caption and the image alt text. The feed groups entries
+by year and opens only an image in the lightbox; the card itself is not a link.
 
 Entry anchors (`/microblog#mb-20260314-23`) and RSS `<guid>`s are **derived**
 from the date plus the entry's position in the list, zero-padded: `mb-` +

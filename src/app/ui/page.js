@@ -507,20 +507,20 @@ export default function UiStandardPage() {
 
             <Specimen
               title="微博时间轴"
-              note="T2：无逐条卡片。连续 1px 脊线 + 节点 + 发丝分隔；日期栏固定 72px（移动端 64px、紧凑 56px），month.day 与年份都 nowrap，不会被省略。图片用正文列宽，1 / 2 / 3 列网格，保留 lightbox。"
+              note="S3：年份在卡片前，每个年份一条独立脊线；卡片内只有 month.day，没有年份和序号。卡片/文字不可点击，只有图片打开文章同款灯箱，caption 显示图片 desc。日期 nowrap，图片 1 / 2 / 3 列，带 10px 间距、圈线与阴影。"
             >
               <MicroblogTimeline
                 entries={[
                   {
                     id: "ui-mb-1",
                     date: "2026-11-04",
-                    paragraphs: ["时间轴不是把卡片摞起来：它是一条连续的线，日期是线上的刻度。"],
+                    paragraphs: ["年份是这条脊线的起点：它站在第一张卡片前面，而不是躲在卡片里。"],
                     images: [],
                   },
                   {
                     id: "ui-mb-2",
-                    date: "2026-10-21",
-                    paragraphs: ["同一条线在首页会变成紧凑版，只换列宽、字号与段落截断。"],
+                    date: "2025-10-21",
+                    paragraphs: ["下一年重新起一条线；卡片本身保持安静，只有图片会打开灯箱。"],
                     images: [],
                   },
                 ]}
