@@ -75,6 +75,7 @@ export function defaultOgImage(title = siteMetadata.title, params = {}) {
  * @param {object} [options.article]   publishedTime/modifiedTime/tags/section.
  * @param {string[]} [options.keywords]
  * @param {object} [options.robots]
+ * @param {object} [options.feedTypes] Override the feed alternate map.
  */
 export function buildMetadata({
   title,
@@ -86,6 +87,7 @@ export function buildMetadata({
   article,
   keywords,
   robots,
+  feedTypes = FEED_TYPES,
 } = {}) {
   const url = absoluteUrl(path);
   const images = Array.isArray(image)
@@ -101,7 +103,7 @@ export function buildMetadata({
     keywords: keywords || siteMetadata.keywords,
     alternates: {
       canonical: url,
-      types: FEED_TYPES,
+      types: feedTypes,
     },
     openGraph: {
       title: fullTitle,

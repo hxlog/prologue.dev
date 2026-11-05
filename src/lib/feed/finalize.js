@@ -2,17 +2,21 @@
  * Post-processing applied to the serialized feeds to satisfy fields the `feed`
  * library cannot express through its shared item model:
  *
- *   - RSS: inject <dc:creator> per item. The library emits <author> (an email
- *     form), but the Folo Feed Spec reads the author from dc:creator.
- *   - JSON Feed: add a per-item `image` (string URL). The library would only
- *     emit it from item.image, but that field also drives the RSS enclosure
- *     (forcing length=0), so we attach the JSON thumbnail here instead.
+ *   - Atom: declare the feed language; categories are handled in build-feed.js.
+ *   - RSS: make guid a permalink, remove the native <author> that duplicates
+ *     dc:creator, and keep dc:creator as the Folo author source.
+ *   - JSON Feed: upgrade to 1.1, add language/favicon/authors, and add a
+ *     per-item image (string URL) when the post has no local cover.
+ *
+ * All transformations are string-level and intentionally feed-only.
  */
 import { getPosts } from "../content";
 import siteMetadata from "../../../data/sitemetadata";
-import { coverImageUrl, postUrl } from "./urls";
+import { coverImageUrl, postUrl, siteUrl } from "./urls";
 
 const CREATOR = siteMetadata.author;
+const SITE = siteUrl();
+const LANGUAGE = String(siteMetadata.language || "zh-CN");
 
 /**
  * Cover URL per post URL, for the JSON Feed thumbnails.
@@ -29,23 +33,87 @@ function imageByUrl() {
   return map;
 }
 
-/** Inject <dc:creator> into every RSS <item> (Folo author source). */
-export function finalizeRss(xml) {
-  const creator = `<dc:creator><![CDATA[${CREATOR}]]></dc:creator>`;
-  return xml.replace(/<\/item>/g, `${creator}</item>`);
+/** Add the missing xml:lang to the Atom root element. */
+export function finalizeAtom(xml) {
+  return String(xml).replace(/<feed\b([^>]*)>/, (match, attrs) => {
+    if (/\bxml:lang\s*=/.test(attrs)) return match;
+    return `<feed${attrs} xml:lang="${LANGUAGE.replace(/"/g, "&quot;")}">`;
+  });
 }
 
-/** Add a per-item `image` URL to the JSON Feed (Folo thumbnail source). */
+/** Remove item-level <author> elements without touching CDATA contents. */
+function removeAuthorTags(xml) {
+  return xml.replace(/\s*<author>[\s\S]*?<\/author>/g, "");
+}
+
+function removeItemAuthors(inner) {
+  let out = "";
+  let cursor = 0;
+
+  while (cursor < inner.length) {
+    const cdataStart = inner.indexOf("<![CDATA[", cursor);
+    if (cdataStart === -1) {
+      out += removeAuthorTags(inner.slice(cursor));
+      break;
+    }
+
+    out += removeAuthorTags(inner.slice(cursor, cdataStart));
+    const cdataEnd = inner.indexOf("]]>", cdataStart + 9);
+    if (cdataEnd === -1) {
+      out += inner.slice(cdataStart);
+      break;
+    }
+
+    out += inner.slice(cdataStart, cdataEnd + 3);
+    cursor = cdataEnd + 3;
+  }
+
+  return out;
+}
+
+/** Make RSS guid a permalink and keep only dc:creator for the author. */
+export function finalizeRss(xml) {
+  const creator = `<dc:creator><![CDATA[${CREATOR}]]></dc:creator>`;
+
+  return String(xml)
+    .replace(
+      /<guid\b([^>]*?)\bisPermaLink="false"/g,
+      '<guid$1isPermaLink="true"'
+    )
+    .replace(/<item>([\s\S]*?)<\/item>/g, (_match, inner) => {
+      return `<item>${removeItemAuthors(inner)}${creator}</item>`;
+    });
+}
+
+/** Upgrade the JSON Feed to 1.1 and fill its optional author/language fields. */
 export function finalizeJson(jsonString) {
   const feed = JSON.parse(jsonString);
+  const avatar = `${SITE}${siteMetadata.avatar}`;
+
+  feed.version = "https://jsonfeed.org/version/1.1";
+  feed.language = LANGUAGE;
+  feed.favicon = `${SITE}${siteMetadata.favicon}`;
+
+  if (feed.author) {
+    feed.authors = [{ ...feed.author, avatar }];
+    delete feed.author;
+  }
+
   if (Array.isArray(feed.items)) {
     const images = imageByUrl();
     feed.items = feed.items.map((item) => {
-      if (!item.image && images[item.id]) {
-        return { ...item, image: images[item.id] };
+      let next = item;
+
+      if (item.author) {
+        next = { ...next, authors: [item.author] };
+        delete next.author;
       }
-      return item;
+      if (!next.image && images[next.id]) {
+        next = { ...next, image: images[next.id] };
+      }
+      return next;
     });
   }
+
   return JSON.stringify(feed, null, 2);
 }

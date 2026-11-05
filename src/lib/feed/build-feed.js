@@ -4,6 +4,7 @@ import { Feed } from "feed";
 import { getAllPostsWithBody } from "../content";
 import { compareDesc } from "date-fns";
 import siteMetadata from "../../../data/sitemetadata";
+import { tagLabel } from "../../../data/tagLabels";
 import { buildFeedContent } from "./content";
 import { absolutize, postUrl, siteUrl } from "./urls";
 
@@ -104,7 +105,14 @@ export async function createFeed(feedUpdated = new Date()) {
       date: updated,
       published,
       enclosure: coverEnclosure(post),
-      category: (post.tags || []).map((name) => ({ name })),
+      // Atom requires term; RSS uses name as the visible category text; the
+      // scheme keeps the canonical English tag URL discoverable. JSON tags get
+      // the same Chinese label as the site UI.
+      category: (post.tags || []).map((tag) => ({
+        term: tag,
+        name: tagLabel(tag),
+        scheme: `${site}/tags/${encodeURIComponent(tag)}`,
+      })),
     });
   }
 

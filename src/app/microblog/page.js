@@ -7,7 +7,12 @@ import {
   breadcrumbJsonLd,
   collectionPageJsonLd,
 } from "../../lib/structured-data";
-import { absoluteUrl, buildMetadata, defaultOgImage } from "../../lib/seo";
+import {
+  FEED_TYPES,
+  absoluteUrl,
+  buildMetadata,
+  defaultOgImage,
+} from "../../lib/seo";
 
 const DESCRIPTION = "槐序的微博：碎片化的思考、图文与随想。";
 
@@ -18,6 +23,13 @@ export async function generateMetadata() {
     path: "/microblog",
     type: "website",
     image: defaultOgImage("微博 Microblog"),
+    feedTypes: {
+      ...FEED_TYPES,
+      "application/rss+xml": [
+        { url: absoluteUrl("/rss"), title: "RSS" },
+        { url: absoluteUrl("/microblog/rss"), title: "微博 RSS" },
+      ],
+    },
   });
 }
 

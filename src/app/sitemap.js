@@ -3,6 +3,7 @@ import { getPages, getPosts } from "../lib/content";
 import { getMicroblog } from "../lib/microblog";
 import siteMetadata from "../../data/sitemetadata";
 import { getSortedTags } from "../lib/tag-counts";
+import { absoluteUrl } from "../lib/seo";
 
 /**
  * Sitemap.
@@ -38,6 +39,7 @@ export default async function sitemap() {
   const blogEntries = posts.map((post) => ({
     url: `${siteMetadata.siteUrl}${post.slug}`,
     lastModified: post.lastmod ?? post.publishDate,
+    ...(post.image ? { images: [absoluteUrl(post.image)] } : {}),
   }));
 
   const staticRoutes = ["", "/blog"].map((route) => ({

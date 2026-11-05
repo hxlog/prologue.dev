@@ -1,4 +1,10 @@
-import { absolutize, postUrl } from "./urls";
+import { absolutize, coverImageUrl, postUrl } from "./urls";
+import {
+  escapeBareAmpersands,
+  fixFigureParagraphs,
+  replaceMathWithFallback,
+  stripInlineStyles,
+} from "./html";
 import { transformMermaidDiagrams } from "./mermaid";
 
 function escapeAttr(text) {
@@ -12,13 +18,11 @@ function escapeAttr(text) {
 /**
  * Lead image for the entry. The cover image is rendered separately on the web
  * page, so it never appears in `body.html`; prepending it here gives readers a
- * hero/thumbnail. Omitted for posts without a real cover (OG title cards add no
- * value as a lead image).
+ * hero/thumbnail. Posts without a local cover use the same /og fallback as the
+ * JSON Feed and Open Graph metadata, so every entry has a visible image.
  */
 function coverLeadImage(post) {
-  const image = String(post.image || "").trim();
-  if (!image) return "";
-  return `<img src="${absolutize(image)}" alt="${escapeAttr(post.title)}" />`;
+  return `<img src="${escapeAttr(coverImageUrl(post))}" alt="${escapeAttr(post.title)}" />`;
 }
 
 /** Index just past the </span> that closes the span starting at `start`. */
@@ -71,7 +75,7 @@ function markDisplayMath(html) {
           const span = html
             .slice(contentStart, spanEnd)
             .replace(/<math\b(?![^>]*\bdisplay=)/, '<math display="block"');
-          result += `<p style="text-align:center;overflow-x:auto">${span}</p>`;
+          result += `<p class="math-display">${span}</p>`;
           cursor = spanEnd + closer[0].length;
           continue;
         }
@@ -130,8 +134,12 @@ function fixVoidTags(html) {
 /**
  * Produce reader-ready HTML for a single post:
  *   1. Mermaid diagrams -> mermaid.ink hosted <img> figures.
- *   2. Math -> semantic MathML (presentation layer stripped).
+ *   2. Inline styles removed and MathML replaced by TeX <code> fallbacks.
  *   3. All URLs absolutised, images cleaned, void tags normalised.
+ *
+ * The article page keeps native MathML and Shiki styles; those are only
+ * downgraded here because the W3C Feed Validator's HTML parser rejects MathML
+ * and CSS custom properties inside feed content.
  *
  * No site/author footer is appended: that metadata belongs to the feed
  * channel, and repeating it per item is the main source of feed bloat.
@@ -139,14 +147,14 @@ function fixVoidTags(html) {
 export function buildFeedContent(post) {
   let html = post.body.html || "";
   html = transformMermaidDiagrams(html);
-  // KaTeX no longer emits an HTML presentation layer (the pipeline renders
-  // MathML directly), so there is nothing to strip: the only thing feeds need
-  // is the block-vs-inline promotion below, which keys on the `katex` wrapper.
   html = markDisplayMath(html);
+  html = stripInlineStyles(html);
+  html = replaceMathWithFallback(html);
   html = absolutizeUrls(html, post.slug);
   html = normalizeImages(html);
+  html = fixFigureParagraphs(html);
   html = fixVoidTags(html);
 
   const lead = coverLeadImage(post);
-  return `${lead}${lead ? "\n" : ""}${html}`.trim();
+  return escapeBareAmpersands(`${lead}${lead ? "\n" : ""}${html}`).trim();
 }

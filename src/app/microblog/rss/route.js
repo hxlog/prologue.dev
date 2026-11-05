@@ -3,6 +3,7 @@ import path from "node:path";
 import { Feed } from "feed";
 import siteMetadata from "../../../../data/sitemetadata";
 import { getMicroblog, entryToHtml } from "../../../lib/microblog";
+import { finalizeRss } from "../../../lib/feed/finalize";
 
 const SITE = String(siteMetadata.siteUrl || "").replace(/\/+$/, "");
 
@@ -83,7 +84,7 @@ export async function GET() {
     });
   }
 
-  return new Response(feed.rss2().trim(), {
+  return new Response(finalizeRss(feed.rss2().trim()), {
     headers: {
       "Content-Type": "application/rss+xml; charset=utf-8",
       "Cache-Control": "public, s-maxage=600, stale-while-revalidate=86400",
