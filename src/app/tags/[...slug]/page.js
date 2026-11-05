@@ -5,8 +5,13 @@ import PostsLayout from "../../blog/bloglistlayout";
 import { getTagCounts, getSortedTags } from "../../../lib/tag-counts";
 import { getCachedPosts } from "../../../lib/content/cached";
 import { tagLabel } from "../../../../data/tagLabels";
-import siteMetadata from "../../../../data/sitemetadata";
 import { ArchiveSkeleton } from "../../../components/skeletons";
+import JsonLd from "../../../components/json-ld";
+import {
+  breadcrumbJsonLd,
+  collectionPageJsonLd,
+} from "../../../lib/structured-data";
+import { absoluteUrl, buildMetadata, defaultOgImage } from "../../../lib/seo";
 
 /**
  * Prerender every known tag page at build time (the tag set is a finite,
@@ -20,16 +25,14 @@ export function generateStaticParams() {
 export async function generateMetadata(props) {
   const slug = slugOf(await props.params);
   const label = tagLabel(slug);
-  return {
-    title: `${label} - ${siteMetadata.publishName}`,
-    description: `标签「${label}」下的所有文章`,
-    openGraph: {
-      title: `${label} - ${siteMetadata.publishName}`,
-      description: `标签「${label}」下的所有文章`,
-      url: `${siteMetadata.siteUrl}/tags/${slug}`,
-      type: "website",
-    },
-  };
+  const description = `标签「${label}」下的所有文章`;
+  return buildMetadata({
+    title: label,
+    description,
+    path: `/tags/${slug}`,
+    type: "website",
+    image: defaultOgImage(label),
+  });
 }
 
 function slugOf(params) {
@@ -69,14 +72,31 @@ async function TagArchive({ params }) {
     compareDesc(new Date(a.publishDate), new Date(b.publishDate))
   );
 
+  const label = tagLabel(slug);
+  const url = absoluteUrl(`/tags/${slug}`);
   return (
-    <PostsLayout
-      posts={sorted}
-      tagCounts={getTagCounts()}
-      sortedTags={getSortedTags()}
-      activeTag={slug}
-      title="标签"
-      subtitle={`「${tagLabel(slug)}」下共有 ${sorted.length} 篇文章`}
-    />
+    <>
+      <JsonLd
+        data={collectionPageJsonLd({
+          title: label,
+          description: `标签「${label}」下的所有文章`,
+          url,
+        })}
+      />
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: "首页", path: "/" },
+          { name: `标签「${label}」`, path: `/tags/${slug}` },
+        ])}
+      />
+      <PostsLayout
+        posts={sorted}
+        tagCounts={getTagCounts()}
+        sortedTags={getSortedTags()}
+        activeTag={slug}
+        title="标签"
+        subtitle={`「${label}」下共有 ${sorted.length} 篇文章`}
+      />
+    </>
   );
 }

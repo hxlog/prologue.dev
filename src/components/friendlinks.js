@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import Comments from "./comments";
+import TenYearsLink from "./ten-years-link";
 
 /**
  * Friend links. A Server Component on purpose: the list arrives already ordered
@@ -52,6 +53,8 @@ export default function FriendLinks({ friends }) {
           </Link>
         ))}
       </div>
+
+      <TenYearsLink variant="links" />
 
       <p className="mt-8 py-8 text-center text-sm text-muted">
         如有意交换友链，请

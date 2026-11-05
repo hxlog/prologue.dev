@@ -7,6 +7,14 @@ import TokenList from "../../components/ui-standard/token-list";
 import HoverPlayground from "../../components/ui-standard/hover-playground";
 import RevealDemo from "../../components/ui-standard/reveal-demo";
 import CopyFieldDemo from "../../components/ui-standard/copy-field-demo";
+import MicroblogTimeline from "../../components/microblog-timeline";
+import TenYearsLink from "../../components/ten-years-link";
+import JsonLd from "../../components/json-ld";
+import { breadcrumbJsonLd, webPageJsonLd } from "../../lib/structured-data";
+import { absoluteUrl, buildMetadata, defaultOgImage } from "../../lib/seo";
+
+const UI_DESCRIPTION =
+  "prologue.dev 的颜色、字体、形状、动效与组件标准：本页直接读取生产 CSS，与实际站点同源。";
 
 /**
  * /ui — the living UI standard.
@@ -19,12 +27,13 @@ import CopyFieldDemo from "../../components/ui-standard/copy-field-demo";
  * row in the GROUPS arrays below.
  */
 
-export const metadata = {
+export const metadata = buildMetadata({
   title: "UI 标准 / UI Standard",
-  description:
-    "prologue.dev 的颜色、字体、形状、动效与组件标准：本页直接读取生产 CSS，与实际站点同源。",
-  alternates: { canonical: "/ui" },
-};
+  description: UI_DESCRIPTION,
+  path: "/ui",
+  type: "website",
+  image: defaultOgImage("UI 标准"),
+});
 
 /* Cache Components gates (Next 16.4) — same contract as the other static pages:
    the shell must resolve synchronously and stay prerendered. */
@@ -121,6 +130,19 @@ export default function UiStandardPage() {
   return (
     <RouteTransition>
       <PageTransition className="mx-auto max-w-6xl py-8">
+        <JsonLd
+          data={webPageJsonLd({
+            title: "UI 标准 / UI Standard",
+            description: UI_DESCRIPTION,
+            url: absoluteUrl("/ui"),
+          })}
+        />
+        <JsonLd
+          data={breadcrumbJsonLd([
+            { name: "首页", path: "/" },
+            { name: "UI 标准", path: "/ui" },
+          ])}
+        />
         <header>
           <p className="eyebrow">UI Standard · v1</p>
           <h1 className="mt-2 text-h1 font-semibold tracking-tight text-foreground sm:text-display">
@@ -413,7 +435,7 @@ export default function UiStandardPage() {
 
             <Specimen
               title="全站搜索面板"
-              note=".search-dialog-*；点导航栏放大镜或按 ⌘K/Ctrl+K 打开真实面板（也可点本页任意位置后按 /）。面板是固定顶部命令面板，Esc / 点击外部关闭。"
+              note=".search-dialog-*；桌面面板 760px，移动端结果改 S2 三段式（标题 / 摘要 / 日期），日期独占整行且 nowrap。点导航栏放大镜或按 ⌘K/Ctrl+K 打开真实面板。"
             >
               <div className="search-dialog-panel" aria-hidden="true">
                 <div className="search-dialog-topline" />
@@ -440,21 +462,17 @@ export default function UiStandardPage() {
                   </p>
                   <a className="search-result" href="#components" data-active="true">
                     <span className="search-result-dot" />
-                    <span className="search-result-main">
-                      <span className="search-result-title">流动性、杠杆与周期的共振</span>
-                      <span className="search-result-snippet">
-                        当<mark>流动性</mark>转向，杠杆会放大回撤；本文拆解三者之间的时滞。
-                      </span>
+                    <span className="search-result-title">流动性、杠杆与周期的共振</span>
+                    <span className="search-result-snippet">
+                      当<mark>流动性</mark>转向，杠杆会放大回撤；本文拆解三者之间的时滞。
                     </span>
                     <span className="search-result-meta">2026-11-04 · 约 9 分钟</span>
                   </a>
                   <a className="search-result" href="#components">
                     <span className="search-result-dot" />
-                    <span className="search-result-main">
-                      <span className="search-result-title">风险平价的第二次进化</span>
-                      <span className="search-result-snippet">
-                        从全天候到<mark>风险平价</mark>，组合管理的假设发生了什么变化。
-                      </span>
+                    <span className="search-result-title">风险平价的第二次进化</span>
+                    <span className="search-result-snippet">
+                      从全天候到<mark>风险平价</mark>，组合管理的假设发生了什么变化。
                     </span>
                     <span className="search-result-meta">2026-10-21 · 约 12 分钟</span>
                   </a>
@@ -463,11 +481,9 @@ export default function UiStandardPage() {
                   </p>
                   <a className="search-result" data-kind="page" href="#components">
                     <span className="search-result-dot" />
-                    <span className="search-result-main">
-                      <span className="search-result-title">关于作者</span>
-                      <span className="search-result-snippet">
-                        作者槐序，00 后，梦想成为自由职业者。
-                      </span>
+                    <span className="search-result-title">关于作者</span>
+                    <span className="search-result-snippet">
+                      作者槐序，00 后，梦想成为自由职业者。
                     </span>
                     <span className="search-result-meta">页面</span>
                   </a>
@@ -487,6 +503,35 @@ export default function UiStandardPage() {
                 结果来自 <span className="font-mono">/api/search</span>（服务端 Fuse，索引不进浏览器）；高亮用
                 <span className="font-mono"> mark </span>承载 accent 淡底，正文仍是 --muted。
               </p>
+            </Specimen>
+
+            <Specimen
+              title="微博时间轴"
+              note="T2：无逐条卡片。连续 1px 脊线 + 节点 + 发丝分隔；日期栏固定 72px（移动端 64px、紧凑 56px），month.day 与年份都 nowrap，不会被省略。图片用正文列宽，1 / 2 / 3 列网格，保留 lightbox。"
+            >
+              <MicroblogTimeline
+                entries={[
+                  {
+                    id: "ui-mb-1",
+                    date: "2026-11-04",
+                    paragraphs: ["时间轴不是把卡片摞起来：它是一条连续的线，日期是线上的刻度。"],
+                    images: [],
+                  },
+                  {
+                    id: "ui-mb-2",
+                    date: "2026-10-21",
+                    paragraphs: ["同一条线在首页会变成紧凑版，只换列宽、字号与段落截断。"],
+                    images: [],
+                  },
+                ]}
+              />
+            </Specimen>
+
+            <Specimen
+              title="十年之约 · 虫洞"
+              note="L1：友链页底部的 banner；复用 .card / card-interactive / card-spotlight，CTA 用 .btn-ghost。页脚另有同一 URL 的内联 .link（F1），不加新行、不加新颜色。"
+            >
+              <TenYearsLink variant="links" />
             </Specimen>
 
             <Specimen

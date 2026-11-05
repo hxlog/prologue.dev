@@ -1,5 +1,6 @@
 import Link from "next/link";
 import EmailModal from "./email-modal";
+import TenYearsLink from "./ten-years-link";
 import sitemetadata, { siteRepo } from "../../data/sitemetadata";
 import { getSiteYear } from "../lib/site-year";
 
@@ -32,6 +33,10 @@ export default async function Footer() {
             Vercel
           </Link>
         </p>
+
+        <span className="sm:ml-4 sm:border-l sm:border-border sm:pl-4">
+          <TenYearsLink />
+        </span>
 
         <span className="inline-flex items-center gap-1 sm:ml-auto">
           <Link

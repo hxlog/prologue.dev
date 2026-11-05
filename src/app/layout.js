@@ -3,9 +3,18 @@ import { Providers } from "../components/providers";
 import Navbar from "../components/navbar";
 import Footer from "../components/footer";
 import Spotlight from "../components/spotlight";
+import JsonLd from "../components/json-ld";
 import siteMetadata from "../../data/sitemetadata";
 import UmamiAnalytics from "../components/umami-analytics";
 import Lightbox from "../components/lightbox-controller";
+import {
+  FEED_TYPES,
+  OG_LOCALE,
+  SITE_NAME,
+  absoluteUrl,
+  siteImage,
+} from "../lib/seo";
+import { siteGraph } from "../lib/structured-data";
 
 /**
  * Typography: system fonts only — this app makes no font requests at all.
@@ -27,24 +36,26 @@ import Lightbox from "../components/lightbox-controller";
  * mechanism, not the byte count.
  */
 
+const COVER = siteImage();
+
 export const metadata = {
   metadataBase: new URL(siteMetadata.siteUrl),
   generator: "Next.js",
-  applicationName: siteMetadata.siteRepo,
+  applicationName: SITE_NAME,
   referrer: "origin-when-cross-origin",
   keywords: siteMetadata.keywords,
-  authors: [{ name: siteMetadata.author, url: "/about" }],
+  authors: [{ name: siteMetadata.author, url: absoluteUrl("/about") }],
   creator: siteMetadata.author,
   publisher: siteMetadata.publishName,
-  title: siteMetadata.title,
+  /* The suffix lives here once. Every page passes its raw title to
+     buildMetadata(); a page that sets an absolute title opts out. */
+  title: {
+    default: siteMetadata.title,
+    template: `%s - ${SITE_NAME}`,
+  },
   description: siteMetadata.description,
   alternates: {
-    canonical: "/",
-    types: {
-      "application/rss+xml": "/rss",
-      "application/atom+xml": "/atomfeed",
-      "application/feed+json": "/jsonfeed",
-    },
+    types: FEED_TYPES,
   },
   formatDetection: {
     email: true,
@@ -54,9 +65,17 @@ export const metadata = {
   openGraph: {
     title: siteMetadata.title,
     description: siteMetadata.description,
-    url: siteMetadata.siteUrl,
-    siteName: siteMetadata.siteName,
-    locale: siteMetadata.language,
+    url: absoluteUrl("/"),
+    siteName: SITE_NAME,
+    locale: OG_LOCALE,
+    type: "website",
+    images: [COVER],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteMetadata.title,
+    description: siteMetadata.description,
+    images: { url: COVER.url, alt: COVER.alt },
   },
 };
 
@@ -64,6 +83,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang={siteMetadata.language} suppressHydrationWarning>
       <body className="bg-background text-foreground antialiased">
+        <JsonLd data={siteGraph()} />
         <Providers>
           <a href="#content" className="skip-link">
             跳到正文

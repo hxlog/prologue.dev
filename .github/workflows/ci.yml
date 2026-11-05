@@ -16,7 +16,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "24"
+          node-version: "24.x"
 
       # package.json pins Yarn 4 through "packageManager"; the yarn on the
       # runner is v1, so corepack has to be enabled before any yarn call.

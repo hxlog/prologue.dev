@@ -1,8 +1,13 @@
 import { getPosts } from "../../lib/content";
 import { compareDesc } from "date-fns";
 import PostsLayout from "./bloglistlayout";
-import siteMetadata from "../../../data/sitemetadata";
 import { getTagCounts, getSortedTags } from "../../lib/tag-counts";
+import JsonLd from "../../components/json-ld";
+import {
+  breadcrumbJsonLd,
+  collectionPageJsonLd,
+} from "../../lib/structured-data";
+import { absoluteUrl, buildMetadata, siteImage } from "../../lib/seo";
 
 /* Cache Components gates (Next 16.4).
    - instant = true: assert that a navigation into this route paints UI
@@ -22,34 +27,37 @@ export default function Blog() {
     compareDesc(new Date(a.publishDate), new Date(b.publishDate))
   );
 
+  const url = absoluteUrl("/blog");
   return (
-    <PostsLayout
-      posts={posts}
-      tagCounts={getTagCounts()}
-      sortedTags={getSortedTags()}
-      title="归档"
-      subtitle={`共 ${posts.filter((p) => p.draft !== true).length} 篇文章`}
-    />
+    <>
+      <JsonLd
+        data={collectionPageJsonLd({
+          title: "归档",
+          description: "All posts here! 所有文章在这里！",
+          url,
+        })}
+      />
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: "首页", path: "/" },
+          { name: "归档", path: "/blog" },
+        ])}
+      />
+      <PostsLayout
+        posts={posts}
+        tagCounts={getTagCounts()}
+        sortedTags={getSortedTags()}
+        title="归档"
+        subtitle={`共 ${posts.filter((p) => p.draft !== true).length} 篇文章`}
+      />
+    </>
   );
 }
 
-export const metadata = {
-  title: `归档 - ${siteMetadata.publishName}`,
+export const metadata = buildMetadata({
+  title: "归档",
   description: "All posts here! 所有文章在这里！",
-  openGraph: {
-    title: `归档 - ${siteMetadata.publishName}`,
-    description: "All posts here! 所有文章在这里！",
-    url: `${siteMetadata.siteUrl}/blog`,
-    images: [siteMetadata.cover],
-    authors: [siteMetadata.author],
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: `归档 - ${siteMetadata.publishName}`,
-    description: "All posts here! 所有文章在这里！",
-    images: [siteMetadata.cover],
-  },
-  locale: siteMetadata.language,
+  path: "/blog",
   type: "website",
-};
+  image: siteImage("归档"),
+});

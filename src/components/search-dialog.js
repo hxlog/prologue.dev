@@ -421,13 +421,11 @@ function ResultRow({ result, active, onHover, onSelect }) {
       }}
     >
       <span className="search-result-dot" aria-hidden="true" />
-      <span className="search-result-main">
-        <span className="search-result-title">{result.title}</span>
-        <span className="search-result-snippet">
-          {result.snippet.map((part, index) =>
-            part.hit ? <mark key={index}>{part.text}</mark> : <span key={index}>{part.text}</span>
-          )}
-        </span>
+      <span className="search-result-title">{result.title}</span>
+      <span className="search-result-snippet">
+        {result.snippet.map((part, index) =>
+          part.hit ? <mark key={index}>{part.text}</mark> : <span key={index}>{part.text}</span>
+        )}
       </span>
       <span className="search-result-meta">{meta}</span>
     </a>

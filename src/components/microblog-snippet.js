@@ -1,5 +1,5 @@
 import Link from "next/link";
-import MicroblogCard from "./microblog-card";
+import MicroblogTimeline from "./microblog-timeline";
 import { getMicroblog } from "../lib/microblog";
 
 /**
@@ -12,10 +12,8 @@ export default function MicroblogSnippet() {
   return (
     <section className="mt-10">
       <h2 className="section-label">微博</h2>
-      <div className="mt-3 space-y-3">
-        {entries.map((entry) => (
-          <MicroblogCard key={entry.id} entry={entry} compact />
-        ))}
+      <div className="mt-3">
+        <MicroblogTimeline entries={entries} compact />
       </div>
       <Link
         href="/microblog"

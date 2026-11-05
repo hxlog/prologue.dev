@@ -16,7 +16,12 @@ import { OptimizedHTMLRenderer } from "../../../components/optimized-html-render
 import RouteTransition from "../../../components/route-transition";
 import { ArticleSkeleton } from "../../../components/skeletons";
 import { formatDate, readingTimeLabel } from "../../../lib/date";
-import { ogImageUrl } from "../../../lib/feed/urls";
+import { absoluteUrl, buildMetadata, defaultOgImage } from "../../../lib/seo";
+import JsonLd from "../../../components/json-ld";
+import {
+  blogPostingJsonLd,
+  breadcrumbJsonLd,
+} from "../../../lib/structured-data";
 
 const Comments = dynamic(() => import("../../../components/comments"), {
   loading: () => <div className="h-32" aria-hidden />,
@@ -67,31 +72,28 @@ export async function generateMetadata(props) {
   const post = await getCachedPost(slugOf(await props.params));
   if (!post) return {};
 
-  const ogImage = post.image?.trim()
-    ? { url: post.image.trim() }
-    : { url: ogImageUrl(ogParamsFor(post)) };
+  const description = post.description || siteMetadata.description;
+  const image = post.image?.trim()
+    ? {
+        url: absoluteUrl(post.image.trim()),
+        alt: post.imageDesc || `封面 ${post.title}`,
+      }
+    : defaultOgImage(post.title, ogParamsFor(post));
 
-  return {
-    title: post.title + " - " + siteMetadata.publishName,
-    description: post.description,
-    openGraph: {
-      url: `/blog/${post.slugAsParams}`,
-      title: post.title + " - " + siteMetadata.publishName,
-      description: post.description,
-      type: "article",
+  return buildMetadata({
+    title: post.title,
+    description,
+    path: `/blog/${post.slugAsParams}`,
+    type: "article",
+    image,
+    keywords: post.tags,
+    article: {
       publishedTime: post.publishDate,
       modifiedTime: post.lastmod || post.publishDate,
-      authors: [siteMetadata.author],
       tags: post.tags,
-      images: [ogImage],
+      section: post.tags?.[0],
     },
-    twitter: {
-      card: "summary_large_image",
-      title: post.title + " - " + siteMetadata.publishName,
-      description: post.description,
-      images: [ogImage.url],
-    },
-  };
+  });
 }
 
 export function generateStaticParams() {
@@ -133,23 +135,7 @@ async function PostView({ params }) {
   const allPosts = await getCachedPosts();
   const adjacentPosts = getAdjacentPosts(allPosts, post);
   const { html, ...postMeta } = post;
-  const ogImage = ogImageUrl(ogParamsFor(post));
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    datePublished: post.publishDate,
-    dateModified: post.lastmod,
-    headline: post.title,
-    image: post.image?.trim() ? [post.image, ogImage] : [ogImage],
-    description: post.description,
-    author: [
-      {
-        "@type": "Person",
-        name: `${siteMetadata.author}`,
-        url: `/about`,
-      },
-    ],
-  };
+  const postUrl = `/blog/${post.slugAsParams}`;
 
   const hasHero = Boolean(post.image?.trim());
   const hasDescription = Boolean(post.description);
@@ -158,9 +144,13 @@ async function PostView({ params }) {
     <>
       <RouteTransition>
         <ReadingProgress />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        <JsonLd data={blogPostingJsonLd(post)} />
+        <JsonLd
+          data={breadcrumbJsonLd([
+            { name: "首页", path: "/" },
+            { name: "归档", path: "/blog" },
+            { name: post.title, path: postUrl },
+          ])}
         />
 
         <div className="page-enter gap-10 xl:grid xl:grid-cols-[minmax(0,1fr)_16rem]">

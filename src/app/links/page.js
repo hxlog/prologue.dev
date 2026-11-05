@@ -5,12 +5,23 @@ import FriendLinks from "../../components/friendlinks";
 import PageTransition from "../../components/page-transition";
 import RouteTransition from "../../components/route-transition";
 import { getRotationOffset } from "../../lib/rotation";
+import JsonLd from "../../components/json-ld";
+import {
+  breadcrumbJsonLd,
+  collectionPageJsonLd,
+} from "../../lib/structured-data";
+import { absoluteUrl, buildMetadata, defaultOgImage } from "../../lib/seo";
+
+const DESCRIPTION = "但愿十年后的某天，这些链接仍存活，与各位作者共勉。";
 
 export async function generateMetadata() {
-  return {
+  return buildMetadata({
     title: "友情链接 Friend Links",
-    description: "但愿十年后的某天，这些链接仍存活，与各位作者共勉。",
-  };
+    description: DESCRIPTION,
+    path: "/links",
+    type: "website",
+    image: defaultOgImage("友情链接"),
+  });
 }
 
 /* Cache Components gates (Next 16.4).
@@ -35,8 +46,24 @@ export default async function LinksPage() {
   const offset = await getRotationOffset(data.length);
   const friends = offset ? [...data.slice(offset), ...data.slice(0, offset)] : data;
 
+  const url = absoluteUrl("/links");
+
   return (
     <RouteTransition>
+      <JsonLd
+        data={collectionPageJsonLd({
+          title: "友情链接",
+          description: DESCRIPTION,
+          url,
+          about: false,
+        })}
+      />
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: "首页", path: "/" },
+          { name: "友情链接", path: "/links" },
+        ])}
+      />
       <PageTransition>
         <FriendLinks friends={friends} />
       </PageTransition>

@@ -1,5 +1,6 @@
 const siteMetadata = {
   title: "槐序的序章",
+  siteName: "槐序的序章",
   author: "槐序",
   authorDesc: "00后/INFJ/少数派/梦想成为自由职业者",
   publishName: "槐序的序章",

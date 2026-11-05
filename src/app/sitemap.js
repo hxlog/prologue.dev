@@ -1,5 +1,6 @@
 import { cacheLife } from "next/cache";
-import { getPosts } from "../lib/content";
+import { getPages, getPosts } from "../lib/content";
+import { getMicroblog } from "../lib/microblog";
 import siteMetadata from "../../data/sitemetadata";
 import { getSortedTags } from "../lib/tag-counts";
 
@@ -44,8 +45,22 @@ export default async function sitemap() {
     ...(newestDate ? { lastModified: newestDate } : {}),
   }));
 
-  // A page with no date in its frontmatter has no date to report.
-  staticRoutes.push({ url: `${siteMetadata.siteUrl}/about` });
+  // /microblog can report the newest entry date; the other static routes and
+  // markdown pages have no frontmatter date to report.
+  const microblog = getMicroblog();
+  if (microblog[0]?.date) {
+    staticRoutes.push({
+      url: `${siteMetadata.siteUrl}/microblog`,
+      lastModified: microblog[0].date,
+    });
+  } else {
+    staticRoutes.push({ url: `${siteMetadata.siteUrl}/microblog` });
+  }
+  staticRoutes.push({ url: `${siteMetadata.siteUrl}/links` });
+  staticRoutes.push({ url: `${siteMetadata.siteUrl}/ui` });
+  for (const page of getPages()) {
+    staticRoutes.push({ url: `${siteMetadata.siteUrl}/${page.slugAsParams}` });
+  }
 
   const tagEntries = getSortedTags().map((tag) => {
     const newestForTag = posts

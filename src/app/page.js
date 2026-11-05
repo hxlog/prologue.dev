@@ -8,6 +8,7 @@ import PageTransition from "../components/page-transition";
 import RouteTransition from "../components/route-transition";
 import { getSortedTags } from "../lib/tag-counts";
 import { readingTimeLabel } from "../lib/date";
+import { buildMetadata, siteImage } from "../lib/seo";
 
 /* Cache Components gates (Next 16.4).
    - instant = true: assert that a navigation into this route paints UI
@@ -71,23 +72,11 @@ export default function Home() {
   );
 }
 
-export const metadata = {
+export const metadata = buildMetadata({
   title: siteMetadata.title,
+  absoluteTitle: true,
   description: siteMetadata.description,
-  openGraph: {
-    title: siteMetadata.title,
-    description: siteMetadata.description,
-    url: siteMetadata.siteUrl,
-    images: [siteMetadata.cover],
-    authors: [siteMetadata.author],
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: siteMetadata.title,
-    description: siteMetadata.description,
-    images: [siteMetadata.cover],
-  },
-  locale: siteMetadata.language,
+  path: "/",
   type: "website",
-};
+  image: siteImage(),
+});

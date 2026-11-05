@@ -1,13 +1,24 @@
 import PageTransition from "../../components/page-transition";
 import RouteTransition from "../../components/route-transition";
-import MicroblogCard from "../../components/microblog-card";
+import MicroblogTimeline from "../../components/microblog-timeline";
 import { getMicroblog } from "../../lib/microblog";
+import JsonLd from "../../components/json-ld";
+import {
+  breadcrumbJsonLd,
+  collectionPageJsonLd,
+} from "../../lib/structured-data";
+import { absoluteUrl, buildMetadata, defaultOgImage } from "../../lib/seo";
+
+const DESCRIPTION = "槐序的微博：碎片化的思考、图文与随想。";
 
 export async function generateMetadata() {
-  return {
+  return buildMetadata({
     title: "微博 Microblog",
-    description: "槐序的微博：碎片化的思考、图文与随想。",
-  };
+    description: DESCRIPTION,
+    path: "/microblog",
+    type: "website",
+    image: defaultOgImage("微博 Microblog"),
+  });
 }
 
 /* Cache Components gates (Next 16.4).
@@ -23,9 +34,23 @@ export const ensureStatic = "shell";
 
 export default async function MicroblogPage() {
   const entries = getMicroblog();
+  const url = absoluteUrl("/microblog");
 
   return (
     <RouteTransition>
+      <JsonLd
+        data={collectionPageJsonLd({
+          title: "微博 Microblog",
+          description: DESCRIPTION,
+          url,
+        })}
+      />
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: "首页", path: "/" },
+          { name: "微博", path: "/microblog" },
+        ])}
+      />
       <PageTransition className="mx-auto max-w-2xl py-8">
         <header>
           <p className="eyebrow">Microblog</p>
@@ -36,11 +61,7 @@ export default async function MicroblogPage() {
             碎片化的思考、图文与随想。
           </p>
         </header>
-        <div className="space-y-4">
-          {entries.map((entry) => (
-            <MicroblogCard key={entry.id} entry={entry} />
-          ))}
-        </div>
+        <MicroblogTimeline entries={entries} />
       </PageTransition>
     </RouteTransition>
   );

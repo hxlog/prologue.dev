@@ -12,7 +12,13 @@ import PageTransition from "../../components/page-transition";
 import RouteTransition from "../../components/route-transition";
 import { PageSkeleton } from "../../components/skeletons";
 import Portfolio from "../../components/portfolio";
-import { ogImageUrl } from "../../lib/feed/urls";
+import { absoluteUrl, buildMetadata, defaultOgImage } from "../../lib/seo";
+import JsonLd from "../../components/json-ld";
+import {
+  breadcrumbJsonLd,
+  profilePageJsonLd,
+  webPageJsonLd,
+} from "../../lib/structured-data";
 
 const Comments = dynamic(() => import("../../components/comments"), {
   loading: () => <div className="h-32" aria-hidden />,
@@ -27,27 +33,13 @@ export async function generateMetadata(props) {
   const page = await getCachedPage(slugOf(await props.params));
   if (!page) return {};
 
-  const ogImage = ogImageUrl(page.title);
-
-  return {
-    title: page.title + " - " + siteMetadata.publishName,
-    description: page.description,
-    openGraph: {
-      title: page.title + " - " + siteMetadata.publishName,
-      description: page.description,
-      url: "/" + page.slugAsParams,
-      siteName: siteMetadata.siteName,
-      images: [{ url: ogImage }],
-      locale: siteMetadata.language,
-      type: "website",
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: page.title + " - " + siteMetadata.publishName,
-      description: page.description,
-      images: [ogImage],
-    },
-  };
+  return buildMetadata({
+    title: page.title,
+    description: page.description || siteMetadata.description,
+    path: `/${page.slugAsParams}`,
+    type: "website",
+    image: defaultOgImage(page.title),
+  });
 }
 
 export function generateStaticParams() {
@@ -103,8 +95,23 @@ async function PageBody({ params }) {
   const page = await getCachedPage(slugOf(await params));
   if (!page) notFound();
 
+  const description = page.description || siteMetadata.description;
+  const url = absoluteUrl(`/${page.slugAsParams}`);
+  const pageJsonLd =
+    page.slugAsParams === "about"
+      ? profilePageJsonLd({ title: page.title, description, url })
+      : webPageJsonLd({ title: page.title, description, url });
+
   return (
-    <article className="prose mx-auto max-w-none py-8 sm:max-w-3xl">
+    <>
+      <JsonLd data={pageJsonLd} />
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: "首页", path: "/" },
+          { name: page.title, path: `/${page.slugAsParams}` },
+        ])}
+      />
+      <article className="prose mx-auto max-w-none py-8 sm:max-w-3xl">
       <h1 className="text-h1 font-semibold leading-tight tracking-tight text-foreground">
         {page.title}
       </h1>
@@ -138,7 +145,8 @@ async function PageBody({ params }) {
       <Suspense fallback={<div className="h-32" aria-hidden="true" />}>
         <Comments />
       </Suspense>
-    </article>
+      </article>
+    </>
   );
 }
 

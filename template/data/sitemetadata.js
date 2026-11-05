@@ -1,5 +1,6 @@
 const siteMetadata = {
   title: "My Prologue Blog",
+  siteName: "Prologue",
   author: "Your Name",
   authorDesc: "Write a short bio here",
   publishName: "Prologue",
