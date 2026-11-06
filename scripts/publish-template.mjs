@@ -273,10 +273,10 @@ function patchStarterPackageJson(worktreeRoot) {
   delete packageJson.scripts.publish;
   delete packageJson.scripts["build:e2e"];
   delete packageJson.scripts["test:e2e"];
-  if (packageJson.devDependencies) {
-    delete packageJson.devDependencies["@next/playwright"];
-    delete packageJson.devDependencies["@playwright/test"];
-  }
+  // Keep test devDependencies in the manifest: the published yarn.lock still
+  // contains them, and `yarn install --immutable` in the template must pass.
+  // The test files and scripts are removed above, so a template clone still
+  // builds without running the maintainer-only Playwright suite.
   writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
 }
 
