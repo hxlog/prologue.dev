@@ -31,7 +31,7 @@ export function NavLinkList({ pathname }) {
           <Link
             key={link.title}
             href={link.href}
-            prefetch={true}
+            prefetch={link.href === "/about" ? true : "auto"}
             aria-current={active ? "page" : undefined}
             data-active={active ? "true" : undefined}
             className="nav-item select-none"

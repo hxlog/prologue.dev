@@ -70,7 +70,7 @@ function ogParamsFor(post) {
 
 export async function generateMetadata(props) {
   const post = await getCachedPost(slugOf(await props.params));
-  if (!post) return {};
+  if (!post || post.draft === true) notFound();
 
   const description = post.description || siteMetadata.description;
   const image = post.image?.trim()

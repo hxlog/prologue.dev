@@ -56,6 +56,10 @@ export default async function LinksPage() {
           description: DESCRIPTION,
           url,
           about: false,
+          items: friends.map((friend) => ({
+            name: friend.name,
+            path: friend.blog_url,
+          })),
         })}
       />
       <JsonLd

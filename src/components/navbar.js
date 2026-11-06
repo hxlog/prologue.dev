@@ -30,7 +30,6 @@ export default function Navbar() {
       <div className="shell flex h-full items-center justify-between gap-4">
         <Link
           href="/"
-          prefetch={true}
           aria-label={siteMetadata.publishName}
           className="select-none rounded-control px-1 py-1"
         >

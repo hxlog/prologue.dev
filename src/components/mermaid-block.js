@@ -42,7 +42,7 @@ export function MermaidBlock({ chart }) {
 
       if (cancelled || !containerRef.current) return;
 
-      const renderId = `mermaid-${reactId}-${Date.now()}`;
+      const renderId = "mermaid-" + reactId + "-" + Date.now();
       try {
         const { svg } = await mermaid.render(renderId, chart.trim());
         if (!cancelled && containerRef.current) {

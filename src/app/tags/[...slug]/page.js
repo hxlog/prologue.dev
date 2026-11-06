@@ -24,6 +24,7 @@ export function generateStaticParams() {
 
 export async function generateMetadata(props) {
   const slug = slugOf(await props.params);
+  if (!getSortedTags().includes(slug)) notFound();
   const label = tagLabel(slug);
   const description = `标签「${label}」下的所有文章`;
   return buildMetadata({
@@ -81,6 +82,9 @@ async function TagArchive({ params }) {
           title: label,
           description: `标签「${label}」下的所有文章`,
           url,
+          items: sorted
+            .filter((post) => post.draft !== true)
+            .map((post) => ({ name: post.title, path: post.slug })),
         })}
       />
       <JsonLd

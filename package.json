@@ -10,8 +10,10 @@
   "scripts": {
     "dev": "node scripts/build-search-index.mjs && next dev --turbopack",
     "build": "node scripts/build-search-index.mjs && next build --turbopack",
+    "build:e2e": "node scripts/build-e2e.mjs",
     "start": "next start",
     "lint": "eslint .",
+    "test:e2e": "playwright test",
     "publish": "node scripts/publish-template.mjs"
   },
   "dependencies": {
@@ -52,6 +54,8 @@
     "yaml": "^2.9.1"
   },
   "devDependencies": {
+    "@next/playwright": "^16.4.4",
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/typography": "^0.5.20",
     "eslint": "^9",
     "eslint-config-next": "^16.4.4",

@@ -27,6 +27,15 @@ export const FEED_TYPES = {
   "application/feed+json": "/jsonfeed",
 };
 
+/** Explicit, site-wide indexability plus rich image/snippet previews. */
+export const DEFAULT_ROBOTS = {
+  index: true,
+  follow: true,
+  "max-image-preview": "large",
+  "max-snippet": -1,
+  "max-video-preview": -1,
+};
+
 /** Absolute URL for a site path. The home page intentionally has no slash. */
 export function absoluteUrl(path = "/") {
   if (!path) return SITE;
@@ -86,7 +95,7 @@ export function buildMetadata({
   image,
   article,
   keywords,
-  robots,
+  robots = DEFAULT_ROBOTS,
   feedTypes = FEED_TYPES,
 } = {}) {
   const url = absoluteUrl(path);

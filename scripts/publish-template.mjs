@@ -133,6 +133,10 @@ function applyStarterTemplate(worktreeRoot) {
   rmSync(path.join(worktreeRoot, "data", ".obsidian"), { recursive: true, force: true });
   rmSync(path.join(worktreeRoot, "README.template.md"), { force: true });
   rmSync(path.join(worktreeRoot, "scripts"), { recursive: true, force: true });
+  rmSync(path.join(worktreeRoot, "e2e"), { recursive: true, force: true });
+  rmSync(path.join(worktreeRoot, "playwright.config.js"), { force: true });
+  rmSync(path.join(worktreeRoot, "test-results"), { recursive: true, force: true });
+  rmSync(path.join(worktreeRoot, "playwright-report"), { recursive: true, force: true });
   // `dev` and `build` in the shipped package.json run this one, so it must ship
   // or a template clone fails on its first command.
   copyFile(
@@ -201,6 +205,7 @@ jobs:
   }
 
   // Reset content layer.
+  rmSync(path.join(worktreeRoot, "data", "route-manifest.js"), { force: true });
   rmSync(path.join(worktreeRoot, "data", "content", "blog"), { recursive: true, force: true });
   rmSync(path.join(worktreeRoot, "data", "content", "pages"), { recursive: true, force: true });
   mkdirSync(path.join(worktreeRoot, "data", "content", "blog"), { recursive: true });
@@ -266,6 +271,12 @@ function patchStarterPackageJson(worktreeRoot) {
   // `publish` force-pushes to the maintainer's template repository and is not
   // an entry point a starter clone should expose.
   delete packageJson.scripts.publish;
+  delete packageJson.scripts["build:e2e"];
+  delete packageJson.scripts["test:e2e"];
+  if (packageJson.devDependencies) {
+    delete packageJson.devDependencies["@next/playwright"];
+    delete packageJson.devDependencies["@playwright/test"];
+  }
   writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
 }
 

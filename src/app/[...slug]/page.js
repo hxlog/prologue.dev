@@ -31,7 +31,7 @@ function slugOf(params) {
 
 export async function generateMetadata(props) {
   const page = await getCachedPage(slugOf(await props.params));
-  if (!page) return {};
+  if (!page) notFound();
 
   return buildMetadata({
     title: page.title,

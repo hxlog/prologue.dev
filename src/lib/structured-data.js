@@ -126,7 +126,16 @@ export function webPageJsonLd({ title, description, url }) {
 }
 
 /** Collection pages: /blog, /tags/*, /microblog, /links. */
-export function collectionPageJsonLd({ title, description, url, about = true }) {
+export function collectionPageJsonLd({ title, description, url, about = true, items = [] }) {
+  const list = items
+    .map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.name,
+      url: /^https?:\/\//i.test(item.path || "") ? item.path : absoluteUrl(item.path),
+    }))
+    .filter((item) => item.name && item.url);
+
   return {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
@@ -137,6 +146,15 @@ export function collectionPageJsonLd({ title, description, url, about = true }) 
     inLanguage: LANGUAGE,
     isPartOf: websiteRef(),
     ...(about ? { about: blogRef() } : {}),
+    ...(list.length
+      ? {
+          mainEntity: {
+            "@type": "ItemList",
+            numberOfItems: list.length,
+            itemListElement: list,
+          },
+        }
+      : {}),
   };
 }
 

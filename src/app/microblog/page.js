@@ -55,6 +55,11 @@ export default async function MicroblogPage() {
           title: "微博 Microblog",
           description: DESCRIPTION,
           url,
+          about: false,
+          items: entries.map((entry) => ({
+            name: (entry.paragraphs[0] || "微博").slice(0, 80),
+            path: `/microblog#${entry.id}`,
+          })),
         })}
       />
       <JsonLd

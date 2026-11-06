@@ -16,6 +16,13 @@ const nextConfig = {
   // Vercel injects VERCEL_DEPLOYMENT_ID; undefined locally, which disables it.
   deploymentId: process.env.VERCEL_DEPLOYMENT_ID,
 
+  // The instant-navigation testing API is enabled only for the e2e build.
+  // A normal `yarn build` (and every deployment) omits the experimental key
+  // entirely instead of serialising it as false.
+  ...(process.env.EXPOSE_TESTING_API === "1"
+    ? { experimental: { exposeTestingApiInProductionBuild: true } }
+    : {}),
+
   images: {
     formats: ["image/avif", "image/webp"],
     unoptimized: false,

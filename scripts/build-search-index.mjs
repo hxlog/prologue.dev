@@ -17,7 +17,7 @@
  * Reads the loader directly rather than a generated JSON file: there is no
  * codegen step in front of 'next build' any more.
  */
-import { writeFileSync } from "node:fs";
+import { readdirSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -97,4 +97,43 @@ console.log(
   "search-index: wrote " + posts.length + " posts + " + pages.length +
     " pages (" + (Buffer.byteLength(json) / 1024).toFixed(0) +
     " KB) to public/search-index.json"
+);
+
+// The route manifest is consumed by proxy.js to turn unknown dynamic paths into
+// real 404s before the streaming render starts. It is generated here so the
+// list always matches the content tree.
+const tags = [...new Set(posts.flatMap((post) => post.tags))];
+const routeManifest = {
+  static: [
+    "/",
+    "/blog",
+    "/microblog",
+    "/links",
+    "/ui",
+    "/about",
+    "/rss",
+    "/atomfeed",
+    "/jsonfeed",
+    "/microblog/rss",
+    "/og",
+    "/api/search",
+    "/_not-found",
+    "/llms.txt",
+    "/llms-full.txt",
+    "/robots.txt",
+    "/sitemap.xml",
+    "/favicon.ico",
+    "/icon.ico",
+    "/apple-icon.png",
+  ],
+  public: readdirSync(path.join(ROOT, "public"))
+    .filter((name) => statSync(path.join(ROOT, "public", name)).isFile())
+    .map((name) => "/" + name),
+  posts: posts.map((post) => post.href),
+  pages: pages.map((page) => page.href),
+  tags: tags.map((tag) => "/tags/" + tag),
+};
+writeFileSync(
+  path.join(ROOT, "data", "route-manifest.js"),
+  "export const ROUTE_MANIFEST = " + JSON.stringify(routeManifest) + ";\n"
 );

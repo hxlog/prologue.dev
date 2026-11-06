@@ -35,6 +35,9 @@ export default function Blog() {
           title: "归档",
           description: "All posts here! 所有文章在这里！",
           url,
+          items: posts
+            .filter((post) => post.draft !== true)
+            .map((post) => ({ name: post.title, path: post.slug })),
         })}
       />
       <JsonLd

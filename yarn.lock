@@ -880,6 +880,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@next/playwright@npm:^16.4.4":
+  version: 16.4.5
+  resolution: "@next/playwright@npm:16.4.5"
+  peerDependencies:
+    "@playwright/test": ">=1.0.0"
+  peerDependenciesMeta:
+    "@playwright/test":
+      optional: true
+  checksum: 10c0/706919809123ec5430529b2288661b32d83abbb991d762cea10513c565a3a18b5416000b0a3064dda2297518f059e08206e5a66e68dc54986177bad800b60eb7
+  languageName: node
+  linkType: hard
+
 "@next/swc-darwin-arm64@npm:16.4.4":
   version: 16.4.4
   resolution: "@next/swc-darwin-arm64@npm:16.4.4"
@@ -967,6 +979,17 @@ __metadata:
   version: 1.0.39
   resolution: "@nolyfill/is-core-module@npm:1.0.39"
   checksum: 10c0/34ab85fdc2e0250879518841f74a30c276bca4f6c3e13526d2d1fe515e1adf6d46c25fcd5989d22ea056d76f7c39210945180b4859fc83b050e2da411aa86289
+  languageName: node
+  linkType: hard
+
+"@playwright/test@npm:^1.64.1":
+  version: 1.64.1
+  resolution: "@playwright/test@npm:1.64.1"
+  dependencies:
+    playwright: "npm:1.64.1"
+  bin:
+    playwright: cli.js
+  checksum: 10c0/0a1a853d76d6c532cafaf0366a5448584b766737ebd39bbd23dc0580f3d3b6ef4c833082af47a792e7fc2501f444debdfaad37a87a76cc5b195f3803fc80ea3c
   languageName: node
   linkType: hard
 
@@ -5964,6 +5987,26 @@ __metadata:
   languageName: node
   linkType: hard
 
+"playwright-core@npm:1.64.1":
+  version: 1.64.1
+  resolution: "playwright-core@npm:1.64.1"
+  bin:
+    playwright-core: cli.js
+  checksum: 10c0/91c4f5ed1cff4b0e18b6ac62f66770f5f1b6c204d4aebd6a321c07466dca18a70822ac692597c6059705a703f9768097ac551df179fb49294d639509148e04f3
+  languageName: node
+  linkType: hard
+
+"playwright@npm:1.64.1":
+  version: 1.64.1
+  resolution: "playwright@npm:1.64.1"
+  dependencies:
+    playwright-core: "npm:1.64.1"
+  bin:
+    playwright: cli.js
+  checksum: 10c0/edf52d0a79feca37bf383e841a467aa68750684128218eac560063991c9e4b615a94901f580cd8a088bb05fd53008ab4a0e5e8d976067698b60ae5d1de2459f3
+  languageName: node
+  linkType: hard
+
 "points-on-curve@npm:0.2.0, points-on-curve@npm:^0.2.0":
   version: 0.2.0
   resolution: "points-on-curve@npm:0.2.0"
@@ -6042,6 +6085,8 @@ __metadata:
   dependencies:
     "@giscus/react": "npm:^3.1.0"
     "@headlessui/react": "npm:^2.2.10"
+    "@next/playwright": "npm:^16.4.4"
+    "@playwright/test": "npm:^1.64.1"
     "@shikijs/rehype": "npm:^4.6.0"
     "@tailwindcss/postcss": "npm:^4.3.4"
     "@tailwindcss/typography": "npm:^0.5.20"

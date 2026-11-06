@@ -17,6 +17,10 @@
 # generated search index (rebuilt on every build; must not ship to the template snapshot)
 /public/search-index.json
 
+# Playwright artifacts
+/test-results/
+/playwright-report/
+
 # publish worktree
 /.tmp/
 

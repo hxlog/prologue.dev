@@ -1,25 +1,87 @@
 "use client";
 
-import {
-  Menu,
-  Transition,
-  MenuItems,
-  MenuItem,
-  MenuButton,
-} from "@headlessui/react";
-import { Fragment } from "react";
-import Link from "next/link";
-import headerNavLinks from "../../data/headerNavLinks";
+import dynamic from "next/dynamic";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { scheduleIdlePreload } from "../lib/idle-preload";
+
+let panelPromise = null;
+function loadPanel() {
+  if (!panelPromise) {
+    panelPromise = import("./mobile-nav-panel").catch((error) => {
+      panelPromise = null;
+      throw error;
+    });
+  }
+  return panelPromise;
+}
+
+const Panel = dynamic(loadPanel, { ssr: false });
 
 /**
- * Mobile nav. No active-link state (that lives in the desktop NavLinks):
- * the menu closes as soon as a destination is chosen, so a highlight would
- * only be visible for the moment before the navigation commits.
+ * Mobile nav trigger. The menu panel (and its chunk) loads on first intent or
+ * after the first paint; the wrapper owns outside-click handling. Keyboard and
+ * focus management live in the panel so it can match the visual motion tokens.
  */
 const MobileNav = () => {
+  const [open, setOpen] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const boxRef = useRef(null);
+  const buttonRef = useRef(null);
+  const wasOpen = useRef(false);
+
+  const preload = useCallback(() => {
+    loadPanel().catch(() => {});
+  }, []);
+
+  useEffect(() => scheduleIdlePreload(() => preload()), [preload]);
+
+  const close = useCallback(() => setOpen(false), []);
+
+  const openPanel = useCallback(() => {
+    preload();
+    setOpen(true);
+    loadPanel()
+      .then(() => setLoaded(true))
+      .catch(() => setOpen(false));
+  }, [preload]);
+
+  useEffect(() => {
+    if (wasOpen.current && !open) buttonRef.current?.focus();
+    wasOpen.current = open;
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const onPointerDown = (event) => {
+      if (!boxRef.current?.contains(event.target)) close();
+    };
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") close();
+    };
+
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [close, open]);
+
   return (
-    <Menu as="div" className="relative inline-block text-left sm:hidden">
-      <MenuButton className="btn-icon" aria-label="Navigation">
+    <div ref={boxRef} className="relative inline-block text-left sm:hidden">
+      <button
+        ref={buttonRef}
+        type="button"
+        className="btn-icon"
+        aria-label="Navigation"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls="mobile-nav-menu"
+        onClick={() => (open ? close() : openPanel())}
+        onPointerEnter={preload}
+        onFocus={preload}
+      >
         <svg
           xmlns="http://www.w3.org/2000/svg"
           fill="none"
@@ -35,28 +97,10 @@ const MobileNav = () => {
             d="M3.75 9h16.5m-16.5 6.75h16.5"
           />
         </svg>
-      </MenuButton>
+      </button>
 
-      <Transition
-        as={Fragment}
-        enter="transition ease-out duration-(--duration-instant)"
-        enterFrom="transform opacity-0 scale-95"
-        enterTo="transform opacity-100 scale-100"
-        leave="transition ease-in duration-75"
-        leaveFrom="transform opacity-100 scale-100"
-        leaveTo="transform opacity-0 scale-95"
-      >
-        <MenuItems className="modal-panel absolute right-0 z-50 mt-2 w-36 p-2">
-          {headerNavLinks.map((link) => (
-            <MenuItem key={link.title}>
-              <Link href={link.href} prefetch={true} className="nav-item block">
-                {link.title}
-              </Link>
-            </MenuItem>
-          ))}
-        </MenuItems>
-      </Transition>
-    </Menu>
+      {loaded ? <Panel open={open} onClose={close} /> : null}
+    </div>
   );
 };
 

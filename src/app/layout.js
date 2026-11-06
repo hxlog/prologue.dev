@@ -8,6 +8,7 @@ import siteMetadata from "../../data/sitemetadata";
 import UmamiAnalytics from "../components/umami-analytics";
 import Lightbox from "../components/lightbox-controller";
 import {
+  DEFAULT_ROBOTS,
   FEED_TYPES,
   OG_LOCALE,
   SITE_NAME,
@@ -54,6 +55,7 @@ export const metadata = {
     template: `%s - ${SITE_NAME}`,
   },
   description: siteMetadata.description,
+  robots: DEFAULT_ROBOTS,
   alternates: {
     types: FEED_TYPES,
   },

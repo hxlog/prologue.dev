@@ -22,7 +22,11 @@
  */
 export function ArticleSkeleton() {
   return (
-    <div className="mx-auto min-h-dvh w-full max-w-3xl py-8" aria-hidden="true">
+    <div
+      className="mx-auto min-h-dvh w-full max-w-3xl py-8"
+      aria-hidden="true"
+      data-testid="article-skeleton"
+    >
       <div className="h-3 w-40 rounded-pill bg-surface-2" />
       <div className="mt-6 h-9 w-4/5 rounded-control bg-surface-2" />
       <div className="mt-3 h-9 w-3/5 rounded-control bg-surface-2" />
@@ -39,7 +43,11 @@ export function ArticleSkeleton() {
 
 export function PageSkeleton() {
   return (
-    <div className="mx-auto min-h-dvh w-full max-w-3xl py-8" aria-hidden="true">
+    <div
+      className="mx-auto min-h-dvh w-full max-w-3xl py-8"
+      aria-hidden="true"
+      data-testid="page-skeleton"
+    >
       <div className="h-9 w-1/2 rounded-control bg-surface-2" />
       <div className="mt-6 space-y-3">
         <div className="h-4 w-full rounded-control bg-surface-2" />
@@ -53,7 +61,7 @@ export function PageSkeleton() {
 
 export function ArchiveSkeleton() {
   return (
-    <div className="min-h-dvh py-10" aria-hidden="true">
+    <div className="min-h-dvh py-10" aria-hidden="true" data-testid="archive-skeleton">
       <div className="h-8 w-48 rounded-control bg-surface-2" />
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         {[0, 1, 2, 3].map((i) => (
