@@ -21,7 +21,8 @@
 | src/components/ui-standard/copy-field-demo.js | 回退 URL 硬编码 prologue.dev | 只使用 siteMetadata.siteUrl |
 | src/lib/structured-data.js | sameAs 只有 GitHub | GitHub + 可选 zhihu |
 | src/components/footer.js | 无知乎入口 | 条件渲染 siteMetadata.zhihu，官方 Simple Icons 单色路径，currentColor |
-| data/sitemetadata.js | 无 zhihu/版权/feed/pages | 全部新增 |
+| src/components/ten-years-link.js | 官方虫洞 URL、标题、描述、CTA 硬编码 | siteMetadata.tenYears；模板为 null 时不渲染 |
+| data/sitemetadata.js | 无 zhihu/版权/feed/pages | 全部新增，含 tenYears |
 | template/data/sitemetadata.js | starter 无对应字段 | 增加通用 pages/版权/feed；zhihu 为空 |
 
 ## 审计结果

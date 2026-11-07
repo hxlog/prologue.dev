@@ -26,6 +26,7 @@ const siteMetadata = {
   feedGenerator: "Prologue feed pipeline",
   blogLabel: "Blog",
   microblogFeedGenerator: "Prologue microblog feed",
+  tenYears: null,
 
   // Optional self-hosted analytics. Delete this block to ship none.
   umami: {

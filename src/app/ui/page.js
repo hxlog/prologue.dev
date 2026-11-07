@@ -529,7 +529,7 @@ export default function UiStandardPage() {
             </Specimen>
 
             <Specimen
-              title="十年之约 · 虫洞"
+              title={siteMetadata.tenYears ? siteMetadata.tenYears.label : "Ten years"}
               note="L1：友链页底部的 banner；复用 .card / card-interactive / card-spotlight，CTA 用 .btn-ghost。页脚另有同一 URL 的内联 .link（F1），不加新行、不加新颜色。"
             >
               <TenYearsLink variant="links" />
