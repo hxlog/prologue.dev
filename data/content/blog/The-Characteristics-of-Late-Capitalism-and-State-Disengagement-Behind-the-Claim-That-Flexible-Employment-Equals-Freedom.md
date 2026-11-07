@@ -1,6 +1,5 @@
 ---
 title: “灵活就业即自由”言论背后的晚期资本主义特征与国家去责任化
-featured: true
 tags: ["Capitalism", "Sociology", "Economics"]
 publishDate: 2026-08-22
 lastmod: 2026-08-22

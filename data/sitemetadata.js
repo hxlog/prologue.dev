@@ -36,7 +36,8 @@ const siteMetadata = {
   tenYears: {
     url: "https://www.foreverblog.cn/go.html",
     label: "十年之约 · 虫洞",
-    description: "随机去一位十年之约成员博客看看。每一次点击，都是一次真实的到访。",
+    description:
+      "随机去一位十年之约成员博客看看。每一次点击，都是一次真实的到访。",
     cta: "开始漫游",
     title: "随机访问一位十年之约成员博客",
   },

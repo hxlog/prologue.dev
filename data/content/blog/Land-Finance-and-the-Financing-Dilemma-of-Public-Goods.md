@@ -1,6 +1,5 @@
 ---
 title: 土地财政与公共产品的融资困境
-featured: true
 tags: ["Economics", "Finance", "Inequality"]
 publishDate: 2025-2-15
 description: 房地产软着陆已经是最好的结局。
