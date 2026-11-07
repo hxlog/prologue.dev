@@ -1,6 +1,5 @@
 ---
 title: 经济评论不是想当然
-featured: true
 tags: ["Economics", "Quant", "Finance"]
 publishDate: 2024-12-14
 lastmod: 2024-12-25

@@ -14,6 +14,9 @@
 /.obsidian/
 /data/.obsidian/
 
+# OpenIDE per-user state — local only, never committed
+/.openidea/
+
 # generated search index (rebuilt on every build; must not ship to the template snapshot)
 /public/search-index.json
 

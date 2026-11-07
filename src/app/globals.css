@@ -1576,6 +1576,23 @@ html:not(.theme-vt)::view-transition-old(root) {
     max-width: 76ch;
   }
 }
+/* Table cells inherit `word-break: break-word` from <html> (base layer), which
+   is a legacy alias for `overflow-wrap: anywhere` -- and "anywhere" IS counted
+   when the browser computes min-content. The typography plugin sizes tables with
+   `width: 100%; table-layout: auto`, so every cell's min-content collapsed to a
+   single glyph and the auto layout algorithm was free to starve a short column:
+   on the 4-column tool comparison in
+   /blog/2026-how-do-i-use-deepseek-harness the first column measured 41.4px and
+   "Codex" broke mid-word into "Cod / ex". Restoring word-level breaking puts
+   min-content back at "longest word" -- the same column now measures 61.7px and
+   "Claude Code" wraps at the space (2 lines) instead of inside words (4 lines).
+   `overflow-wrap: break-word` is the load-bearing choice: unlike `anywhere` it
+   is NOT consulted for min-content, yet still breaks a genuinely unbreakable
+   string (a bare URL) when it does not fit. */
+.prose :where(th, td):not(.not-prose *) {
+  word-break: normal;
+  overflow-wrap: break-word;
+}
 /* Section headings carry a pastel marker instead of only whitespace: on a long
    CJK article the reader needs to find section boundaries while scrolling, and
    a rule alone disappears into the text block. */
