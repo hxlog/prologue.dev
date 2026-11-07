@@ -10,7 +10,7 @@ import { absolutize, postUrl, siteUrl } from "./urls";
 
 const AUTHOR = {
   name: siteMetadata.author,
-  email: "hello@prologue.dev",
+  email: siteMetadata.feedEmail,
   link: `${siteUrl()}/about`,
 };
 
@@ -74,9 +74,9 @@ export async function createFeed(feedUpdated = new Date()) {
     language: siteMetadata.language,
     favicon: `${site}${siteMetadata.favicon}`,
     image: `${site}${siteMetadata.avatar}`,
-    copyright: "CC BY-NC-SA 4.0",
+    copyright: siteMetadata.copyright,
     updated: feedUpdated,
-    generator: "prologue.dev feed pipeline",
+    generator: siteMetadata.feedGenerator,
     ttl: 60,
     feedLinks: {
       rss: `${site}/rss`,

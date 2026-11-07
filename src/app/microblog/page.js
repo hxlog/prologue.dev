@@ -13,16 +13,15 @@ import {
   buildMetadata,
   defaultOgImage,
 } from "../../lib/seo";
-
-const DESCRIPTION = "槐序的微博：碎片化的思考、图文与随想。";
+import siteMetadata from "../../../data/sitemetadata";
 
 export async function generateMetadata() {
   return buildMetadata({
-    title: "微博 Microblog",
-    description: DESCRIPTION,
+    title: siteMetadata.pages.microblog.title,
+    description: siteMetadata.pages.microblog.description,
     path: "/microblog",
     type: "website",
-    image: defaultOgImage("微博 Microblog"),
+    image: defaultOgImage(siteMetadata.pages.microblog.title),
     feedTypes: {
       ...FEED_TYPES,
       "application/rss+xml": [
@@ -46,14 +45,15 @@ export const ensureStatic = "shell";
 
 export default async function MicroblogPage() {
   const entries = getMicroblog();
+  const page = siteMetadata.pages.microblog;
   const url = absoluteUrl("/microblog");
 
   return (
     <RouteTransition>
       <JsonLd
         data={collectionPageJsonLd({
-          title: "微博 Microblog",
-          description: DESCRIPTION,
+          title: page.title,
+          description: page.description,
           url,
           about: false,
           items: entries.map((entry) => ({
@@ -65,17 +65,17 @@ export default async function MicroblogPage() {
       <JsonLd
         data={breadcrumbJsonLd([
           { name: "首页", path: "/" },
-          { name: "微博", path: "/microblog" },
+          { name: page.heading, path: "/microblog" },
         ])}
       />
       <PageTransition className="mx-auto max-w-2xl py-8">
         <header>
           <p className="eyebrow">Microblog</p>
           <h1 className="mt-2 text-h1 font-semibold tracking-tight text-foreground">
-            微博
+            {page.heading}
           </h1>
           <p className="mt-2 pb-8 text-sm text-muted">
-            碎片化的思考、图文与随想。
+            {page.description}
           </p>
         </header>
         <MicroblogTimeline entries={entries} />

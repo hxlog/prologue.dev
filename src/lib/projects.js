@@ -1,3 +1,4 @@
+import siteMetadata from "../../data/sitemetadata";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { parse } from "yaml";
@@ -63,7 +64,7 @@ async function fetchStats(repo) {
     const response = await fetch(API + repo, {
       headers: {
         Accept: "application/vnd.github+json",
-        "User-Agent": "prologue.dev-portfolio",
+        "User-Agent": `${siteMetadata.siteRepo}-portfolio`,
       },
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });

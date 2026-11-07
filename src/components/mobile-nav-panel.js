@@ -18,11 +18,12 @@ const PANEL_BASE =
  */
 export default function MobileNavPanel({ open, onClose }) {
   const itemRefs = useRef([]);
+  const focusItem = (element) => element?.focus({ preventScroll: true });
 
   useEffect(() => {
     if (!open) return undefined;
     const frame = requestAnimationFrame(() => {
-      itemRefs.current[0]?.focus();
+      focusItem(itemRefs.current[0]);
     });
     return () => cancelAnimationFrame(frame);
   }, [open]);
@@ -39,31 +40,31 @@ export default function MobileNavPanel({ open, onClose }) {
     }
     if (event.key === "ArrowDown") {
       event.preventDefault();
-      items[(current + 1 + items.length) % items.length]?.focus();
+      focusItem(items[(current + 1 + items.length) % items.length]);
       return;
     }
     if (event.key === "ArrowUp") {
       event.preventDefault();
-      items[(current - 1 + items.length) % items.length]?.focus();
+      focusItem(items[(current - 1 + items.length) % items.length]);
       return;
     }
     if (event.key === "Home") {
       event.preventDefault();
-      items[0]?.focus();
+      focusItem(items[0]);
       return;
     }
     if (event.key === "End") {
       event.preventDefault();
-      items[items.length - 1]?.focus();
+      focusItem(items[items.length - 1]);
       return;
     }
     if (event.key === "Tab") {
       if (event.shiftKey && current <= 0) {
         event.preventDefault();
-        items[items.length - 1]?.focus();
+        focusItem(items[items.length - 1]);
       } else if (!event.shiftKey && current === items.length - 1) {
         event.preventDefault();
-        items[0]?.focus();
+        focusItem(items[0]);
       }
     }
   };

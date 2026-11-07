@@ -62,6 +62,13 @@ test.describe("SEO output", () => {
     expect(fullText).toContain("## Microblog");
   });
 
+  test("person JSON-LD includes the configured Zhihu profile", async ({ request }) => {
+    const html = await (await request.get("/")).text();
+    const graph = jsonLdBlocks(html).find((entry) => entry["@graph"])?.["@graph"];
+    const person = graph?.find((entry) => entry["@type"] === "Person");
+    expect(person?.sameAs).toContain("https://www.zhihu.com/people/xingyu7");
+  });
+
   test("collection pages expose ItemList JSON-LD", async ({ request }) => {
     for (const path of ["/blog", "/tags/Economics", "/microblog", "/links"]) {
       const response = await request.get(path);

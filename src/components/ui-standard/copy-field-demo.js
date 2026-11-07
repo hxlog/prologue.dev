@@ -9,7 +9,7 @@ import { useCopy } from "../../lib/use-copy";
  */
 export default function CopyFieldDemo() {
   const { state, copy } = useCopy();
-  const value = String(siteMetadata.siteUrl || "https://prologue.dev").replace(/\/+$/, "") + "/rss";
+  const value = String(siteMetadata.siteUrl || "").replace(/\/+$/, "") + "/rss";
 
   return (
     <div className="copy-field">

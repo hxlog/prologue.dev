@@ -11,16 +11,15 @@ import {
   collectionPageJsonLd,
 } from "../../lib/structured-data";
 import { absoluteUrl, buildMetadata, defaultOgImage } from "../../lib/seo";
-
-const DESCRIPTION = "但愿十年后的某天，这些链接仍存活，与各位作者共勉。";
+import siteMetadata from "../../../data/sitemetadata";
 
 export async function generateMetadata() {
   return buildMetadata({
-    title: "友情链接 Friend Links",
-    description: DESCRIPTION,
+    title: siteMetadata.pages.links.title,
+    description: siteMetadata.pages.links.description,
     path: "/links",
     type: "website",
-    image: defaultOgImage("友情链接"),
+    image: defaultOgImage(siteMetadata.pages.links.heading),
   });
 }
 
@@ -46,14 +45,15 @@ export default async function LinksPage() {
   const offset = await getRotationOffset(data.length);
   const friends = offset ? [...data.slice(offset), ...data.slice(0, offset)] : data;
 
+  const page = siteMetadata.pages.links;
   const url = absoluteUrl("/links");
 
   return (
     <RouteTransition>
       <JsonLd
         data={collectionPageJsonLd({
-          title: "友情链接",
-          description: DESCRIPTION,
+          title: page.heading,
+          description: page.description,
           url,
           about: false,
           items: friends.map((friend) => ({
@@ -65,7 +65,7 @@ export default async function LinksPage() {
       <JsonLd
         data={breadcrumbJsonLd([
           { name: "首页", path: "/" },
-          { name: "友情链接", path: "/links" },
+          { name: page.heading, path: "/links" },
         ])}
       />
       <PageTransition>

@@ -46,7 +46,7 @@ const MobileNav = () => {
   }, [preload]);
 
   useEffect(() => {
-    if (wasOpen.current && !open) buttonRef.current?.focus();
+    if (wasOpen.current && !open) buttonRef.current?.focus({ preventScroll: true });
     wasOpen.current = open;
   }, [open]);
 

@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import Comments from "./comments";
 import TenYearsLink from "./ten-years-link";
+import siteMetadata from "../../data/sitemetadata";
 
 /**
  * Friend links. A Server Component on purpose: the list arrives already ordered
@@ -18,10 +19,10 @@ export default function FriendLinks({ friends }) {
     <div className="py-12">
       <p className="eyebrow mx-auto w-fit">Friends</p>
       <h1 className="pt-2 text-center text-h1 font-semibold tracking-tight text-foreground">
-        友情链接
+        {siteMetadata.pages.links.heading}
       </h1>
       <p className="pb-12 pt-3 text-center text-sm text-muted">
-        但愿十年后的某天，这些链接仍存活，与各位作者共勉。
+        {siteMetadata.pages.links.description}
       </p>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -58,7 +59,10 @@ export default function FriendLinks({ friends }) {
 
       <p className="mt-8 py-8 text-center text-sm text-muted">
         如有意交换友链，请
-        <Link className="link mx-1" href="https://github.com/hxlog/prologue.dev/edit/master/data/links.yaml">
+        <Link
+          className="link mx-1"
+          href={`https://github.com/${siteMetadata.github}/${siteMetadata.siteRepo}/edit/master/data/links.yaml`}
+        >
           在Github上编辑links.yaml提PR
         </Link>
         或在评论区告知：）

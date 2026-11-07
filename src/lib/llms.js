@@ -25,7 +25,8 @@ export function buildLlmsIndex() {
     "",
     "> " + siteMetadata.description,
     "",
-    "A personal blog about economics, sociology, technology and ordinary life. All canonical pages are in the sitemap; the full text is in /llms-full.txt and the RSS/Atom/JSON feeds.",
+    siteMetadata.pages.llms.description +
+      " All canonical pages are in the sitemap; the full text is in /llms-full.txt and the RSS/Atom/JSON feeds.",
     "",
     "## Feeds",
     "- RSS: " + absoluteUrl("/rss"),

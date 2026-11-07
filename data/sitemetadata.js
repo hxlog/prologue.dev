@@ -17,6 +17,13 @@ const siteMetadata = {
   cover: "/static/favicons/cover.png",
   email: "xingyuliu@outlook.sg",
   github: "hxlog",
+  zhihu: "https://www.zhihu.com/people/xingyu7",
+  copyright: "CC BY-NC-SA 4.0",
+  copyrightUrl: "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+  feedEmail: "hello@prologue.dev",
+  feedGenerator: "prologue.dev feed pipeline",
+  blogLabel: "博客",
+  microblogFeedGenerator: "prologue.dev microblog feed",
 
   // optional
   umami: {
@@ -26,6 +33,59 @@ const siteMetadata = {
     domains: "prologue.dev",
   },
   wechatofficialaccount: "槐序的序章",
+
+  // Page-level copy and labels. Runtime routes read these instead of carrying
+  // owner-specific strings in code; template data supplies its own values.
+  pages: {
+    archive: {
+      title: "归档",
+      description: "All posts here! 所有文章在这里！",
+    },
+    microblog: {
+      title: "微博 Microblog",
+      heading: "微博",
+      description: "槐序的微博：碎片化的思考、图文与随想。",
+    },
+    links: {
+      title: "友情链接 Friend Links",
+      heading: "友情链接",
+      description: "但愿十年后的某天，这些链接仍存活，与各位作者共勉。",
+    },
+    ui: {
+      title: "UI 标准 / UI Standard",
+      heading: "设计系统与 UI 标准",
+      description:
+        "prologue.dev 的颜色、字体、形状、动效与组件标准：本页直接读取生产 CSS，与实际站点同源。",
+      projects: [
+        {
+          name: "Balanced Portfolio",
+          description:
+            "机构级投资管理工具：全天候风险平价组合与回测、股指期货统计看板、场外期权定价。",
+          repo: "hxlog/balanced-portfolio",
+          stars: "48",
+          forks: "25",
+        },
+        {
+          name: "Prologue",
+          description: "这个站点本身：内容优先的 Next.js 博客。",
+          repo: "hxlog/prologue.dev",
+          stars: "41",
+          forks: "10",
+        },
+        {
+          name: "DSH MCP Tools",
+          description: "DeepSeek Harness 的 MCP 管理器。",
+          repo: "hxlog/dsh-mcp-tools",
+          stars: "3",
+          forks: "0",
+        },
+      ],
+    },
+    llms: {
+      description:
+        "A personal blog about economics, sociology, technology and ordinary life.",
+    },
+  },
 };
 
 export const siteRepo = siteMetadata.siteRepo;

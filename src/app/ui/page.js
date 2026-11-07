@@ -12,9 +12,7 @@ import TenYearsLink from "../../components/ten-years-link";
 import JsonLd from "../../components/json-ld";
 import { breadcrumbJsonLd, webPageJsonLd } from "../../lib/structured-data";
 import { absoluteUrl, buildMetadata, defaultOgImage } from "../../lib/seo";
-
-const UI_DESCRIPTION =
-  "prologue.dev 的颜色、字体、形状、动效与组件标准：本页直接读取生产 CSS，与实际站点同源。";
+import siteMetadata from "../../../data/sitemetadata";
 
 /**
  * /ui — the living UI standard.
@@ -27,12 +25,15 @@ const UI_DESCRIPTION =
  * row in the GROUPS arrays below.
  */
 
+const UI = siteMetadata.pages.ui;
+const SITE_HOST = String(siteMetadata.siteUrl || "").replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+
 export const metadata = buildMetadata({
-  title: "UI 标准 / UI Standard",
-  description: UI_DESCRIPTION,
+  title: UI.title,
+  description: UI.description,
   path: "/ui",
   type: "website",
-  image: defaultOgImage("UI 标准"),
+  image: defaultOgImage(UI.heading),
 });
 
 /* Cache Components gates (Next 16.4) — same contract as the other static pages:
@@ -132,21 +133,21 @@ export default function UiStandardPage() {
       <PageTransition className="mx-auto max-w-6xl py-8">
         <JsonLd
           data={webPageJsonLd({
-            title: "UI 标准 / UI Standard",
-            description: UI_DESCRIPTION,
+            title: UI.title,
+            description: UI.description,
             url: absoluteUrl("/ui"),
           })}
         />
         <JsonLd
           data={breadcrumbJsonLd([
             { name: "首页", path: "/" },
-            { name: "UI 标准", path: "/ui" },
+            { name: UI.heading, path: "/ui" },
           ])}
         />
         <header>
           <p className="eyebrow">UI Standard · v1</p>
           <h1 className="mt-2 text-h1 font-semibold tracking-tight text-foreground sm:text-display">
-            设计系统与 UI 标准
+            {UI.heading}
           </h1>
           <p className="mt-3 max-w-3xl text-lead leading-8 text-muted">
             颜色、字体、形状、动效、组件与交互的唯一事实来源。本页的每个色板、每个数值都直接读取生产
@@ -424,7 +425,7 @@ export default function UiStandardPage() {
                 style={{ backgroundImage: "var(--gradient-brand)" }}
               >
                 <div className="glass-header absolute inset-x-0 top-0 flex items-center justify-between gap-3 px-3 py-2">
-                  <span className="text-sm font-semibold text-foreground">prologue.dev</span>
+                  <span className="text-sm font-semibold text-foreground">{SITE_HOST}</span>
                   <div className="flex items-center gap-1">
                     <span className="nav-item">归档</span>
                     <span className="nav-item">关于</span>
@@ -483,7 +484,7 @@ export default function UiStandardPage() {
                     <span className="search-result-dot" />
                     <span className="search-result-title">关于作者</span>
                     <span className="search-result-snippet">
-                      作者槐序，00 后，梦想成为自由职业者。
+                      作者{siteMetadata.author}，{siteMetadata.authorDesc}。
                     </span>
                     <span className="search-result-meta">页面</span>
                   </a>
@@ -539,11 +540,7 @@ export default function UiStandardPage() {
               note="Portfolio（/about 正文之后）；复用 .card + card-interactive + card-spotlight。全部卡片等宽两列，没有精选位，也没有额外的超链接按钮——整张卡就是仓库链接。"
             >
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                {[
-                  ["Balanced Portfolio", "机构级投资管理工具：全天候风险平价组合与回测、股指期货统计看板、场外期权定价。", "hxlog/balanced-portfolio", "48", "25"],
-                  ["Prologue", "这个站点本身：内容优先的 Next.js 博客。", "hxlog/prologue.dev", "41", "10"],
-                  ["DSH MCP Tools", "DeepSeek Harness 的 MCP 管理器。", "hxlog/dsh-mcp-tools", "3", "0"],
-                ].map(([name, desc, repo, stars, forks]) => (
+                {UI.projects.map(({ name, description, repo, stars, forks }) => (
                   <a
                     key={repo}
                     href={`https://github.com/${repo}`}
@@ -554,7 +551,7 @@ export default function UiStandardPage() {
                     <p className="card-title text-lg font-semibold leading-7 tracking-tight text-foreground">
                       {name}
                     </p>
-                    <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted">{desc}</p>
+                    <p className="mt-2 line-clamp-3 text-sm leading-6 text-muted">{description}</p>
                     <div className="mt-auto flex items-center justify-between gap-3 pt-5 text-xs text-faint">
                       <span className="truncate font-mono text-[0.7rem]">{repo}</span>
                       <span className="shrink-0">

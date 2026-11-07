@@ -209,11 +209,11 @@ async function PostView({ params }) {
 
             <div className="not-prose mt-10 flex flex-wrap items-center justify-between gap-4 border-t border-border pt-6 text-sm text-faint">
               <Link
-                href="https://creativecommons.org/licenses/by-nc-sa/4.0/"
+                href={siteMetadata.copyrightUrl}
                 target="_blank"
                 className="transition-colors duration-(--duration-fast) hover:text-accent"
               >
-                CC BY-NC-SA 4.0
+                {siteMetadata.copyright}
               </Link>
               <Link
                 href={`https://github.com/${siteMetadata.github}/${siteMetadata.siteRepo}/blob/master/data/content${post.urlslug}.md`}

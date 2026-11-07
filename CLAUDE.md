@@ -60,6 +60,8 @@ Frontmatter is validated **loudly**: a mistyped `draft: "false"` (which is what 
 
 `data/headerNavLinks.js` is a `.js` file for the same client-component reason.
 
+`data/sitemetadata.js` is the single source for owner/site identity: title, author, description, avatar/cover, email/feed email, GitHub, optional Zhihu, license, feed generator, and the page-level copy under `pages` (archive, microblog, links, ui, llms). Runtime code reads these fields; optional social values such as `zhihu` are rendered only when defined. The public template uses generic values and an empty `zhihu`. Do not reintroduce owner-specific strings into `src/`; add a field to `data/sitemetadata.js` (and the matching `template/data/sitemetadata.js` when it is a starter setting) instead.
+
 ## Markdown pipeline & Mermaid
 
 Configured in `src/lib/content/pipeline.js` (remark: gfm, math, gemoji; rehype: katex, slug, custom `rehype-figure`, custom `rehype-mermaid-pre`, shiki, stringify). The custom rehype plugins live in `src/components/`.

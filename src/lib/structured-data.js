@@ -45,13 +45,16 @@ export function siteGraph() {
         url: absoluteUrl("/about"),
         image: absolutize(siteMetadata.avatar),
         description: siteMetadata.authorDesc,
-        sameAs: [`https://github.com/${siteMetadata.github}`],
+        sameAs: [
+          `https://github.com/${siteMetadata.github}`,
+          siteMetadata.zhihu,
+        ].filter(Boolean),
       },
       {
         "@type": "Blog",
         "@id": BLOG_ID,
         url: absoluteUrl("/blog"),
-        name: `${SITE_NAME} · 博客`,
+        name: `${SITE_NAME} · ${siteMetadata.blogLabel}`,
         description: siteMetadata.description,
         inLanguage: LANGUAGE,
         isPartOf: websiteRef(),

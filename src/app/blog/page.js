@@ -8,6 +8,7 @@ import {
   collectionPageJsonLd,
 } from "../../lib/structured-data";
 import { absoluteUrl, buildMetadata, siteImage } from "../../lib/seo";
+import siteMetadata from "../../../data/sitemetadata";
 
 /* Cache Components gates (Next 16.4).
    - instant = true: assert that a navigation into this route paints UI
@@ -27,13 +28,14 @@ export default function Blog() {
     compareDesc(new Date(a.publishDate), new Date(b.publishDate))
   );
 
+  const page = siteMetadata.pages.archive;
   const url = absoluteUrl("/blog");
   return (
     <>
       <JsonLd
         data={collectionPageJsonLd({
-          title: "归档",
-          description: "All posts here! 所有文章在这里！",
+          title: page.title,
+          description: page.description,
           url,
           items: posts
             .filter((post) => post.draft !== true)
@@ -43,14 +45,14 @@ export default function Blog() {
       <JsonLd
         data={breadcrumbJsonLd([
           { name: "首页", path: "/" },
-          { name: "归档", path: "/blog" },
+          { name: page.title, path: "/blog" },
         ])}
       />
       <PostsLayout
         posts={posts}
         tagCounts={getTagCounts()}
         sortedTags={getSortedTags()}
-        title="归档"
+        title={page.title}
         subtitle={`共 ${posts.filter((p) => p.draft !== true).length} 篇文章`}
       />
     </>
@@ -58,9 +60,9 @@ export default function Blog() {
 }
 
 export const metadata = buildMetadata({
-  title: "归档",
-  description: "All posts here! 所有文章在这里！",
+  title: siteMetadata.pages.archive.title,
+  description: siteMetadata.pages.archive.description,
   path: "/blog",
   type: "website",
-  image: siteImage("归档"),
+  image: siteImage(siteMetadata.pages.archive.title),
 });

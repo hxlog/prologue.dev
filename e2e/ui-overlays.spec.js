@@ -38,6 +38,48 @@ test.describe("lazy navigation overlays", () => {
     await expect(page.getByText("联系我")).toBeVisible();
   });
 
+  test("mobile menu does not scroll the page", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/blog");
+    await page.evaluate(() => window.scrollTo(0, 700));
+    const before = await page.evaluate(() => window.scrollY);
+    const trigger = page.getByRole("button", { name: "Navigation" });
+    const box = await trigger.boundingBox();
+    // Use a real pointer click at the sticky button's viewport position:
+    // locator.click() scrolls the element into view itself and would make this
+    // test measure Playwright, not the app.
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    const menu = page.getByRole("menu");
+    await expect(menu).toBeVisible();
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(before);
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await expect(menu).toBeHidden();
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(before);
+  });
+
+  test("tag labels keep breathing room from their counts", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/blog");
+    const gap = await page.evaluate(() => {
+      const link = document.querySelector('nav[aria-label="标签"] a');
+      const spans = [...link.querySelectorAll("span")].map((span) =>
+        span.getBoundingClientRect()
+      );
+      return spans[1].left - spans[0].right;
+    });
+    expect(gap).toBeGreaterThanOrEqual(3.5);
+  });
+
+  test("footer exposes the configured Zhihu profile", async ({ page }) => {
+    await page.goto("/");
+    const zhihu = page.getByRole("link", { name: "知乎" });
+    await expect(zhihu).toBeVisible();
+    await expect(zhihu).toHaveAttribute(
+      "href",
+      "https://www.zhihu.com/people/xingyu7"
+    );
+  });
+
   test("mobile menu manages focus, arrows and Escape", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto("/");

@@ -67,7 +67,8 @@ export default function PostsLayout({
                       prefetch={false}
                       aria-current={active ? "page" : undefined}
                       data-active={active ? "true" : undefined}
-                      className="nav-item justify-between px-3"
+                      className="nav-item justify-between gap-1 px-3"
+                      aria-label={`${tagLabel(tag)}，${tagCounts[tag]} 篇文章`}
                     >
                       <span>{tagLabel(tag)}</span>
                       <span className="text-xs text-faint">

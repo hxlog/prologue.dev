@@ -39,26 +39,26 @@ export async function GET() {
   const entries = getMicroblog();
 
   const feed = new Feed({
-    title: `${siteMetadata.title} · 微博`,
-    description: `${siteMetadata.description}（微博：图文与随想）`,
+    title: `${siteMetadata.title} · ${siteMetadata.pages.microblog.heading}`,
+    description: siteMetadata.pages.microblog.description,
     id: `${SITE}/microblog`,
     link: `${SITE}/microblog`,
     language: siteMetadata.language,
     favicon: `${SITE}${siteMetadata.favicon}`,
     image: `${SITE}${siteMetadata.avatar}`,
-    copyright: "CC BY-NC-SA 4.0",
+    copyright: siteMetadata.copyright,
     // The feed's `updated` only has to be at least as new as its newest entry,
     // and the newest entry's date is right there. Falling back to "now" would
     // be a synchronous clock read, which Cache Components refuses to prerender
     // (the microblog has no entries only in a fresh template; then `updated`
     // is simply omitted, which RSS 2.0 allows).
     updated: entries[0] ? new Date(entries[0].date) : undefined,
-    generator: "prologue.dev microblog feed",
+    generator: siteMetadata.microblogFeedGenerator,
     ttl: 60,
     feedLinks: { rss: `${SITE}/microblog/rss` },
     author: {
       name: siteMetadata.author,
-      email: "hello@prologue.dev",
+      email: siteMetadata.feedEmail,
       link: `${SITE}/about`,
     },
   });
