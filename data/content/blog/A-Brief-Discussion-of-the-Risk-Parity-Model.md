@@ -1,7 +1,7 @@
 ---
 title: 浅谈风险平价模型
 featured: true
-image: /static/images/assets_return_chart.png
+image: /static/opt/assets_return_chart-aa1e660c.avif
 imageDesc: 中国大陆版风险平价模型选取的16个大类资产对应的收益率情况
 tags: ["Finance", "Quant", "Economics"]
 publishDate: 2025-08-05
@@ -35,7 +35,7 @@ description: 看似不带任何“市场偏见”的风险平价模型本身已�
 - 三个策略：象限间风险平价、象限间最大化夏普比例、象限内最大夏普+象限间风险平价
 - 回测设定：交易费用万分之二，夏普比例的无风险利率是年化1.5%，没有考虑期间内任何分红收益，持仓不超过100%总资产
 
-![不同资产之间相关系数](/static/images/corr_matrix.png)
+![不同资产之间相关系数](/static/opt/corr_matrix-9d358f8b.avif)
 
 根据这个协方差我们可以把资产分割成几组相对独立的资产：黄金、国债、商品、红利、国内宽基、海外宽基。
 
@@ -48,7 +48,7 @@ description: 看似不带任何“市场偏见”的风险平价模型本身已�
 
 （象限内做最大化夏普优化，资产类别选择因人而异；中国作为制造大国自然通缩倾向，对于国内资产通胀是否超预期不是一个很好的分类指标）
 
-![每季度调仓，回溯过去半年，回测结果](/static/images/backtest_results.png)
+![每季度调仓，回溯过去半年，回测结果](/static/opt/backtest_results-41bead7b.avif)
 
 最近一期资产配置 (2025-06-30)：
 

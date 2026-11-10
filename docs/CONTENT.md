@@ -160,6 +160,25 @@ in the page, the lightbox and the RSS feed — there is no second form to keep i
 sync. The one place the path does not resolve is Obsidian's own preview, for
 the reason in [Why the vault root is `data/`](#why-the-vault-root-is-data).
 
+### Replacing an image means replacing its URL
+
+Browsers and the CDN cache images for a long time, so **never overwrite a
+published image in place and expect readers to see the new one**:
+
+1. Put the new file under `public/static/images/` (or `public/static/opt/`).
+2. Update the markdown reference to the new path.
+
+`public/static/opt/` holds the content-hashed derivatives produced by
+`node scripts/optimize-images.mjs --apply` (AVIF for stills at native pixel
+size, animated WebP for GIFs). Those URLs are served with
+`max-age=31536000, immutable`; everything else under `/static/` gets a
+7-day window. Both are keyed by URL, so a new filename is what publishes a new
+picture.
+
+Images are never upscaled or downscaled by that script: the lightbox upgrades to
+the largest `srcset` candidate, so the source file's pixel width is the
+sharpness ceiling for a zoomed view.
+
 ## Frontmatter fields
 
 | Field | Type | Required | Notes |

@@ -63,6 +63,9 @@ export default function MicroblogEntry({ entry, compact = false }) {
                         : "(min-width: 1024px) 42rem, (min-width: 640px) 70vw, 78vw"
                     }
                     className="lightbox-image object-cover"
+                    // Same reason as the article renderer: the optimizer rejects
+                    // SVG and would flatten an animated bitmap to one frame.
+                    unoptimized={/\.svg$/i.test(image.src) || /\.gif$/i.test(image.src)}
                   />
                   <figcaption className="sr-only">
                     {image.desc || image.src}

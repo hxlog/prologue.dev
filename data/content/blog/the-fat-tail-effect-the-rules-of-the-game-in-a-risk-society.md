@@ -57,7 +57,7 @@ Ulrich Beck《风险社会》的背景：自工业社会以来，社会生产出
 
 牛市预期的破产概率、气候变暖人类生存的概率、恐怖主义动乱的概率等等。
 
-![Childish Empiricism](/static/images/Childish-Empiricism.png)
+![Childish Empiricism](/static/opt/Childish-Empiricism-59fa8059.avif)
 
 **恐惧带来安全，经验主义根于认知偏差和“实证”。**
 
@@ -93,7 +93,7 @@ $$
 
 只要出现超过$4\sigma$就可以拒绝高斯分布的假设。
 
-![x and F(x)](/static/images/x-and-Fx.png)
+![x and F(x)](/static/opt/x-and-Fx-6ca4284a.avif)
 
 现实中$x$是不可控的，但$F(x)$部分可控。
 

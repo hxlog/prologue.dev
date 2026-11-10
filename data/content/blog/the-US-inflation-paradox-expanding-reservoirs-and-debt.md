@@ -251,7 +251,7 @@ Degrees of freedom: model 3.948 , variance 3.899 , residual 3.998
 
 既然 M2 和 CPI 的关系在金本位时期是存在的，说明货币数量主义是没错的，但巨大的货币供应量却投入到非实体经济部门，货币就像是消失了，尤其是 2021 年的 Defi Summer，无处安放的货币竟然找加密货币作为蓄水池，但确信的是，只要没发生明斯基时刻且美联储的货币工具仍有效，继续增长从中国进口大量廉价商品的数量，就难以出现真正的恶性通胀。
 
-![global-debt-imf.jpg](/static/images/global-debt-imf.jpg)
+![global-debt-imf.jpg](/static/opt/global-debt-imf-90b70376.avif)
 
 COVID-19 导致全球债务新高，据坊间消息，美国抗疫公共卫生部门就 2020 年一年就花了 10%的 GDP，这大大推动了 AD 曲线，后面会详细谈到。
 
@@ -271,7 +271,7 @@ COVID-19 导致全球债务新高，据坊间消息，美国抗疫公共卫生�
 
 ## AD-AS 模型
 
-![inflation-ad-as.png](/static/images/inflation-ad-as.png)
+![inflation-ad-as.png](/static/opt/inflation-ad-as-f6ffdbe2.avif)
 
 在 AD-AS 模型中，通货膨胀的四个驱动因素对商品市场和服务市场的影响分别进行了描述。首先，随着经济沿着商品市场短期供应曲线的陡峭部分移动，供应链瓶颈开始显现。其次，商品偏好的转变导致商品市场的 AD 曲线右移，服务市场的 AD 曲线左移。第三，强有力的财政刺激导致两个市场的 AD 曲线右移。第四，随着投入成本上升，劳动力供应以及大宗商品和食品价格的冲击导致两个市场的 AS 曲线左移。
 

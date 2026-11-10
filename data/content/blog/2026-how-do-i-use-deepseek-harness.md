@@ -3,7 +3,7 @@ title: 烧了一百亿Token后的Harness Agent交互感想
 tags: ["AI"]
 featured: true
 publishDate: 2026-11-10
-image: /static/images/deepseek-token-bill-220610.png
+image: /static/opt/deepseek-token-bill-220610-779e93a6.avif
 imageDesc: 半个月烧了一百亿Token
 description: 模型能力已经超乎常人，但普通人仍然难以驾驭这种能力。
 ---
@@ -22,7 +22,7 @@ description: 模型能力已经超乎常人，但普通人仍然难以驾驭这�
 
 海外模型的试错与折腾成本太高，所以我在实际项目中基本都是用Deepseek V4.1 Flash 1017模型 和 Deepseek Harness（简称DSH）作为脚手架，我认为这是最适合学习与试错的架构，无需担心天价账单，可玩性高。实际上我还是有开IDE去看实际代码改动（实在是不放心，对模型没信心），AI一旦往错误的方向挖坑，必须及时提示，否则浪费时间和token。
 
-![烧了141亿token，只花费567元，基本上是在下班后用的，所以都是按空闲时段（每百万token输出4元）收费](/static/images/deepseek-token-bill-220610.png)
+![烧了141亿token，只花费567元，基本上是在下班后用的，所以都是按空闲时段（每百万token输出4元）收费](/static/opt/deepseek-token-bill-220610-779e93a6.avif)
 
 注：本文内容是基于2026年11月时间节点完成的，技术发展日新月异，注意时效性，不代表在未来有参考价值。
 
@@ -60,19 +60,19 @@ description: 模型能力已经超乎常人，但普通人仍然难以驾驭这�
 
 我让AI帮我生成了一套[包含颜色方案、组件样式、交互的UI标准](https://puirologue.dev/ui)，重构了全局UI：
 
-![新博客首页界面](/static/images/blog_new_home_screenshot.png)
+![新博客首页界面](/static/opt/blog_new_home_screenshot-69192847.avif)
 
-![文章或微博卡片效果，偏二次元风格](/static/images/blog_card_hover_view.png)
+![文章或微博卡片效果，偏二次元风格](/static/opt/blog_card_hover_view-8db0b189.avif)
 
-![颜色方案中在白天与黑暗模式下的的渐变与hover颜色](/static/images/blog_color_profile_1.png)
+![颜色方案中在白天与黑暗模式下的的渐变与hover颜色](/static/opt/blog_color_profile_1-b46920c3.avif)
 
-![component组件样式](/static/images/blog_component_example.png)
+![component组件样式](/static/opt/blog_component_example-4f5b4272.avif)
 
 我不会让Agent直接帮我改，必须是先生成改动样式的变体，形成有多个变体的html，选择其中一个确认好了再改代码。建议配合`anthropics/skills`的`frontend-design`skill使用。
 
 接入[Next.js的MCP](https://nextjs.org/docs/app/guides/mcp)可直接查询文档内容，以及[cache component改进等skills](https://nextjs.org/docs/app/guides/ai-agents)能迁移到Nextjs团队新出的cache component和partial prefetching等新特征，能提高任务的交付程度，再也不用担心因上游各种breanking change做适配。最终交付完成度得到显著提升，原理也很简单：**提供高置信度且对当前项目有紧密关系的上下文**。
 
-![给博客做了基于文章索引和route handler的全站搜索功能](/static/images/Search-Feature-Screenshot.png)
+![给博客做了基于文章索引和route handler的全站搜索功能](/static/opt/Search-Feature-Screenshot-f2fc696b.avif)
 
 ## 量化想法验证
 

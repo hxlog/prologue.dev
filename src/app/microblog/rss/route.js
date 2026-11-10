@@ -1,17 +1,20 @@
-import { statSync } from "node:fs";
-import path from "node:path";
 import { Feed } from "feed";
 import siteMetadata from "../../../../data/sitemetadata";
+import { IMAGE_SIZES } from "../../../../data/image-sizes.js";
 import { getMicroblog, entryToHtml } from "../../../lib/microblog";
 import { finalizeRss } from "../../../lib/feed/finalize";
 
 const SITE = String(siteMetadata.siteUrl || "").replace(/\/+$/, "");
 
+// .avif is included because microblog images were recompressed to .avif/.webp.
+// .svg stays out on purpose: the feed library would emit an enclosure readers
+// cannot render (same rule as src/lib/feed/build-feed.js).
 const IMAGE_MIME = {
   jpg: "image/jpeg",
   jpeg: "image/jpeg",
   png: "image/png",
   webp: "image/webp",
+  avif: "image/avif",
   gif: "image/gif",
 };
 
@@ -21,13 +24,13 @@ function enclosureFor(src) {
   const ext = image.split(".").pop().toLowerCase();
   const type = IMAGE_MIME[ext];
   if (!type) return undefined;
-  try {
-    const { size } = statSync(path.join(process.cwd(), "public", image));
-    if (!size) return undefined;
-    return { url: `${SITE}${image}`, type, length: size };
-  } catch {
-    return undefined;
-  }
+  // Byte length from the build-generated manifest, not statSync(). A runtime
+  // fs/path read of public/ is invisible to @vercel/nft, so the tracer shipped
+  // the whole public/ tree into this function's bundle. See
+  // src/lib/feed/build-feed.js coverEnclosure() for the same change.
+  const entry = IMAGE_SIZES[image];
+  if (!entry || !entry.bytes) return undefined;
+  return { url: `${SITE}${image}`, type, length: entry.bytes };
 }
 
 /**

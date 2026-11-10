@@ -16,12 +16,20 @@ const nextConfig = {
   // Vercel injects VERCEL_DEPLOYMENT_ID; undefined locally, which disables it.
   deploymentId: process.env.VERCEL_DEPLOYMENT_ID,
 
-  // The instant-navigation testing API is enabled only for the e2e build.
-  // A normal `yarn build` (and every deployment) omits the experimental key
-  // entirely instead of serialising it as false.
-  ...(process.env.EXPOSE_TESTING_API === "1"
-    ? { experimental: { exposeTestingApiInProductionBuild: true } }
-    : {}),
+  // 15-minute client router cache. Every card here is `prefetch={true}`, so the
+  // 5-minute default makes a long reading session re-fetch the same prefetched
+  // RSC payloads from the server every five minutes. Content only changes on
+  // deploy, and `deploymentId` scopes the router cache to one build, so a longer
+  // window cannot mix two builds.
+  //
+  // The instant-navigation testing API is enabled only for the e2e build; a
+  // normal `yarn build` omits that key entirely instead of serialising it false.
+  experimental: {
+    staleTimes: { static: 900 },
+    ...(process.env.EXPOSE_TESTING_API === "1"
+      ? { exposeTestingApiInProductionBuild: true }
+      : {}),
+  },
 
   images: {
     formats: ["image/avif", "image/webp"],
@@ -35,10 +43,48 @@ const nextConfig = {
     // display in the browser. This replaces the previous triple workaround
     // (middleware.js + vercel.json + headers() overrides).
     contentDispositionType: 'inline',
-    // Optimized image URLs carry a content hash, so a long edge/browser cache is
-    // safe (Next's default is 60s, which re-runs the optimizer on every repeat
-    // view of an unchanged file). 31 days.
+    // Storyfile URLs are *not* content-hashed by Next — the query string only
+    // carries url/w/q. A long TTL is therefore only safe because every image this
+    // site serves is either named with a content hash (public/static/opt/**) or
+    // is a build asset that changes with the deploy. Replacing an image means
+    // replacing its URL; see docs/CONTENT.md.
     minimumCacheTTL: 2678400
+  },
+
+  // Long-lived browser caching for the immutable, content-hashed derivatives.
+  // The un-hashed originals keep a shorter window: replacing one of those in
+  // place is the one case where a reader can still hold a stale copy.
+  async headers() {
+    return [
+      {
+        source: '/static/opt/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      {
+        source: '/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=604800, stale-while-revalidate=2592000',
+          },
+        ],
+      },
+    ];
+  },
+
+  // Content images are served straight from the CDN and are only ever named in
+  // markdown/JS data — nothing reads them from the function filesystem any more
+  // (the markdown pipeline and the feeds resolve through data/image-sizes.js).
+  // Keeping them out of the traces removes ~27 MB from every serverless bundle;
+  // favicons/ and avatars/ stay traced because /og and the site metadata read them.
+  outputFileTracingExcludes: {
+    '/*': [
+      './public/static/images/**',
+      './public/static/photos/**',
+      './public/static/opt/**',
+    ],
   },
 
   // The OG route reads the author avatar from disk at runtime to inline it in
@@ -46,7 +92,9 @@ const nextConfig = {
   // built from `process.cwd()`, so without this the file is absent from the
   // deployed function and every card would fall back to the initial letter.
   outputFileTracingIncludes: {
-    '/og': ['./public/static/favicons/avatar.png'],
+    // The OG card reads its subset fonts, glyph table and pre-scaled avatar from
+    // assets/og/ with a runtime-computed path, so the tracer cannot follow it.
+    '/og': ['./assets/og/**', './public/static/favicons/avatar.png'],
     // /api/search reads the generated corpus from disk on first request. It is
     // built by scripts/build-search-index.mjs, which the tracer cannot see
     // through, so the file must be included explicitly or the deployed function

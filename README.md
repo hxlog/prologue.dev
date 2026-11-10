@@ -24,15 +24,15 @@ A content-first blog built with Next.js 16 and an in-repo filesystem content lay
 
 ## Preview
 
-![首页与文章页](./public/static/images/ss_pc.png)
+![首页与文章页](./public/static/opt/ss_pc-8a5c2d21.avif)
 
 首页与文章页
 
-![文章搜索与评论功能](./public/static/images/ss_search_comment.png)
+![文章搜索与评论功能](./public/static/opt/ss_search_comment-0baf4846.avif)
 
 文章搜索与评论功能
 
-![手机端首页、个人页、友链页](./public/static/images/ss_phone.png)
+![手机端首页、个人页、友链页](./public/static/opt/ss_phone-023cd556.avif)
 
 手机端首页、个人页、友链页
 

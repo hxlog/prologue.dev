@@ -4,6 +4,7 @@ import {
   fixFigureParagraphs,
   replaceMathWithFallback,
   stripInlineStyles,
+  unwrapSpans,
 } from "./html";
 import { transformMermaidDiagrams } from "./mermaid";
 
@@ -149,6 +150,7 @@ export function buildFeedContent(post) {
   html = transformMermaidDiagrams(html);
   html = markDisplayMath(html);
   html = stripInlineStyles(html);
+  html = unwrapSpans(html);
   html = replaceMathWithFallback(html);
   html = absolutizeUrls(html, post.slug);
   html = normalizeImages(html);
