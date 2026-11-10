@@ -1,7 +1,6 @@
 import { ImageResponse } from "next/og";
-import { readFile } from "node:fs/promises";
+import { readFileSync } from "node:fs";
 import path from "node:path";
-import sharp from "sharp";
 import siteMetadata from "../../../data/sitemetadata";
 import { tagLabel } from "../../../data/tagLabels";
 import { formatDate, readingTimeLabel } from "../../lib/date";
@@ -34,11 +33,12 @@ import { formatDate, readingTimeLabel } from "../../lib/date";
  * soft blooms are stacked radial gradients, and the rim is drawn as a padded
  * gradient box rather than with `mask-composite` (unsupported).
  *
- * Fonts: Noto Sans SC is fetched per card from Google Fonts with a `text=`
- * subset built from the exact characters being drawn, which keeps each font
- * payload to a few KB instead of the whole CJK face. Three weights are
- * requested (400 meta, 600 tags/title); a weight that fails to load is
- * simply omitted from the `fonts` array and Satori falls back.
+ * Fonts: Noto Sans SC, subset at build time by scripts/build-og-font.mjs to
+ * the union of glyphs the card can draw and read from `assets/og/` once per
+ * process — three weights (400 meta, 600 tags/title, 700 initial-letter
+ * avatar). The old per-card Google Fonts `text=` fetch is kept as the
+ * fallback for a title carrying a character the subset does not cover, so a
+ * card can never lose a glyph.
  *
  * Headers: `s-maxage=31536000, immutable` is safe because the URL carries
  * everything the card depends on (title/date/tags/read) — content edits
@@ -75,6 +75,21 @@ const rimGradient = `linear-gradient(135deg, rgba(201,205,245,0.95), rgba(180,22
 const hairlineGradient =
   "linear-gradient(90deg, rgba(170,160,252,0.28), rgba(84,208,238,0.22) 56%, rgba(252,156,200,0.28))";
 
+/**
+ * Build-time assets from scripts/build-og-font.mjs: the three subset weights,
+ * `glyphs.json` (the codepoints they cover) and the 152 px avatar.
+ *
+ * Read from disk rather than imported because Next's tracer follows imports and
+ * static `fs` paths, not a path built from `process.cwd()`; the matching
+ * `outputFileTracingIncludes` entry in next.config.js is what keeps them in the
+ * deployed function.
+ */
+const ASSET_DIR = path.join(process.cwd(), "assets", "og");
+
+// The three weights the card draws with: 400 meta row, 600 title/author/+N,
+// 700 the initial-letter avatar. Keep in sync with scripts/build-og-font.mjs.
+const WEIGHTS = [400, 600, 700];
+
 const fontCache = new Map();
 
 export async function GET(request) {
@@ -103,9 +118,11 @@ export async function GET(request) {
     "+0123456789",
   ].join("");
 
-  const avatar = await avatarDataUri();
+  const avatar = avatarDataUri();
 
-  const fonts = await loadFonts(text);
+  // Local subset first (no network); the per-card Google subset only when the
+  // generated fonts are absent or do not cover every drawn character.
+  const fonts = localFontsFor(text) || (await loadFonts(text));
 
   const response = new ImageResponse(
     (
@@ -448,40 +465,79 @@ function blogName() {
 }
 
 /**
- * The avatar, resized and inlined as a data URI.
+ * The avatar, inlined as a data URI.
  *
- * The source file is the author's 871 KB 1077×1078 PNG. next/og inlines every
- * asset it is handed, so passing it through unresolved would blow the
- * function's 500 KB bundle budget; sharp resizes it to a 152 px square before
- * it becomes an argument. `outputFileTracingIncludes` in next.config.js is
- * what makes the file present at runtime at all — a `fs.readFile` on a path
- * Next did not see during tracing is missing from the deployed function.
+ * `assets/og/avatar-152.png` is generated once by scripts/build-og-font.mjs
+ * from the author's 871 KB source PNG with the exact sharp pipeline this
+ * function used to run on every cold start (`resize(152, 152, { fit: "cover",
+ * position: "centre" })`, PNG level 9). Same bytes, but the request path no
+ * longer loads libvips or reads the 871 KB original. next/og inlines every
+ * asset it is handed, so the 152 px file is what keeps this within the
+ * function's bundle budget.
  *
- * Read once per process; the buffer is tiny and identical for every card.
+ * Read once per process; the buffer is tiny and identical for every card. Any
+ * failure (missing file, unreadable PNG) degrades to the initial-letter avatar
+ * instead of failing the whole card.
  */
-let avatarPromise;
+let avatarData;
 function avatarDataUri() {
-  if (!avatarPromise) {
-    avatarPromise = (async () => {
-      try {
-        const file = path.join(process.cwd(), "public", siteMetadata.avatar);
-        const png = await sharp(await readFile(file))
-          .resize(152, 152, { fit: "cover", position: "centre" })
-          .png({ compressionLevel: 9 })
-          .toBuffer();
-        return `data:image/png;base64,${png.toString("base64")}`;
-      } catch {
-        // Any failure (missing file, unsupported image) degrades to the
-        // initial-letter avatar instead of failing the whole card.
-        return null;
-      }
-    })();
+  if (avatarData !== undefined) return avatarData;
+  try {
+    const png = readFileSync(path.join(ASSET_DIR, "avatar-152.png"));
+    avatarData = `data:image/png;base64,${png.toString("base64")}`;
+  } catch {
+    avatarData = null;
   }
-  return avatarPromise;
+  return avatarData;
 }
 
 /**
- * Fetch the Noto Sans SC subsets for the given text.
+ * The build-time subset, memoised per process.
+ *
+ * `undefined` = not attempted yet, `null` = assets unavailable (the route then
+ * uses the remote fallback). Missing files are not an error: a deployment that
+ * forgets the traced assets, or a fresh clone before the script has run, must
+ * still answer with a correct card.
+ */
+let localFonts;
+function localFontSet() {
+  if (localFonts !== undefined) return localFonts;
+  try {
+    const coverage = JSON.parse(
+      readFileSync(path.join(ASSET_DIR, "glyphs.json"), "utf8")
+    );
+    const fonts = WEIGHTS.map((weight) => ({
+      name: "Noto Sans SC",
+      data: readFileSync(path.join(ASSET_DIR, `NotoSansSC-${weight}.ttf`)),
+      weight,
+      style: "normal",
+    }));
+    localFonts = { fonts, codepoints: new Set(coverage.codepoints) };
+  } catch {
+    localFonts = null;
+  }
+  return localFonts;
+}
+
+/**
+ * The local fonts, or null when they cannot draw every character of `text`.
+ *
+ * The coverage check is what keeps a title the build script has never seen
+ * (an unmapped tag, a shared link with a custom title, a character added in a
+ * content edit after the last script run) off the tofu path: those cards fall
+ * through to the per-card Google subset, which is built from the exact text.
+ */
+function localFontsFor(text) {
+  const set = localFontSet();
+  if (!set) return null;
+  for (const char of text) {
+    if (!set.codepoints.has(char.codePointAt(0))) return null;
+  }
+  return set.fonts;
+}
+
+/**
+ * Fetch the Noto Sans SC subsets for the given text — the fallback path.
  *
  * One request per weight. Google's CSS endpoint returns @font-face rules whose
  * src is a per-subset TTF; the legacy-user-agent header is what makes it
@@ -492,9 +548,8 @@ function avatarDataUri() {
  * covers the same text, so a 400/600 failure degrades styling, not legibility.
  */
 async function loadFonts(text) {
-  const weights = [400, 600, 700];
   const results = await Promise.all(
-    weights.map((weight) => loadFont(weight, text))
+    WEIGHTS.map((weight) => loadFont(weight, text))
   );
 
   const fonts = [];
@@ -503,7 +558,7 @@ async function loadFonts(text) {
     fonts.push({
       name: "Noto Sans SC",
       data,
-      weight: weights[i],
+      weight: WEIGHTS[i],
       style: "normal",
     });
   });

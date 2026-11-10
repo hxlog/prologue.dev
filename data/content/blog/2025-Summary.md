@@ -2,7 +2,7 @@
 title: 2025年终总结
 tags: ["Meta", "Finance", "AI"]
 publishDate: 2025-12-29
-image: /static/photos/IMG_20251007_140841.jpg
+image: /static/opt/IMG_20251007_140841-0ee8ffea.avif
 imageDesc: 2025年10月7日摄于于东江边
 description: 哪怕过着丰富的物质生活，内心里却不认为当下的生活是值得过的
 ---
@@ -64,13 +64,13 @@ description: 哪怕过着丰富的物质生活，内心里却不认为当下的�
 
 O'reilly动物书的《生成式深度学习（第二版）》同时包括Transformer、Diffusion、GAN、RNN、LSTM、VAE等模型的理论说明和最佳实践案例，比在网上看二手技术文章更加系统化，内容浅显易懂。
 
-![生成式深度学习，第二版，Oreilly，中国电力出版社](/static/images/generative_deep_learning.jpg)
+![生成式深度学习，第二版，Oreilly，中国电力出版社](/static/opt/generative_deep_learning-31fbb5c1.avif)
 
 ### 重读
 
 《金融怪杰》再出新版，这书读过不止三遍了。在市场里不应该忘记，除了主流的方法论，市场上长期存活的玩家都有自己的一套交易系统和价值观，不要恪守己见，不妨看下别人是如何看待市场的。每次读都会带来新的灵感，很有趣。总的来说，投资者应时常审视自己的市场观点和交易行为，投资者最大的敌人是自己。
 
-![《不为人知的金融怪杰：11位市场交易奇才的故事》, [美] 杰克·D.施瓦格， 机械工业出版社](/static/images/Unknown_Market_Wizards.jpg)
+![《不为人知的金融怪杰：11位市场交易奇才的故事》, [美] 杰克·D.施瓦格， 机械工业出版社](/static/opt/Unknown_Market_Wizards-67c0bd96.avif)
 
 ## 展望
 

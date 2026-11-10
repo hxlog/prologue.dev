@@ -46,7 +46,7 @@ description: 关于笔者第一次全栈开发金融产品，将风险平价策�
 
 ### 股指期货界面
 
-![股指期货看板自动更新至最新日收盘行情，计算历史年化升贴水率、分位值等描述性统计](/static/images/balanced_portfolio_futures.jpeg)
+![股指期货看板自动更新至最新日收盘行情，计算历史年化升贴水率、分位值等描述性统计](/static/opt/balanced_portfolio_futures-f33a4c59.avif)
 
 ### 场外衍生品定价界面
 

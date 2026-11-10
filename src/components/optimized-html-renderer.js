@@ -61,6 +61,11 @@ export function OptimizedHTMLRenderer({ htmlContent }) {
               fetchPriority={eager ? "high" : undefined}
               className={`drop-shadow-xs rounded-sm ${attr("class")}`.trim()}
               style={{ height: "auto", width: "100%" }}
+              // SVG cannot go through /_next/image unless dangerouslyAllowSVG is
+              // enabled (it is not, deliberately): the optimizer answers 400 and
+              // the image disappears. Serve vector art and animated bitmaps as-is;
+              // the optimizer would also drop the animation frames.
+              unoptimized={/\.svg$/i.test(src) || /\.gif$/i.test(src)}
             />
           );
         }

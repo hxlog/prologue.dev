@@ -108,11 +108,11 @@ $$
 
 > 在初次读到皮凯蒂的政策建议时，我想起蒙蒂·派森剧团的一出小品，讽刺想象中的英国政府会议：为平衡预算，公务员们打算对性行为征税，然后场景切换到来自公众的建议，其中之一是对“住在海外的外国人”征税。
 
-![金融全球化](/static/images/financial-globalization.png)
+![金融全球化](/static/opt/financial-globalization-cb34c67a.avif)
 
 > 皮凯蒂的著作提出了解决思路。大萧条与二战之间采纳的激烈进步主义政策缩小了财富和收入不平等，并持续影响战后时代的几乎所有发达经济体。与之类似，以现代方式重建进步主义政策同样可能再次防止皮凯蒂警示的“世袭经济”的复辟。
 
-![帕累托分布的尾部形状](/static/images/Tail-shape-of-the-Pareto-distribution.png)
+![帕累托分布的尾部形状](/static/opt/Tail-shape-of-the-Pareto-distribution-3336b542.avif)
 
 $P(w)$是高于财富水平的人口比例
 

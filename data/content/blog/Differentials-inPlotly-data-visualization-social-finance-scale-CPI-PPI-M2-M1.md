@@ -22,7 +22,7 @@ fig.show()
 
 Plotly 3D Scatter 演示：年份、CPI 和 M2
 
-![M2-CPI-Date.gif](/static/images/M2-CPI-Date.gif)
+![M2-CPI-Date.gif](/static/opt/M2-CPI-Date-0162a4d0.webp)
 
 ## 概念
 

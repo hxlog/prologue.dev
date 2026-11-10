@@ -35,7 +35,7 @@ ChatGPT这种大语言模型是自回归（AR）模型，右侧标记的生成�
 
 - 隐私性的研究是**根据已知部分的分布信息来推断出未知部分的分布信息**，包括数据的统计信息，甚至恢复出数据本身。用户在AI产品中的交互一定程度是在标记用户分布上的已知部分，其拟合的结果也包含了可验证的鲁棒性（猜对了用户的预期），在实际商业化场景中，隐私性总是被舍弃的。
 
-![可信机器学习最本质的问题可以归结为“分布漂流”（distribution drift）以及对“分布迁移”（distribution shift）的分析。](/static/images/trustworthy-machine-learning.png)
+![可信机器学习最本质的问题可以归结为“分布漂流”（distribution drift）以及对“分布迁移”（distribution shift）的分析。](/static/opt/trustworthy-machine-learning-5ecf1c06.avif)
 
 ## 拟人化
 

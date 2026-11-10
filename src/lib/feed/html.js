@@ -36,6 +36,38 @@ export function stripInlineStyles(html) {
 }
 
 /**
+ * Drop `<span>` wrappers, keeping their contents.
+ *
+ * Shiki wraps every token in one or two nested spans whose only payload is the
+ * (already stripped) colour pair; KaTeX wraps each formula in `span.katex`.
+ * Feed readers render none of that highlighting, so the wrappers are pure
+ * weight. Only span tags are removed -- `code`, `pre`, `math`, `img`, `a` and
+ * every other element (plus its attributes) survive, so structure and text do
+ * not change.
+ *
+ * Both open and close tags are removed unconditionally. That is equivalent to
+ * a balanced unwrap for well-formed markup, and it degrades gracefully if an
+ * upstream renderer ever emits an unbalanced span: a stray tag is still just
+ * dropped rather than leaving a half-unwrapped shell behind.
+ */
+export function unwrapSpans(html) {
+  const source = String(html || "");
+  if (!source.includes("<span")) return source;
+
+  const tag = /<\/?span\b[^>]*>/gi;
+  let result = "";
+  let cursor = 0;
+  let match;
+
+  while ((match = tag.exec(source)) !== null) {
+    result += source.slice(cursor, match.index);
+    cursor = tag.lastIndex;
+  }
+
+  return result + source.slice(cursor);
+}
+
+/**
  * The markdown pipeline emits a few paragraphs that wrap a <figure> plus text.
  * HTML5 auto-closes the <p> before a block element, and the W3C Feed Validator
  * then reports the closing </p> as an unexpected end tag. Split such paragraphs
@@ -91,8 +123,8 @@ function textFallback(mathMarkup) {
  * Replace native MathML with readable TeX source.
  *
  * KaTeX emits the original TeX in <annotation encoding="application/x-tex">.
- * The surrounding <span class="katex"> stays, so the feed content remains
- * well-formed HTML; the formula itself becomes <code class="math">.
+ * The formula itself becomes <code class="math">; the wrapper span around it is
+ * removed earlier by unwrapSpans().
  */
 export function replaceMathWithFallback(html) {
   return String(html || "").replace(
