@@ -2,7 +2,8 @@
  * Post-processing applied to the serialized feeds to satisfy fields the `feed`
  * library cannot express through its shared item model:
  *
- *   - Atom: declare the feed language; categories are handled in build-feed.js.
+ *   - Atom: declare the feed language, emit the feed image as foreign markup
+ *     that Folo's Atom path reads, and normalise a non-standard enclosure MIME.
  *   - RSS: make guid a permalink, remove the native <author> that duplicates
  *     dc:creator, and keep dc:creator as the Folo author source.
  *   - JSON Feed: upgrade to 1.1, add language/favicon/authors, and add a
@@ -19,6 +20,36 @@ const SITE = siteUrl();
 const LANGUAGE = String(siteMetadata.language || "zh-CN");
 
 /**
+ * The Atom feed image, emitted as namespaced foreign markup.
+ *
+ * Atom only standardises <logo>/<icon>, and Folo's documented Atom parser does
+ * not map either of them to its feed image. Its feed-level custom field list is
+ * ["follow_challenge", "subtitle", "image"], so a feed child named `image` is
+ * read exactly like the RSS <image> block (url/title/link). An unknown namespace
+ * is the only way to add it without breaking Atom's reserved namespace, and it
+ * degrades to "ignored foreign markup" (RFC 4287 §6.1) for every other reader.
+ */
+const ATOM_IMAGE_NS = "https://folo.is/ns";
+
+function escapeXml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function atomFeedImage() {
+  return [
+    `  <image xmlns="${ATOM_IMAGE_NS}">`,
+    `    <url>${escapeXml(`${SITE}${siteMetadata.avatar}`)}</url>`,
+    `    <title>${escapeXml(siteMetadata.title)}</title>`,
+    `    <link>${escapeXml(`${SITE}/`)}</link>`,
+    "  </image>",
+  ].join("\n");
+}
+
+/**
  * Cover URL per post URL, for the JSON Feed thumbnails.
  *
  * A function rather than a module constant: `next dev` re-reads the content
@@ -33,12 +64,29 @@ function imageByUrl() {
   return map;
 }
 
-/** Add the missing xml:lang to the Atom root element. */
+/**
+ * Atom post-processing: declare the feed language, add the Folo-readable feed
+ * image, and fix the enclosure MIME the `feed` library derives from the file
+ * extension (.jpg becomes image/jpg, which is not an IANA type).
+ *
+ * The <image> block is emitted once, right after the <feed> start tag, and is
+ * guarded by its namespace so re-running the finalizer is a no-op.
+ */
 export function finalizeAtom(xml) {
-  return String(xml).replace(/<feed\b([^>]*)>/, (match, attrs) => {
+  let out = String(xml).replace(/<feed\b([^>]*)>/, (match, attrs) => {
     if (/\bxml:lang\s*=/.test(attrs)) return match;
     return `<feed${attrs} xml:lang="${LANGUAGE.replace(/"/g, "&quot;")}">`;
   });
+
+  if (!out.includes(`<image xmlns="${ATOM_IMAGE_NS}">`)) {
+    out = out.replace(/(<feed\b[^>]*>)/, (match) => `${match}\n${atomFeedImage()}`);
+  }
+
+  // Only enclosure links are rewritten; the body HTML lives in CDATA and is
+  // never touched by this replace.
+  return out.replace(/<link\b[^>]*\brel="enclosure"[^>]*>/g, (tag) =>
+    tag.replace(/\btype="image\/jpg"/g, 'type="image/jpeg"')
+  );
 }
 
 /** Remove item-level <author> elements without touching CDATA contents. */
