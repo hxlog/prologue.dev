@@ -57,4 +57,17 @@ test.describe("feeds", () => {
     // ...and it must not be the wall clock of the request.
     expect(Number.isNaN(Date.parse(stamp(first)))).toBe(false);
   });
+
+  test("the Atom feed carries the Folo-readable feed image and a valid enclosure MIME", async ({ request }) => {
+    const xml = await (await request.get("/atomfeed")).text();
+    // Folo's Atom path reads a feed child named `image` through
+    // customFields.feed; Atom itself only standardises logo/icon, so the
+    // element is namespaced foreign markup. The url child is what Folo maps.
+    const image = xml.match(/<image xmlns="[^"]+">[\s\S]*?<\/image>/);
+    expect(image).toBeTruthy();
+    expect(image[0]).toContain("<url>");
+    // The feed library derives an Atom enclosure's type from the file
+    // extension (.jpg -> image/jpg); finalizeAtom normalises it to image/jpeg.
+    expect(xml).not.toMatch(/<link\b[^>]*rel="enclosure"[^>]*type="image\/jpg"/);
+  });
 });
