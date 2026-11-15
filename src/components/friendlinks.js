@@ -34,7 +34,8 @@ export default function FriendLinks({ friends }) {
             rel="noopener noreferrer"
             className="card card-interactive card-spotlight group p-6 text-center"
           >
-            <span className="ring-gradient mx-auto mb-4 inline-block">
+            <span className="mx-auto mb-4 inline-block">
+              {/* ring-gradient */}
               {/* SVG/ICO avatars 400 through /_next/image when
                   dangerouslyAllowSVG is off (the site never enables it), so
                   they are served as-is instead of through the optimizer. */}

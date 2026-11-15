@@ -58,7 +58,7 @@ description: 模型能力已经超乎常人，但普通人仍然难以驾驭这�
 
 ## 博客UI重构
 
-我让AI帮我生成了一套[包含颜色方案、组件样式、交互的UI标准](https://puirologue.dev/ui)，重构了全局UI：
+我让AI帮我生成了一套[包含颜色方案、组件样式、交互的UI标准](/ui)，重构了全局UI：
 
 ![新博客首页界面](/static/opt/blog_new_home_screenshot-69192847.avif)
 
