@@ -1,0 +1,25 @@
+name: Uptime
+
+# Periodic external check, kept separate from Monitor so a freshly added workflow
+# can be used to verify GitHub's scheduled trigger.
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check production
+        run: |
+          set -euo pipefail
+          UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
+          for url in https://prologue.dev/ https://prologue.dev/rss https://prologue-dev.fly.dev/; do
+            code=$(curl -sS -A "$UA" -o /dev/null -w '%{http_code}' --max-time 30 "$url")
+            echo "$url -> $code"
+            case "$code" in 2*|3*) ;; *) exit 1;; esac
+          done
