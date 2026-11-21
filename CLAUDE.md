@@ -90,7 +90,7 @@ All four feeds send `public, s-maxage=600, stale-while-revalidate=86400`, and **
 This repo is mirrored to a public template (`hxlog/prologue-blog-template`) **without the author's posts, maintainer-only files, or personal assets**. On every push to `master`, `.github/workflows/publish-template.yml` runs `yarn publish`, which executes `scripts/publish-template.mjs`. That script:
 
 1. Creates a detached git worktree of `HEAD`.
-2. `applyStarterTemplate()` deletes maintainer-only paths (`template/`, `docs/`, `.idea/`, `scripts/`, `Dockerfile`, `.dockerignore`, `fly.toml`, the publish + Fly deploy workflows), wipes `data/content/*` and `public/static`, then copies the starter overrides from `template/`.
+2. `applyStarterTemplate()` deletes maintainer-only paths (`template/`, `docs/`, `.idea/`, `scripts/`, `Dockerfile`, `.dockerignore`, `fly.toml`, the publish + Fly deploy + monitor workflows), wipes `data/content/*` and `public/static`, then copies the starter overrides from `template/`.
 3. Force-pushes the snapshot to the template repo (auth via `TEMPLATE_REPO_TOKEN` secret, falling back to `gh auth token`).
 
 **Implications when editing:**

@@ -120,12 +120,25 @@ connector and there is no downtime.
 - Verified: /og, /rss, /static and /llms.txt return cf-cache-status HIT after
   the first request; HTML/RSC stays DYNAMIC; www returns 301 to apex.
 
+## Cloudflare security posture (edge)
+
+- Browser Integrity Check is **off**: with the orange cloud on, Cloudflare's
+  BIC returned 403 to non-browser clients (feed readers, CI curl), which would
+  break RSS distribution. Security level stays at medium; WAF managed rules are
+  not enabled on the free plan.
+- The zone's old custom WAF rule that blocked verified AI crawlers
+  (cf.verified_bot_category eq "AI Crawler") was removed: robots.txt explicitly
+  permits retrieval-oriented AI agents, so blocking them at the edge would
+  contradict the site policy.
+- Feed readers (Feedly/Inoreader UA), a plain curl and a GPTBot UA all get 200
+  against the live edge after these changes.
+
 ## Monitoring
 
 .github/workflows/monitor.yml runs every 15 minutes on a public repo (free
 Actions minutes), checks apex, www, a post, feeds, search, OG and the Fly
 fallback URL, and asserts a TLS 1.3 handshake plus a Cloudflare cache header.
-A failed run notifies the repository owner.
+A failed run notifies the repository owner. The first scheduled run after the tunnel cutover was verified manually: all endpoints 200/301, TLS 1.3 handshake and a Cloudflare cache header present.
 
 ## Verification (2026-11-21)
 

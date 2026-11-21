@@ -146,6 +146,7 @@ async function applyStarterTemplate(worktreeRoot) {
   rmSync(path.join(worktreeRoot, ".dockerignore"), { force: true });
   rmSync(path.join(worktreeRoot, "fly.toml"), { force: true });
   rmSync(path.join(worktreeRoot, ".github", "workflows", "deploy-fly.yml"), { force: true });
+  rmSync(path.join(worktreeRoot, ".github", "workflows", "monitor.yml"), { force: true });
   // `dev` and `build` in the shipped package.json run this one, so it must ship
   // or a template clone fails on its first command.
   copyFile(

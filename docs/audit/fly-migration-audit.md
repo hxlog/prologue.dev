@@ -116,3 +116,17 @@ The direct-proxy 525 was worked around with a Cloudflare Tunnel:
   scripts/docker-entrypoint.sh + cloudflared in the Docker image; TUNNEL_TOKEN
   is a Fly secret. Rolling deploy keeps one connector healthy while the other
   Machine is replaced.
+
+## Edge hardening and monitoring (final)
+
+- Browser Integrity Check disabled and the zone's old "AI Scrapers and
+  Crawlers" WAF block removed: with the proxy on, BIC returned 403 to feed
+  readers/CI curl, and the WAF rule contradicted the site's robots policy that
+  allows retrieval AI agents. Plain curl, Feedly/Inoreader UAs and a GPTBot UA
+  now return 200.
+- Monitor workflow (15 min, GitHub Actions) passes manually: apex/www/pages/
+  feeds/search/OG all 200/301, TLS 1.3 handshake and a Cloudflare cache header.
+- Live Playwright smoke through the Cloudflare edge: home/blog/post/ui/
+  microblog all 200, correct titles, 0 console errors, 0 broken images;
+  theme toggle and the search dialog (API call /api/search?q=AI and rendered
+  results) work; www redirects to apex.
