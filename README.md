@@ -22,6 +22,8 @@ A content-first blog built with Next.js 16 and an in-repo filesystem content lay
 
 博客链接：https://prologue.dev
 
+> 本仓库的生产站点托管在 **Fly.io**（自托管 Next.js standalone Docker，见 `docs/DEPLOY-FLY.md`）；下方 Vercel 按钮是给模板使用者的一键部署入口，仍可用。
+
 ## Preview
 
 ![首页与文章页](./public/static/opt/ss_pc-8a5c2d21.avif)

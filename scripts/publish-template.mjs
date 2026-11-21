@@ -140,6 +140,12 @@ async function applyStarterTemplate(worktreeRoot) {
   rmSync(path.join(worktreeRoot, "playwright.config.js"), { force: true });
   rmSync(path.join(worktreeRoot, "test-results"), { recursive: true, force: true });
   rmSync(path.join(worktreeRoot, "playwright-report"), { recursive: true, force: true });
+  // The Fly deployment is maintainer-specific (app name, legacy free-tier sizing,
+  // Cloudflare setup); the public template keeps its Vercel path.
+  rmSync(path.join(worktreeRoot, "Dockerfile"), { force: true });
+  rmSync(path.join(worktreeRoot, ".dockerignore"), { force: true });
+  rmSync(path.join(worktreeRoot, "fly.toml"), { force: true });
+  rmSync(path.join(worktreeRoot, ".github", "workflows", "deploy-fly.yml"), { force: true });
   // `dev` and `build` in the shipped package.json run this one, so it must ship
   // or a template clone fails on its first command.
   copyFile(

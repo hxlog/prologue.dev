@@ -22,6 +22,7 @@ const siteMetadata = {
   zhihu: "",
   copyright: "CC BY-NC-SA 4.0",
   copyrightUrl: "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+  hosting: { label: "Vercel", href: "https://vercel.com/" },
   feedEmail: "hello@example.com",
   feedGenerator: "Prologue feed pipeline",
   blogLabel: "Blog",

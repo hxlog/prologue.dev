@@ -1,0 +1,14 @@
+node_modules
+.next
+.next-probe
+.tmp
+.git
+.github
+e2e
+test-results
+playwright-report
+public/search-index.json
+CLAUDE.md
+AGENTS.md
+template
+docs

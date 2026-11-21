@@ -1,0 +1,39 @@
+name: Deploy to Fly.io
+
+# Runs only after the CI workflow succeeds on master. The Fly build is the same
+# production build as CI's, executed by the remote builder from the Dockerfile.
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-fly
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # On workflow_run, github.sha is the default branch tip, not necessarily
+          # the commit CI just validated. Deploy exactly that commit.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Setup flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy
+        run: |
+          flyctl deploy --remote-only --ha=false \
+            --build-arg DEPLOYMENT_ID=${{ github.event.workflow_run.head_sha || github.sha }}
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
