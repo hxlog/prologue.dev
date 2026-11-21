@@ -1,0 +1,43 @@
+name: Monitor
+
+# Free external uptime check for the Fly.io deployment. Runs on GitHub Actions so
+# it does not depend on the machine it is checking; a failed run notifies the
+# repository owner. Keep the interval conservative for private-repo minutes.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check production endpoints
+        run: |
+          set -euo pipefail
+          check() {
+            local code
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 "$1")
+            echo "$1 -> $code"
+            case "$code" in 2*|3*) ;; *) echo "unexpected status"; exit 1;; esac
+          }
+          check https://prologue.dev/
+          check https://prologue.dev/blog
+          check https://prologue.dev/blog/evaluating-ai-data-labeling-accuracy
+          check https://prologue.dev/rss
+          check https://prologue.dev/llms.txt
+          check "https://prologue.dev/api/search?q=AI"
+          check "https://prologue.dev/og?title=Monitor&date=2026-01-01&read=5&tags=AI"
+          check https://www.prologue.dev/
+          check https://prologue-dev.fly.dev/
+
+      - name: TLS 1.3 + edge cache headers
+        run: |
+          set -euo pipefail
+          echo | openssl s_client -connect prologue.dev:443 -servername prologue.dev -tls1_3 2>/dev/null | grep -q "Protocol  : TLSv1.3"
+          echo "TLS 1.3 handshake ok"
+          curl -sS -o /dev/null -D - --max-time 30 https://prologue.dev/rss | grep -qi "^cf-cache-status:"
+          echo "Cloudflare cache header present"

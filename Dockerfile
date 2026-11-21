@@ -14,6 +14,15 @@ ENV NEXT_TELEMETRY_DISABLED=1 \
 # Node 24 still bundles it; fall back to the npm-published one if a future base
 # image drops it.
 RUN corepack enable 2>/dev/null || (npm i -g corepack@latest && corepack enable)
+# cloudflared runs alongside the Next server and carries production traffic
+# through a Cloudflare Tunnel (Cloudflare cannot complete TLS to Fly's shared
+# IPv4 for this custom domain; the tunnel is encrypted outbound and works).
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends ca-certificates curl \
+ && rm -rf /var/lib/apt/lists/* \
+ && curl -fsSL -o /usr/local/bin/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
+ && chmod +x /usr/local/bin/cloudflared \
+ && cloudflared --version
 WORKDIR /app
 
 FROM base AS deps
@@ -44,5 +53,7 @@ COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
 # The probe image ran as root on a single-tenant Fly Machine; keeping root avoids
 # a duplicated chown layer and the image stays lean for the 256 MB machine.
+COPY scripts/docker-entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 EXPOSE 8080
-CMD ["node", "server.js"]
+CMD ["/app/entrypoint.sh"]

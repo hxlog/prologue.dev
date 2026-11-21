@@ -17,11 +17,14 @@ const ALLOWED = new Set([
 
 export function proxy(request) {
   const { pathname } = request.nextUrl;
-  if (ALLOWED.has(pathname)) return NextResponse.next();
+  const response = ALLOWED.has(pathname)
+    ? NextResponse.next()
+    : NextResponse.rewrite(new URL("/_not-found", request.url), { status: 404 });
 
-  return NextResponse.rewrite(new URL("/_not-found", request.url), {
-    status: 404,
-  });
+  // Which Fly Machine served the page. With Machines in more than one region
+  // this is the easiest way to verify Cloudflare Tunnel connector routing.
+  response.headers.set("x-fly-region", process.env.FLY_REGION || "local");
+  return response;
 }
 
 export const config = {
