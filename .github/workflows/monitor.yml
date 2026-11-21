@@ -46,7 +46,7 @@ jobs:
       - name: TLS 1.3 + edge cache headers
         run: |
           set -euo pipefail
-          echo | openssl s_client -connect prologue.dev:443 -servername prologue.dev -tls1_3 2>/dev/null | grep -q "Protocol  : TLSv1.3"
+          echo | openssl s_client -connect prologue.dev:443 -servername prologue.dev -tls1_3 2>&1 | grep -q "TLSv1.3"
           echo "TLS 1.3 handshake ok"
           UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
           curl -sS -A "$UA" -o /dev/null -D - --max-time 30 https://prologue.dev/rss | grep -qi "^cf-cache-status:"
