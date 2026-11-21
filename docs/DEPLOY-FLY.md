@@ -120,6 +120,15 @@ connector and there is no downtime.
 - Verified: /og, /rss, /static and /llms.txt return cf-cache-status HIT after
   the first request; HTML/RSC stays DYNAMIC; www returns 301 to apex.
 
+## Runtime recovery
+
+The entrypoint waits for the local Next server before registering the tunnel
+connector, and a watchdog probes /robots.txt on localhost:8080 every 30 s. Three
+consecutive failures terminate the container so Fly restarts the Machine and
+cloudflared reconnects. This was added after one sin Machine stayed "started"
+with a failing health check and cloudflared still connected: Cloudflare returned
+502 for requests routed to that connector until the Machine was restarted.
+
 ## Cloudflare security posture (edge)
 
 - Browser Integrity Check is **off**: with the orange cloud on, Cloudflare's
