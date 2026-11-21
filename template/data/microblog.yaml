@@ -18,9 +18,9 @@
 #   - date: 2026-05-31
 #     content: Two photos from today.
 #     images:
-#       - src: /static/photos/01.jpg
+#       - src: /static/photos/template-photo-1.svg
 #         desc: Morning
-#       - src: /static/photos/02.jpg
+#       - src: /static/photos/template-photo-2.svg
 #
 # Images live under public/static, next to the posts that use them.
 

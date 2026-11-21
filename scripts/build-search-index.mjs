@@ -21,6 +21,7 @@ import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "
 import path from "node:path";
 import sharp from "sharp";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { parse as parseYaml } from "yaml";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -236,13 +237,34 @@ for (const file of walkContent(path.join(ROOT, "data", "content"))) {
     referenced.add(match[1].split("?")[0].split("#")[0]);
   }
 }
+function collectStaticRefs(value, out, seen = new Set()) {
+  if (typeof value === "string") {
+    for (const match of value.matchAll(/(\/static\/[^\s"',)]+)/g)) {
+      out.add(match[1].split("?")[0].split("#")[0]);
+    }
+    return;
+  }
+  if (!value || typeof value !== "object") return;
+  if (seen.has(value)) return;
+  seen.add(value);
+  if (Array.isArray(value)) {
+    for (const item of value) collectStaticRefs(item, out, seen);
+    return;
+  }
+  for (const item of Object.values(value)) collectStaticRefs(item, out, seen);
+}
 for (const yamlName of ["microblog.yaml", "links.yaml"]) {
   const yamlPath = path.join(ROOT, "data", yamlName);
   if (!existsSync(yamlPath)) continue;
-  const text = readFileSync(yamlPath, "utf8");
-  for (const match of text.matchAll(/(\/static\/[^\s"',)]+)/g)) {
-    referenced.add(match[1].split("?")[0].split("#")[0]);
+  let yaml;
+  try {
+    yaml = parseYaml(readFileSync(yamlPath, "utf8"));
+  } catch (error) {
+    throw new Error("Cannot parse data/" + yamlName + ": " + error.message);
   }
+  // Walk parsed values, not raw text: template files document the image shape
+  // in YAML comments, and a commented example path must not fail the build.
+  collectStaticRefs(yaml, referenced);
 }
 const missingFiles = [...referenced].filter(
   (ref) => !existsSync(path.join(ROOT, "public", ref.replace(/^\//, "")))
