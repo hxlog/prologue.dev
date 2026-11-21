@@ -99,3 +99,20 @@ CA certificate import test.
 - No Hong Kong Fly region; the Machine is in Singapore.
 - ISR/use-cache state is per-Machine and lost on deploy; single Machine only.
 - No preview deployments or Web Vitals; use fly logs/Metrics + Playwright.
+
+## Cloudflare Tunnel cutover (2026-11-21, follow-up)
+
+The direct-proxy 525 was worked around with a Cloudflare Tunnel:
+- Tunnel "prologue-dev" (id 1f5d6f02-86a9-4873-8781-6a9e9169037c), connectors
+  inside both Fly Machines; DNS is apex/www CNAME to the cfargotunnel target,
+  proxied. TLS 1.3 only, Full (strict), HTTP/3 + Brotli, IPv6 at the edge.
+- Cache rules: static + /static + /og + feeds + SEO text cached (respecting
+  origin TTLs), /api bypassed, HTML/RSC and /_next/image origin.
+- Verified: /og, /rss, /static, /llms.txt return cf-cache-status HIT after first
+  request; HTML DYNAMIC; www 301; TLS 1.2 refused, TLS 1.3 works; AAAA returns
+  Cloudflare dual-stack addresses; x-fly-region is nrt from a US vantage and
+  sin from Singapore (nearest-connector routing across the two regions).
+- Added .github/workflows/monitor.yml (15-min external checks) and
+  scripts/docker-entrypoint.sh + cloudflared in the Docker image; TUNNEL_TOKEN
+  is a Fly secret. Rolling deploy keeps one connector healthy while the other
+  Machine is replaced.

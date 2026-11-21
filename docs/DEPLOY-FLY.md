@@ -1,127 +1,157 @@
 # Deploying prologue.dev on Fly.io
 
-Self-hosted Next.js 16 (standalone Docker) on Fly.io, DNS on Cloudflare.
+Self-hosted Next.js 16 (standalone Docker) on Fly.io, with a Cloudflare Tunnel
+carrying production traffic and Cloudflare doing TLS 1.3 + edge caching.
 The Fly personal org is on the discontinued **Legacy (Free) Hobby** plan:
 3 x shared-cpu-1x 256 MB Machines, 3 GB volumes, 30 GB/month APAC egress.
-A paid Fly plan is not available for this project, so the deployment stays
-inside those allowances.
+
+## Why a Cloudflare Tunnel
+
+Cloudflare's edge cannot complete a TLS handshake to Fly's shared IPv4 for this
+custom domain: every proxied request returned HTTP 525, on both A and CNAME
+origins, under Full and Full (strict), with TLS 1.3 on or off. Importing a
+Cloudflare Origin Certificate did not help, and a Worker that fetched the app's
+fly.dev hostname failed the same way. Cloudflare Flexible mode could reach the
+origin over port 80, so DNS and routing were fine and the failure was specific
+to Cloudflare-edge -> Fly inbound TLS.
+
+A Cloudflare Tunnel avoids inbound TLS entirely: cloudflared runs inside each Fly
+Machine, opens outbound QUIC connections to Cloudflare, and Cloudflare routes
+requests over those connections. This is the architecture in production.
 
 ## Current topology (live)
 
 ~~~
-reader -> Cloudflare DNS (DNS-only, grey cloud)
-       -> Fly anycast 66.241.125.18
-       -> prologue-dev (sin), 1 x shared-cpu-1x 256MB, swap 512MB
-       -> node server.js (Next 16 standalone)
+reader -> Cloudflare edge (TLS 1.3 only, IPv4 + IPv6, cache rules)
+       -> Cloudflare Tunnel "prologue-dev" (id 1f5d6f02-86a9-4873-8781-6a9e9169037c)
+       -> cloudflared connectors inside each Fly Machine
+       -> next standalone on localhost:8080
 
-prologue.dev     A     66.241.125.18          (DNS-only)
-www.prologue.dev CNAME z2gmo1l.prologue-dev.fly.dev (DNS-only, origin 301 -> apex)
+Machines: sin (primary) + nrt (Tokyo), each shared-cpu-1x 256MB + 512MB swap.
+DNS: prologue.dev CNAME <tunnel>.cfargotunnel.com (proxied)
+     www.prologue.dev CNAME <tunnel>.cfargotunnel.com (proxied, origin 301 -> apex)
 ~~~
 
-External services unchanged: Umami (umami.morean.cn) and Giscus load from the
-browser; no database or volume.
-
-**Cloudflare proxy (orange cloud) is deliberately OFF.** Enabling it produced
-HTTP 525 (origin TLS handshake failed) for every request, from both apex A and
-apex CNAME origins, with Full/Full-strict and both TLS 1.3 settings. Cloudflare
-in Flexible mode could reach the origin over port 80 (Fly answered 301), so
-the failure is specifically Cloudflare-edge -> Fly shared-IPv4 TLS, not DNS or
-routing. Cache rules and SSL settings remain prepared in the zone but inactive
-until that is resolved. Next options: Fly support ticket, dedicated IPv4
-($2/month, not in the free budget), or a Cloudflare Origin CA certificate
-import test.
+Cloudflare sends requests to the nearest tunnel connector, so Singapore-side
+readers are served by the sin Machine and US/Japan-side probes by the nrt
+Machine (verified via the x-fly-region response header: nrt from a US vantage,
+sin from Singapore). Custom origin certificates were removed; the Let's
+Encrypt certificates for prologue.dev/www remain as direct-fallback certs, and
+prologue-dev.fly.dev keeps serving from the same image.
 
 ## Files
 
 | File | Purpose |
 | --- | --- |
-| Dockerfile | multi-stage Linux build, NEXT_STANDALONE=1, DEPLOYMENT_ID build ARG |
+| Dockerfile | Linux standalone build + cloudflared binary + entrypoint |
+| scripts/docker-entrypoint.sh | starts node server.js and cloudflared (if TUNNEL_TOKEN set) |
 | .dockerignore | keeps node_modules/.next/.git out of the build context |
-| fly.toml | app prologue-dev, region sin, 1x256MB + 512MB swap, health check, bluegreen |
+| fly.toml | two-region rolling deploy, 256MB+512MB swap, health check, HTTP service for fallback |
 | .github/workflows/deploy-fly.yml | deploy after CI succeeds on master |
-| next.config.js | output gated by NEXT_STANDALONE; deploymentId fallback; www->apex 301 |
+| .github/workflows/monitor.yml | 15-minute external uptime/TLS check |
+| next.config.js | standalone gate, deploymentId fallback, www->apex 301 |
 
 ## One-time provisioning (done)
 
 ~~~powershell
 $fly = "$env:USERPROFILE\.fly\bin\flyctl.exe"
 & $fly apps create prologue-dev --org personal
-& $fly ips allocate-v4 --shared -a prologue-dev   # 66.241.125.18
-& $fly ips allocate-v6 -a prologue-dev            # 2a09:8280:1::218:8903:0 (removed while debugging; can re-add)
+& $fly ips allocate-v4 --shared -a prologue-dev
+& $fly ips allocate-v6 -a prologue-dev
 & $fly certs add prologue.dev -a prologue-dev
 & $fly certs add www.prologue.dev -a prologue-dev
+& $fly machine clone <sin-machine-id> -a prologue-dev --region nrt --name prologue-dev-nrt
 ~~~
 
-Cloudflare records used for certificate validation (kept): TXT
-_fly-ownership.prologue.dev and _fly-ownership.www.prologue.dev = app-z2gmo1l,
-plus the _acme-challenge CNAMEs. The deploy token lives in the repo's
-FLY_API_TOKEN secret.
+Cloudflare Tunnel created via API:
+
+~~~powershell
+# POST /accounts/<account>/cfd_tunnel  {name:"prologue-dev", config_src:"cloudflare"}
+# GET  /accounts/<account>/cfd_tunnel/<id>/token
+# PUT  /accounts/<account>/cfd_tunnel/<id>/configurations
+#      {"config":{"ingress":[{"service":"http://localhost:8080"}]}}
+& $fly secrets set TUNNEL_TOKEN=<token> -a prologue-dev
+~~~
+
+The deploy token lives in the repo's FLY_API_TOKEN secret. TUNNEL_TOKEN is a Fly
+secret on the app (not in fly.toml, not in git).
 
 ## Deploy
 
-Automatic: push to master -> CI -> "Deploy to Fly.io" workflow ->
-flyctl deploy --remote-only --ha=false --build-arg DEPLOYMENT_ID=SHA.
+Automatic: push to master -> CI -> "Deploy to Fly.io" -> rolling replacement of
+all Machines with flyctl deploy --remote-only and the commit SHA as build arg.
 
 Manual:
 
 ~~~powershell
 $sha = git rev-parse HEAD
-& $fly deploy --remote-only --ha=false --build-arg DEPLOYMENT_ID=$sha
+& $fly deploy --remote-only --build-arg DEPLOYMENT_ID=$sha
 & $fly status -a prologue-dev
 & $fly logs -a prologue-dev
 ~~~
 
+Rolling deploy replaces one Machine at a time: two steady Machines plus the
+third free VM slot absorb the replacement, so the tunnel always has a healthy
+connector and there is no downtime.
+
 ## Memory constraints (critical)
 
 - 256 MB **without swap** is not viable: a probe machine was OOM-killed
-  (next-server anon-rss 159 MB) under 10x /og plus image-optimizer bursts, and
-  health checks flapped. Do not remove swap_size_mb from fly.toml.
-- Production runs 256 MB + 512 MB swap. A controlled burst (5 distinct /og
-  cards then 5 image widths) returned 200s, peaked with ~20 MB more swap in
-  use, and health stayed passing; /og TTFB was 1.4-4.2 s per *uncached* card.
-  A 2.4 MB animated webp is passed through by next/image (warning only).
-- Because there is no CDN, /og is the most expensive origin route. Feed readers
-  and social crawlers hitting many distinct /og URLs at once will be slow; if
-  it becomes a problem, pre-generate the post cards or move /og behind a cache.
-- Images: images.maximumDiskCacheSize = 128 MiB; .next/cache is ephemeral; a
-  deploy starts cold (posts are pre-rendered; feeds rebuild in ~0.3 s).
+  (next-server anon-rss 159 MB) under a 10x /og plus image-optimizer burst.
+- Production runs 256 MB + 512 MB swap on every Machine; the same burst
+  returned 200s and the health check stayed passing. cloudflared adds a small
+  constant overhead; watch RSS with fly ssh if traffic grows.
+- images.maximumDiskCacheSize = 128 MiB; .next/cache is ephemeral and a deploy
+  starts cold (posts are pre-rendered; feeds rebuild in about 0.3 s).
 
-## DNS cutover (done 2026-11-21)
+## TLS, IPv6 and Cloudflare cache rules
 
-Saved for rollback: apex A 76.223.126.88 (Vercel) and www CNAME
-cname-china.vercel-dns.com (Vercel). Rollback is one Cloudflare API PATCH for
-each record. MX/SPF/DKIM/DMARC/x/ENS/verification TXT records were untouched.
+- SSL/TLS mode Full (strict), Always Use HTTPS, HTTP/3 and Brotli on.
+- Minimum TLS version 1.3 (TLS 1.2 clients are refused).
+- IPv6: Cloudflare edge answers AAAA with its own dual-stack addresses; no
+  origin AAAA is needed through the tunnel.
+- Cache rules (zone Rulesets API, phase http_request_cache_settings):
+  - /_next/static/ and /static/ -> cache, edge respects origin, browser respects origin
+  - /og* -> cache, edge respects origin (origin s-maxage=31536000)
+  - /rss /atomfeed /jsonfeed /microblog/rss -> cache, edge respects origin (600 s)
+  - /llms.txt /llms-full.txt /robots.txt /sitemap.xml -> cache, edge 1 h, browser 10 min
+  - /api/* -> bypass cache
+  - everything else (HTML/RSC, /_next/image) -> no cache rule, goes to the tunnel
+- Verified: /og, /rss, /static and /llms.txt return cf-cache-status HIT after
+  the first request; HTML/RSC stays DYNAMIC; www returns 301 to apex.
 
-## Free-tier guardrails
+## Monitoring
 
-- Compute: exactly one 256 MB Machine. A bluegreen deploy briefly runs two,
-  inside the 3-VM allowance; do not add a second always-on app.
-- Egress: 30 GB/month APAC. With the CDN proxy off, the 947 KB RSS + 965 KB
-  Atom + 967 KB JSON feeds are the main risk; Fly's edge compresses them to
-  brotli on the wire, and Cloudflare DNS-only does not cache. Watch Billing.
-- Certificates: 2 of the 10 free single-hostname certs used.
-- Domain/IPv6: AAAA was removed while debugging; add back only after verifying
-  IPv6 TLS from an external network.
+.github/workflows/monitor.yml runs every 15 minutes on a public repo (free
+Actions minutes), checks apex, www, a post, feeds, search, OG and the Fly
+fallback URL, and asserts a TLS 1.3 handshake plus a Cloudflare cache header.
+A failed run notifies the repository owner.
 
 ## Verification (2026-11-21)
 
-- HTTP A/B (102 URLs: sitemap corpus + feeds + SEO + API + strict 404s):
-  identical status/content; only difference was Fly's edge adding
-  content-encoding: br (a bandwidth win).
-- /og and /_next/image outputs byte-identical; static JS chunks identical;
-  CSS chunk hash differs between the Windows local build and the Linux Docker
-  build (same rules, image encoder differences only).
-- Playwright: 8 desktop + 2 mobile pages, 0 differing pixels except two
-  avatar-image optimizations (225 and 9 px: Windows sharp vs Linux sharp),
-  no console errors; theme toggle, search dialog, load-more, mobile nav,
-  lightbox, RSC navigation, giscus iframe and Umami requests all work on the
-  Fly build; live www 301 -> apex verified from HK/JP/SG/US/UK/DE probes.
+- HTTP A/B: 102 URLs (sitemap corpus + feeds + SEO + API + strict 404s) were
+  identical between the local yarn start baseline and the Fly origin; only
+  transport-encoding and deployment-id values differ.
+- Playwright: 8 desktop + 2 mobile pages pixel-identical except two avatar
+  image optimizations (Windows sharp vs Linux sharp), zero console errors;
+  theme toggle, search dialog, load-more, mobile nav, lightbox, RSC navigation,
+  giscus iframe and Umami requests all verified on the Fly build.
+- Tunnel/edge: TLS 1.3 only, AAAA dual-stack, cache HITs, x-fly-region shows
+  sin from Singapore and nrt from a US vantage, www 301 through Cloudflare.
+
+## Fallback (no Vercel)
+
+If the tunnel or Cloudflare is misconfigured, the Fly app still serves at
+prologue-dev.fly.dev. To bypass Cloudflare entirely, point apex A/AAAA and www
+CNAME back at the Fly IPs and disable the proxy; the Let's Encrypt certs are
+still active for direct TLS.
 
 ## Known deltas vs Vercel
 
-- No CDN/edge cache (Cloudflare proxy blocked by the 525 issue above).
-- No Fly region in Hong Kong; the Machine is in Singapore.
-- ISR/route caches are per-Machine and lost on deploy; there is exactly one
-  Machine, so this is only a cold-start cost.
-- No Vercel preview deployments/Web Vitals; use fly logs, Fly Metrics,
-  yarn build:e2e/Playwright and the local yarn start baseline for verification.
+- No Hong Kong Fly region; sin + nrt cover the audience with two regions.
+- The tunnel is an extra dependency, but it terminates in Cloudflare and every
+  Machine runs a connector.
+- ISR/use-cache state is per-Machine; two machines means two cold caches and
+  two feed rebuilds after deploy.
+- No preview deployments or Web Vitals; use fly logs/Metrics, monitor.yml and
+  the local Playwright/e2e flow.

@@ -1,7 +1,9 @@
-# Fly.io app for prologue.dev. Region sin (Singapore): closest Fly region for
-# the target audience (no Fly region in Hong Kong; sin beat nrt in our probes).
-# One always-on 256 MB shared-cpu-1x Machine fits the legacy Hobby free
-# allowance (up to 3x 256 MB VMs); Cloudflare in front keeps egress low.
+# Fly.io app for prologue.dev. Two always-on 256 MB Machines: sin (Singapore,
+# primary; closest Fly region for the main audience, no Fly region in Hong Kong)
+# and nrt (Tokyo, second region for North/China-east readers). Two steady
+# Machines + one transient replacement during a rolling deploy stays inside the
+# legacy Hobby free allowance (3x 256 MB VMs). All user traffic arrives through
+# a Cloudflare Tunnel connector running inside each Machine.
 app = "prologue-dev"
 primary_region = "sin"
 
@@ -45,9 +47,10 @@ swap_size_mb = 512
       X-Forwarded-Proto = "https"
 
 [deploy]
-  # Zero-downtime with a single Machine: Fly starts the replacement, waits for
-  # the health check, switches traffic, then stops the old Machine.
-  strategy = "bluegreen"
+  # Rolling replaces one Machine at a time and keeps the other serving; with two
+  # steady Machines the third VM slot absorbs the replacement.
+  strategy = "rolling"
+  max_unavailable = 1
 
 [[vm]]
   size = "shared-cpu-1x"
