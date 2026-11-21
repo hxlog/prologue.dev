@@ -48,7 +48,7 @@ prologue-dev.fly.dev keeps serving from the same image.
 | .dockerignore | keeps node_modules/.next/.git out of the build context |
 | fly.toml | two-region rolling deploy, 256MB+512MB swap, health check, HTTP service for fallback |
 | .github/workflows/deploy-fly.yml | deploy after CI succeeds on master |
-| .github/workflows/monitor.yml | 15-minute external uptime/TLS check |
+| .github/workflows/monitor.yml | post-deploy external uptime/TLS check |
 | next.config.js | standalone gate, deploymentId fallback, www->apex 301 |
 
 ## One-time provisioning (done)
@@ -144,10 +144,23 @@ with a failing health check and cloudflared still connected: Cloudflare returned
 
 ## Monitoring
 
-.github/workflows/monitor.yml runs every 15 minutes on a public repo (free
-Actions minutes), checks apex, www, a post, feeds, search, OG and the Fly
-fallback URL, and asserts a TLS 1.3 handshake plus a Cloudflare cache header.
-A failed run notifies the repository owner. The first scheduled run after the tunnel cutover was verified manually: all endpoints 200/301, TLS 1.3 handshake and a Cloudflare cache header present.
+Two layers:
+
+1. GitHub Actions `monitor.yml` runs after every Deploy workflow (workflow_run)
+   and on manual dispatch. It checks apex, www, a post, feeds, search, OG and
+   the Fly fallback URL, and asserts TLS 1.3 + a Cloudflare cache header.
+   GitHub's scheduled triggers do not fire for this repository (verified with a
+   freshly added scheduled workflow), so the schedule entry is kept only as a
+   best-effort extra; the post-deploy run is the reliable one.
+2. Cloudflare Worker `prologue-uptime` runs on a cron trigger every 5 minutes
+   (verified from a KV cron marker), checks `/`, `/rss` and `/api/search`,
+   stores the result in KV and alerts through ntfy.sh on failure/recovery.
+   Subscribe at https://ntfy.sh/prologue-uptime-f37a4d612589bc0e (anyone with
+   the topic URL can read/post, so treat it as a low-sensitivity pager).
+   Live status JSON: https://prologue.dev/__uptime (Cloudflare Worker route in
+   front of the tunnel, not a Next route). The Worker does not check the direct
+   fly.dev endpoint because Cloudflare egress cannot complete TLS to Fly (525);
+   the post-deploy GitHub run covers the origin separately.
 
 ## Verification (2026-11-21)
 
