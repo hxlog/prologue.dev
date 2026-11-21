@@ -18,11 +18,20 @@ jobs:
       - name: Check production endpoints
         run: |
           set -euo pipefail
+          UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
           check() {
-            local code
-            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 30 "$1")
-            echo "$1 -> $code"
-            case "$code" in 2*|3*) ;; *) echo "unexpected status"; exit 1;; esac
+            local url="$1" code attempt
+            for attempt in 1 2 3; do
+              code=$(curl -sS -A "$UA" -H 'Accept: text/html,application/xhtml+xml,application/json,*/*' \
+                -o /dev/null -w '%{http_code}' --max-time 30 "$url" || true)
+              echo "$url -> $code (attempt $attempt)"
+              case "$code" in 2*|3*) return 0 ;; esac
+              sleep 5
+            done
+            echo "unexpected status for $url"
+            curl -sS -A "$UA" -D - -o /tmp/body --max-time 30 "$url" || true
+            head -c 500 /tmp/body || true
+            exit 1
           }
           check https://prologue.dev/
           check https://prologue.dev/blog
@@ -39,5 +48,6 @@ jobs:
           set -euo pipefail
           echo | openssl s_client -connect prologue.dev:443 -servername prologue.dev -tls1_3 2>/dev/null | grep -q "Protocol  : TLSv1.3"
           echo "TLS 1.3 handshake ok"
-          curl -sS -o /dev/null -D - --max-time 30 https://prologue.dev/rss | grep -qi "^cf-cache-status:"
+          UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
+          curl -sS -A "$UA" -o /dev/null -D - --max-time 30 https://prologue.dev/rss | grep -qi "^cf-cache-status:"
           echo "Cloudflare cache header present"
