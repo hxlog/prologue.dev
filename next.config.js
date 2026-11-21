@@ -2,6 +2,11 @@
 const nextConfig = {
   reactStrictMode: true,
 
+  // Self-hosting (Docker on Fly.io) needs the traced standalone bundle, while
+  // Vercel and local `next start` must keep their normal output. The Docker
+  // build sets NEXT_STANDALONE=1; nothing else does.
+  output: process.env.NEXT_STANDALONE === "1" ? "standalone" : undefined,
+
   // Cache Components: `use cache` scopes, a prerendered static shell per route,
   // and Partial Prefetching (App Shell prefetched by default, per-link data on
   // `<Link prefetch={true}>`). See src/app/globals.css and the components that
@@ -9,12 +14,15 @@ const nextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
 
-  // Vercel version-skew protection. Next attaches the deployment id to RSC
-  // requests; when a client prefetched from an older deployment navigates after
-  // a rollout, the server answers with the right behaviour instead of mixing
-  // payloads from two builds (the "Failed to fetch RSC payload" class of error).
-  // Vercel injects VERCEL_DEPLOYMENT_ID; undefined locally, which disables it.
-  deploymentId: process.env.VERCEL_DEPLOYMENT_ID,
+  // Version-skew protection. Next attaches the deployment id to RSC requests;
+  // when a client prefetched from an older deployment navigates after a rollout,
+  // the server answers with the right behaviour instead of mixing payloads from
+  // two builds (the "Failed to fetch RSC payload" class of error). Vercel injects
+  // VERCEL_DEPLOYMENT_ID; Fly passes DEPLOYMENT_ID as a Docker build arg and
+  // bakes the same value into the runtime ENV (see Dockerfile). Undefined
+  // locally, which disables it.
+  deploymentId:
+    process.env.VERCEL_DEPLOYMENT_ID || process.env.DEPLOYMENT_ID || undefined,
 
   // 15-minute client router cache. Every card here is `prefetch={true}`, so the
   // 5-minute default makes a long reading session re-fetch the same prefetched
@@ -48,20 +56,23 @@ const nextConfig = {
     // site serves is either named with a content hash (public/static/opt/**) or
     // is a build asset that changes with the deploy. Replacing an image means
     // replacing its URL; see docs/CONTENT.md.
-    minimumCacheTTL: 2678400
+    minimumCacheTTL: 2678400,
+    // Self-hosted machines write optimized images to .next/cache/images. Cap the
+    // LRU at 128 MiB: a 256 MB Fly Machine has a small rootfs and the default
+    // (50% of free disk) can grow enough to fill it.
+    maximumDiskCacheSize: 134217728
   },
 
   // Long-lived browser caching for the immutable, content-hashed derivatives.
   // The un-hashed originals keep a shorter window: replacing one of those in
   // place is the one case where a reader can still hold a stale copy.
+  //
+  // Order matters on a self-hosted Next server: every matching rule is applied
+  // in array order and a later rule overwrites an earlier one (verified: with
+  // the specific rule first, /static/opt/* was served with the 7-day generic
+  // header). Put the generic rule first and the more specific rule last.
   async headers() {
     return [
-      {
-        source: '/static/opt/:path*',
-        headers: [
-          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
-        ],
-      },
       {
         source: '/static/:path*',
         headers: [
@@ -70,6 +81,26 @@ const nextConfig = {
             value: 'public, max-age=604800, stale-while-revalidate=2592000',
           },
         ],
+      },
+      {
+        source: '/static/opt/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+    ];
+  },
+
+  // www -> apex. Canonical URLs are all https://prologue.dev/...; doing this at
+  // the origin keeps it working in DNS-only mode and behind Cloudflare alike.
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'www.prologue.dev' }],
+        destination: 'https://prologue.dev/:path*',
+        // 301 (permanent: true would emit 308; legacy links and SEO expect 301).
+        statusCode: 301,
       },
     ];
   },

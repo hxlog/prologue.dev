@@ -29,8 +29,8 @@ export default async function Footer() {
             Next.js
           </Link>{" "}
           and{" "}
-          <Link href="https://vercel.com/" target="_blank" className="link">
-            Vercel
+          <Link href={sitemetadata.hosting.href} target="_blank" className="link">
+            {sitemetadata.hosting.label}
           </Link>
         </p>
 
