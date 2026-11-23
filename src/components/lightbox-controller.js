@@ -80,15 +80,22 @@ export default function Lightbox() {
         .split(",")
         .map((entry) => entry.trim().split(/\s+/)[0])
         .filter(Boolean);
-      const smallest = candidates[0] || element.src;
-      /* The page paints a pre-generated WebP thumbnail; the authored original
-         is kept in data-original-src for the lightbox and its download action. */
+      /* Start the viewer on the largest generated thumbnail (not the page's
+         smaller currentSrc) so the first frame is already readable; the authored
+         original is kept in data-original-src for the crossfade upgrade, and the
+         true pre-optimization file in data-source-src for the second download. */
+      const base = candidates[candidates.length - 1] || element.currentSrc || element.src;
       const original = element.getAttribute("data-original-src") || element.src;
+      // For unoptimized images the authored file is already the source, so the
+      // second button falls back to the optimized/original URL instead of hiding.
+      const source = element.getAttribute("data-source-src") || original;
       return {
-        src: element.currentSrc || smallest,
+        src: base,
         hires: original,
         original,
-        filename: filenameOf(original),
+        source,
+        filename: filenameOf(base),
+        sourceFilename: source ? filenameOf(source) : "",
         width: element.naturalWidth || undefined,
         height: element.naturalHeight || undefined,
         alt: element.alt || "",

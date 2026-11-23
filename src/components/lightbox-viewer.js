@@ -9,18 +9,27 @@ const ZOOM_STEP = 1.35;
 const DOUBLE_CLICK_ZOOM = 2.4;
 
 /* Open/close is a centre zoom on the Web Animations API, not a FLIP morph.
-   The viewer grows from scale(0.92) to 1 while the scrim fades in, and closing
-   shrinks the bitmap to scale(0.94) as it fades out, with the chrome dissolving
-   under it. A FLIP handoff from the clicked thumbnail was tried first and
-   replaced: it made the zoom depend on the source rect and had to be re-targeted
-   after paging; the centre zoom is one gesture for every slide and keeps the
-   overlay's own geometry. CLOSE_MS is how long the viewer stays mounted. */
-const OPEN_ZOOM_MS = 260;
+   The viewer grows from a near-full-scale 0.97 to 1 (a subtle handoff rather
+   than a visible shrink) while the scrim fades in, and closing shrinks the
+   bitmap to 0.96 as it fades out. The authored original crossfades over the
+   largest generated thumbnail, so resolution improves without a src swap
+   flash. CLOSE_MS is how long the viewer stays mounted. */
+const OPEN_ZOOM_MS = 360;
 const CLOSE_MS = 240;
 const SLIDE_MS = 260;
 const EASE_OUT = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+function filenameOf(src) {
+  if (!src) return "image";
+  try {
+    const clean = src.split("?")[0].split("#")[0];
+    return decodeURIComponent(clean.split("/").pop() || "image");
+  } catch {
+    return "image";
+  }
+}
 
 function prefersReducedMotion() {
   return (
@@ -58,8 +67,9 @@ function clampOffset(next, zoomValue, img) {
  *
  * Zoom model: one transform on the figure (translate + scale), offset clamped
  * to the scaled bounds so the image cannot be dragged out of the viewport. The
- * bitmap is the already-optimised URL the page loaded (currentSrc), so opening
- * is a cache hit rather than a second download.
+ * bitmap starts from the largest generated thumbnail, then the authored
+ * original crossfades over it once decoded; currentSrc from the page is only a
+ * fallback when the image has no srcset.
  */
 export default function LightboxViewer({ slides, startIndex, onClose }) {
   const [index, setIndex] = useState(startIndex);
@@ -73,11 +83,10 @@ export default function LightboxViewer({ slides, startIndex, onClose }) {
   const [closing, setClosing] = useState(false);
   const [zoom, setZoom] = useState(MIN_ZOOM);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
-  /* Both are derived, not mirrored: the displayed URL is "the cached one, then
-     the largest srcset candidate once it decodes", and "loaded" means "the
-     bitmap currently on screen has fired load". Storing either as state that an
-     effect syncs would add a cascading render on every arrow key. */
-  const [upgraded, setUpgraded] = useState(null);
+  /* The base thumbnail is painted immediately; the authored original is a
+     second layer that fades over it once its load callback fires. Keeping both
+     layers mounted avoids a src-swap flash and lets the user download whichever
+     one is actually on screen. */
   const [loadedSrc, setLoadedSrc] = useState(null);
 
   const rootRef = useRef(null);
@@ -92,10 +101,10 @@ export default function LightboxViewer({ slides, startIndex, onClose }) {
 
   const total = slides.length;
   const slide = slides[index];
-  /* Opening paints from the URL the page already downloaded (a cache hit);
-     zooming to 4× still gets the real file once the upgrade decodes. */
-  const src = upgraded && upgraded.index === index ? upgraded.src : slide?.src;
-  const loaded = loadedSrc === src;
+  const baseSrc = slide?.src;
+  const hiresSrc = slide?.hires && slide.hires !== slide.src ? slide.hires : "";
+  const displaySrc = hiresSrc && loadedSrc === hiresSrc ? hiresSrc : baseSrc;
+  const loaded = loadedSrc === baseSrc;
 
   const resetView = useCallback(() => {
     setZoom(MIN_ZOOM);
@@ -124,9 +133,25 @@ export default function LightboxViewer({ slides, startIndex, onClose }) {
     []
   );
 
+  useEffect(() => {
+    // A cached bitmap can be complete before React attaches onLoad; read the
+    // already-decoded layer once after mount, preferring the sharper overlay.
+    const media = imageRef.current;
+    if (!media) return;
+    const hiresNode = media.querySelector(".lightbox-img--hires");
+    if (hiresNode?.complete && hiresNode.naturalWidth > 0) {
+      setLoadedSrc(hiresNode.getAttribute("src"));
+      return;
+    }
+    const baseNode = media.querySelector(".lightbox-img--base");
+    if (baseNode?.complete && baseNode.naturalWidth > 0) {
+      setLoadedSrc(baseNode.getAttribute("src"));
+    }
+  }, [index, baseSrc, hiresSrc]);
+
   /* The opening zoom. Runs before the first paint so the bitmap never appears
      at its final size first. No thumbnail geometry is involved: the image simply
-     grows from 92% about the stage centre while the scrim fades in. */
+     grows from 97% about the stage centre while the scrim fades in. */
   useLayoutEffect(() => {
     if (!opening) return undefined;
     const img = imageRef.current;
@@ -138,7 +163,7 @@ export default function LightboxViewer({ slides, startIndex, onClose }) {
     };
     if (img) {
       const animation = img.animate(
-        [{ transform: "scale(0.92)" }, { transform: "none" }],
+        [{ transform: "scale(0.97)" }, { transform: "none" }],
         { duration: OPEN_ZOOM_MS, easing: EASE_OUT }
       );
       animation.finished.then(finish, finish);
@@ -178,7 +203,7 @@ export default function LightboxViewer({ slides, startIndex, onClose }) {
       const animation = img.animate(
         [
           { transform: "none", opacity: 1 },
-          { transform: "scale(0.94)", opacity: 0 },
+          { transform: "scale(0.96)", opacity: 0 },
         ],
         {
           duration: CLOSE_MS,
@@ -190,22 +215,6 @@ export default function LightboxViewer({ slides, startIndex, onClose }) {
     }
     closeTimerRef.current = setTimeout(finish, CLOSE_MS + 160);
   }, [onClose]);
-
-  /* Decode the high-resolution candidate in the background and swap it in. The
-     setter runs from an image callback, never synchronously in the effect. */
-  useEffect(() => {
-    const target = slides[index];
-    if (!target?.hires || target.hires === target.src) return undefined;
-    let cancelled = false;
-    const upgrade = new Image();
-    upgrade.src = target.hires;
-    upgrade.onload = () => {
-      if (!cancelled) setUpgraded({ index, src: target.hires });
-    };
-    return () => {
-      cancelled = true;
-    };
-  }, [index, slides]);
 
   const zoomTo = useCallback((next) => {
     const value = clamp(next, MIN_ZOOM, MAX_ZOOM);
@@ -386,11 +395,18 @@ export default function LightboxViewer({ slides, startIndex, onClose }) {
 
   if (!slide) return null;
 
+  const currentHref = displaySrc || slide.src || slide.original;
+  const currentName = filenameOf(currentHref);
+  const sourceHref = slide.source || "";
+  const sourceName = slide.sourceFilename || filenameOf(sourceHref);
+
   const renderCell = (slideIndex, isCurrent) => {
     const item = slides[slideIndex];
     if (!item) return null;
-    const cellSrc = isCurrent ? src : item.src;
-    const isLoaded = isCurrent ? loaded : true;
+    const base = item.src;
+    const hires = isCurrent && item.hires && item.hires !== base ? item.hires : "";
+    const baseLoaded = isCurrent ? loaded || loadedSrc === hires : true;
+    const hiresLoaded = Boolean(hires && loadedSrc === hires);
     return (
       <div
         key={`${slideIndex}-${isCurrent ? "current" : "outgoing"}`}
@@ -409,25 +425,46 @@ export default function LightboxViewer({ slides, startIndex, onClose }) {
               : undefined
           }
         >
-          {/* A plain <img>, not next/image: the point is to paint the exact URL
-              the page already downloaded (currentSrc). Routing it back through
-              the optimizer would request a different width and cost a second
-              round trip on the one action that has to feel instant. */}
-          {/* width/height are the source bitmap's intrinsic size: they reserve
-              the right box before the bitmap decodes, so the opening zoom starts
-              from the image's own centre rather than from a collapsing box. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          {/* Two plain <img> layers, not next/image: the base paints from the
+              largest build-time thumbnail the page can offer, and the authored
+              original fades over it when decoded. A single src swap made the
+              bitmap disappear for a frame (opacity 0 until load), which read as
+              a hard cut instead of a resolution upgrade. width/height reserve the
+              box before either bitmap decodes. */}
+          <div
             ref={isCurrent ? imageRef : undefined}
-            src={item && isCurrent ? cellSrc : item.src}
-            alt={isCurrent ? item.alt : ""}
-            width={item.width || undefined}
-            height={item.height || undefined}
-            decoding="async"
-            draggable="false"
-            onLoad={isCurrent ? () => setLoadedSrc(cellSrc) : undefined}
-            data-loaded={isLoaded ? "true" : undefined}
-          />
+            className="lightbox-media"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              className="lightbox-img lightbox-img--base"
+              src={base}
+              alt={isCurrent ? item.alt : ""}
+              width={item.width || undefined}
+              height={item.height || undefined}
+              decoding="async"
+              draggable="false"
+              onLoad={isCurrent ? () => setLoadedSrc(base) : undefined}
+              data-loaded={baseLoaded ? "true" : undefined}
+            />
+            {hires ? (
+              // alt is empty on purpose: the base layer already carries the
+              // accessible text, and the overlay is purely a sharper bitmap.
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                className="lightbox-img lightbox-img--hires"
+                src={hires}
+                alt=""
+                aria-hidden="true"
+                width={item.width || undefined}
+                height={item.height || undefined}
+                decoding="async"
+                draggable="false"
+                onLoad={isCurrent ? () => setLoadedSrc(hires) : undefined}
+                data-loaded={hiresLoaded ? "true" : undefined}
+              />
+            ) : null}
+          </div>
         </figure>
       </div>
     );
@@ -558,14 +595,16 @@ export default function LightboxViewer({ slides, startIndex, onClose }) {
             <path d="M7 4H4v3M13 4h3v3M7 16H4v-3M13 16h3v-3" />
           </svg>
         </button>
-        {/* Same glass control recipe as the zoom buttons; clicking it must not
-            reach the scrim (which would close the viewer). */}
+        {/* Both actions use the same glass control and click guard. "Current"
+            follows the layer actually on screen (thumbnail before the original
+            decodes, then the sharper file); "original" is the authored source
+            file recovered from the pre-optimization image tree. */}
         <a
           className="lightbox-tool"
-          href={slide.original}
-          download={slide.filename}
-          aria-label="下载原图"
-          title="下载原图"
+          href={currentHref}
+          download={currentName}
+          aria-label="下载当前图片"
+          title="下载当前图片（屏幕上这张）"
           onClick={(event) => event.stopPropagation()}
         >
           <svg
@@ -581,6 +620,30 @@ export default function LightboxViewer({ slides, startIndex, onClose }) {
             <path d="M10 3v9m0 0 3.2-3.2M10 12 6.8 8.8M4 15.5v.5a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-.5" />
           </svg>
         </a>
+        {sourceHref ? (
+          <a
+            className="lightbox-tool lightbox-tool--source"
+            href={sourceHref}
+            download={sourceName}
+            aria-label="下载原图"
+            title="下载原图（源文件）"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <svg
+              viewBox="0 0 20 20"
+              aria-hidden="true"
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M6 3.5h5.5L15 6v10.5H6z" />
+              <path d="M11.5 3.5V6H15M10 8.5v4m0 0 1.7-1.7M10 12.5 8.3 10.8" />
+            </svg>
+          </a>
+        ) : null}
       </div>
     </div>
   );

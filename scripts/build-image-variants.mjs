@@ -46,6 +46,7 @@ function collectReferences() {
       if (file.endsWith(path.sep + "route-manifest.js")) continue;
       if (file.endsWith(path.sep + "image-sizes.js")) continue;
       if (file.endsWith(path.sep + "image-variants.js")) continue;
+      if (file.endsWith(path.sep + "image-sources.js")) continue;
       let text;
       try { text = readFileSync(file, "utf8"); } catch { continue; }
       for (const m of text.matchAll(STATIC_RE)) refs.add(m[0]);

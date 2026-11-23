@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { MermaidBlock } from "./mermaid-block";
 import { decodeHtmlEntities } from "../lib/html-entities";
+import { IMAGE_SOURCES } from "../../data/image-sources.js";
 
 /**
  * Split post HTML into React nodes: Next/Image for <img>, MermaidBlock for
@@ -66,6 +67,7 @@ export function OptimizedHTMLRenderer({ htmlContent }) {
               // attribute for the lightbox's original/download action. SVG and
               // animated GIF cannot be resized/transcoded by sharp here.
               data-original-src={src}
+              data-source-src={IMAGE_SOURCES[src] || undefined}
               unoptimized={/\.svg$/i.test(src) || /\.gif$/i.test(src)}
             />
           );

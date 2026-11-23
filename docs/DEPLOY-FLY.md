@@ -167,9 +167,15 @@ generates WebP sizes 480/720/1080/1440/1920/2048 for content images and
 an image changes its URL and immutable Cloudflare/browser caching stays safe.
 `next/image` uses `src/lib/image-loader.js` to map a requested width to the
 closest generated variant; SVG/GIF and ungenerated images fall back to their
-original URL. The authored path is kept in `data-original-src`, which the
-lightbox uses for the full-size view and the toolbar's download button. No
-`/_next/image` encoding runs at request time.
+original URL. The optimized original is kept in `data-original-src`; the
+pre-optimization source files are recovered under `public/static/source/**`
+(content-hash directories) and mapped by `data/image-sources.js`. The lightbox
+starts on the largest generated thumbnail, crossfades the optimized original
+over it once decoded, and offers two download actions: `下载当前图片` (the
+bitmap currently on screen) and `下载原图` (the true source file). Source files
+are immutable under the existing `/static/` cache rule and are excluded from
+function tracing; template publishing wipes `public/static` and ships an empty
+source map. No `/_next/image` encoding runs at request time.
 
 ## Images (2026-11-23 incident)
 

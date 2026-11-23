@@ -180,10 +180,14 @@ size, animated WebP for GIFs). Those source URLs are served with
 and everything else under `/static/` gets a 7-day window. All are keyed by
 content-hashed URLs, so a new filename is what publishes a new picture.
 
-The lightbox opens the authored original rather than a generated thumbnail, and
-the toolbar's download control saves that file. The source file's pixel width is
-therefore the sharpness ceiling for a zoomed view; the thumbnail variants only
-control normal page rendering.
+The lightbox paints the largest generated thumbnail first, crossfades the
+authored optimized original over it once decoded, and provides two downloads:
+"下载当前图片" saves the bitmap currently on screen, while "下载原图" saves the
+pre-optimization source file (recovered into `public/static/source/**` and mapped
+by `data/image-sources.js`; the template has no such originals, so its map is
+empty and only the current-image action is meaningful). The source file's pixel
+width is therefore the sharpness ceiling for a zoomed view; the thumbnail
+variants only control normal page rendering.
 
 ## Frontmatter fields
 

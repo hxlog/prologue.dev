@@ -1741,8 +1741,9 @@ html.dark .shiki span {
  * hairline border, brand pastel on hover.
  *
  * Open and close are a centre zoom in lightbox-viewer.js: the bitmap grows from
- * scale(0.92) as the scrim fades in, and closing shrinks it to scale(0.94) while
+ * scale(0.97) as the scrim fades in, and closing shrinks it to scale(0.96) while
  * it fades out and the chrome dissolves under it (reduced motion skips both).
+ * The authored original crossfades over the generated thumbnail once decoded.
  * Paging is a pure horizontal slide of a two-cell track — no opacity crossfade,
  * because two stacked semi-transparent bitmaps read as a flash.
  * ------------------------------------------------------------------------- */
@@ -1887,6 +1888,51 @@ html.dark .shiki span {
   opacity: 1;
   transition: none;
   box-shadow: none;
+}
+
+/* Two-layer bitmap: the base is the largest generated thumbnail and the
+   authored original crossfades over it once decoded. The wrapper owns the
+   frame/shadow so the two images never double it. */
+.lightbox-media {
+  display: grid;
+  place-items: center;
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: var(--radius-card);
+  box-shadow:
+    0 0 0 1px rgb(238 240 247 / 0.12),
+    0 30px 80px -20px rgb(0 0 0 / 0.7);
+}
+.lightbox-media img {
+  grid-area: 1 / 1;
+  box-shadow: none;
+  transition: opacity 320ms var(--ease-out-expo);
+}
+.lightbox-media .lightbox-img--base {
+  opacity: 0;
+}
+.lightbox-media .lightbox-img--base[data-loaded],
+.lightbox-figure[data-opening] .lightbox-img--base {
+  opacity: 1;
+  transition: none;
+}
+/* Override the old generic [data-opening] img rule: the sharper layer must wait
+   for its own load event, not appear with the base during the opening zoom. */
+.lightbox-figure[data-opening] .lightbox-img--hires {
+  opacity: 0;
+}
+.lightbox-media .lightbox-img--hires {
+  z-index: 1;
+  opacity: 0;
+}
+.lightbox-media .lightbox-img--hires[data-loaded] {
+  opacity: 1;
+}
+
+/* The older generic [data-loaded] rule removes the opacity transition; put it
+   back for the sharp layer so thumbnail -> original is a real crossfade. */
+.lightbox-figure .lightbox-img--hires[data-loaded] {
+  transition: opacity 320ms var(--ease-out-expo);
 }
 
 /* Closing: the chrome fades out while the bitmap shrinks and fades, so the zoom

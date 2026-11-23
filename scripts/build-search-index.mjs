@@ -165,6 +165,7 @@ function walkImages(dir, out = []) {
       // them out of data/image-sizes.js stops the size table growing on every
       // build and keeps the lightbox/original lookup clean.
       if (path.join(dir, entry) === path.join(ROOT, "public", "static", "variants")) continue;
+      if (path.join(dir, entry) === path.join(ROOT, "public", "static", "source")) continue;
       walkImages(full, out);
     } else if (IMAGE_RE.test(entry)) out.push(full);
   }

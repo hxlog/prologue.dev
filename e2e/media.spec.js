@@ -67,7 +67,12 @@ test("lightbox opens the authored original and exposes a download control", asyn
   const dialog = page.getByRole("dialog", { name: /图片查看器/ });
   await expect(dialog).toBeVisible();
 
-  const download = dialog.getByRole("link", { name: "下载原图" });
-  await expect(download).toHaveAttribute("href", /^\/static\/opt\/.+\.avif$/);
-  await expect(download).toHaveAttribute("download", /\.avif$/);
+  const current = dialog.getByRole("link", { name: "下载当前图片" });
+  await expect(current).toHaveAttribute("download", /\.(webp|avif)$/);
+
+  // The second action is the authored pre-optimization source recovered from
+  // the image tree, not the optimized /static/opt derivative.
+  const source = dialog.getByRole("link", { name: "下载原图" });
+  await expect(source).toHaveAttribute("href", /^\/static\/source\/.+\.(png|jpe?g|webp)$/);
+  await expect(source).toHaveAttribute("download", /\.(png|jpe?g|webp)$/);
 });

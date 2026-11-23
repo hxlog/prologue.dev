@@ -94,6 +94,12 @@ const nextConfig = {
           { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
         ],
       },
+      {
+        source: '/static/source/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
     ];
   },
 
@@ -121,6 +127,8 @@ const nextConfig = {
       './public/static/images/**',
       './public/static/photos/**',
       './public/static/opt/**',
+      './public/static/variants/**',
+      './public/static/source/**',
     ],
   },
 

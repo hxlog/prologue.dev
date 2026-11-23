@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { IMAGE_SOURCES } from "../../data/image-sources.js";
 import { formatRailDate } from "../lib/date";
 
 /**
@@ -56,6 +57,7 @@ export default function MicroblogEntry({ entry, compact = false }) {
                     src={image.src}
                     alt={image.desc || "微博配图"}
                     data-original-src={image.src}
+                    data-source-src={IMAGE_SOURCES[image.src] || undefined}
                     fill
                     loading="lazy"
                     sizes={
