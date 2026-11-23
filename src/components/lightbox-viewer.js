@@ -134,19 +134,28 @@ export default function LightboxViewer({ slides, startIndex, onClose }) {
   );
 
   useEffect(() => {
-    // A cached bitmap can be complete before React attaches onLoad; read the
-    // already-decoded layer once after mount, preferring the sharper overlay.
+    // Attach native load listeners to both layers. React's onLoad misses an
+    // image that is already complete when the element mounts (a cached bitmap),
+    // which used to leave the sharper overlay at opacity 0 forever.
     const media = imageRef.current;
-    if (!media) return;
-    const hiresNode = media.querySelector(".lightbox-img--hires");
-    if (hiresNode?.complete && hiresNode.naturalWidth > 0) {
-      setLoadedSrc(hiresNode.getAttribute("src"));
-      return;
+    if (!media) return undefined;
+    const nodes = [
+      media.querySelector(".lightbox-img--base"),
+      media.querySelector(".lightbox-img--hires"),
+    ].filter(Boolean);
+    const onLoad = (event) => {
+      const node = event.currentTarget;
+      if (node?.naturalWidth > 0) setLoadedSrc(node.getAttribute("src"));
+    };
+    for (const node of nodes) {
+      node.addEventListener("load", onLoad);
+      if (node.complete && node.naturalWidth > 0) {
+        setLoadedSrc(node.getAttribute("src"));
+      }
     }
-    const baseNode = media.querySelector(".lightbox-img--base");
-    if (baseNode?.complete && baseNode.naturalWidth > 0) {
-      setLoadedSrc(baseNode.getAttribute("src"));
-    }
+    return () => {
+      for (const node of nodes) node.removeEventListener("load", onLoad);
+    };
   }, [index, baseSrc, hiresSrc]);
 
   /* The opening zoom. Runs before the first paint so the bitmap never appears
@@ -444,7 +453,6 @@ export default function LightboxViewer({ slides, startIndex, onClose }) {
               height={item.height || undefined}
               decoding="async"
               draggable="false"
-              onLoad={isCurrent ? () => setLoadedSrc(base) : undefined}
               data-loaded={baseLoaded ? "true" : undefined}
             />
             {hires ? (
@@ -460,8 +468,7 @@ export default function LightboxViewer({ slides, startIndex, onClose }) {
                 height={item.height || undefined}
                 decoding="async"
                 draggable="false"
-                onLoad={isCurrent ? () => setLoadedSrc(hires) : undefined}
-                data-loaded={hiresLoaded ? "true" : undefined}
+                  data-loaded={hiresLoaded ? "true" : undefined}
               />
             ) : null}
           </div>
