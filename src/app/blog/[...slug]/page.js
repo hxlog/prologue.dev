@@ -6,6 +6,7 @@ import Image from "next/image";
 import { getPosts } from "../../../lib/content";
 import { getCachedPost, getCachedPosts } from "../../../lib/content/cached";
 import siteMetadata from "../../../../data/sitemetadata";
+import { IMAGE_SIZES } from "../../../../data/image-sizes.js";
 import ScrollTopAndComment from "../../../components/scroll";
 import TableofContent from "../../../components/toc";
 import AboutMe from "../../../components/aboutme";
@@ -183,16 +184,27 @@ async function PostView({ params }) {
               ) : null}
 
               {hasHero ? (
-                <Image
-                  src={post.image.trim()}
-                  width={1920}
-                  height={1080}
-                  alt={"封面 " + post.title}
-                  preload
-                  fetchPriority="high"
-                  sizes="(min-width: 1280px) 896px, (min-width: 768px) 85vw, 100vw"
-                  className="my-6 h-auto w-full rounded-card object-cover shadow-card"
-                />
+                (() => {
+                  // The cover is a content-hashed /static/ asset already sized and
+                  // cached like the body images; send it straight from the edge
+                  // instead of paying a runtime /_next/image encode (cold WebP on
+                  // the shared-CPU Fly Machine measured seconds per image, and the
+                  // cover is above the fold so it competes with the first paint).
+                  const heroSize = IMAGE_SIZES[post.image.trim()] || {};
+                  return (
+                    <Image
+                      src={post.image.trim()}
+                      width={heroSize.w || 1920}
+                      height={heroSize.h || 1080}
+                      alt={"封面 " + post.title}
+                      preload
+                      fetchPriority="high"
+                      unoptimized
+                      sizes="(min-width: 1280px) 896px, (min-width: 768px) 85vw, 100vw"
+                      className="my-6 h-auto w-full rounded-card object-cover shadow-card"
+                    />
+                  );
+                })()
               ) : null}
               {post.imageDesc ? (
                 <p className="text-sm text-faint">{post.imageDesc}</p>
