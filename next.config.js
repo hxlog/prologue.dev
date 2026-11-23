@@ -40,7 +40,14 @@ const nextConfig = {
   },
 
   images: {
-    formats: ["image/avif", "image/webp"],
+    // WebP only. AVIF is ~4x more expensive to encode and this app runs the
+    // optimizer on 256 MB shared-CPU Fly Machines: a cold AVIF card measured
+    // 7.9 s (vs 1.8 s cold WebP, 0.65 s JPEG) and a page loading ten images
+    // saturated the CPU, tripping the health check/watchdog. WebP keeps the
+    // size win without the encode cost. Cloudflare also caches /_next/image at
+    // the edge now; with a single negotiated format a cached response cannot be
+    // served to a client that asked for a different variant.
+    formats: ["image/webp"],
     unoptimized: false,
     path: '/_next/image',
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
