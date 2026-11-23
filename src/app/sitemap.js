@@ -27,7 +27,7 @@ import { absoluteUrl } from "../lib/seo";
  */
 export default async function sitemap() {
   "use cache";
-  cacheLife("max");
+  cacheLife("build");
 
   const posts = getPosts().filter((post) => post.draft === false);
 

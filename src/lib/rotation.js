@@ -17,7 +17,7 @@ import { cacheLife } from "next/cache";
  */
 export async function getRotationOffset(total) {
   "use cache";
-  cacheLife("days");
+  cacheLife("build");
   const day = Math.floor(Date.now() / 86_400_000);
   const n = Math.max(1, total);
   return ((day % n) + n) % n;

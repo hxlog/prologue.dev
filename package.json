@@ -8,8 +8,8 @@
     "node": "24.x"
   },
   "scripts": {
-    "dev": "node scripts/build-search-index.mjs && next dev --turbopack",
-    "build": "node scripts/build-search-index.mjs && next build --turbopack",
+    "dev": "node scripts/build-search-index.mjs && node scripts/build-image-variants.mjs && next dev --turbopack",
+    "build": "node scripts/build-search-index.mjs && node scripts/build-image-variants.mjs && next build --turbopack",
     "build:e2e": "node scripts/build-e2e.mjs",
     "start": "next start",
     "lint": "eslint .",

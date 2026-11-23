@@ -19,6 +19,8 @@
 
 # generated search index (rebuilt on every build; must not ship to the template snapshot)
 /public/search-index.json
+# generated responsive thumbnails (rebuilt by scripts/build-image-variants.mjs)
+/public/static/variants/
 
 # Playwright artifacts
 /test-results/

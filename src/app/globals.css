@@ -1974,6 +1974,7 @@ html.dark .shiki span {
 .lightbox-tool {
   width: 2.25rem;
   height: 2.25rem;
+  text-decoration: none;
 }
 .lightbox-counter {
   font-size: var(--text-caption);

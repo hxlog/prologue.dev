@@ -14,6 +14,18 @@ const nextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
 
+  // Everything here changes only when a build runs, so caches live from one
+  // deploy to the next. Cloudflare is purged by the deploy workflow; the Next
+  // data cache uses the same build lifetime instead of the default 30-day
+  // `max` profile.
+  cacheLife: {
+    build: {
+      stale: 31536000,
+      revalidate: 31536000,
+      expire: 31536000,
+    },
+  },
+
   // Version-skew protection. Next attaches the deployment id to RSC requests;
   // when a client prefetched from an older deployment navigates after a rollout,
   // the server answers with the right behaviour instead of mixing payloads from
@@ -40,34 +52,15 @@ const nextConfig = {
   },
 
   images: {
-    // WebP only. AVIF is ~4x more expensive to encode and this app runs the
-    // optimizer on 256 MB shared-CPU Fly Machines: a cold AVIF card measured
-    // 7.9 s (vs 1.8 s cold WebP, 0.65 s JPEG) and a page loading ten images
-    // saturated the CPU, tripping the health check/watchdog. WebP keeps the
-    // size win without the encode cost. Cloudflare also caches /_next/image at
-    // the edge now; with a single negotiated format a cached response cannot be
-    // served to a client that asked for a different variant.
-    formats: ["image/webp"],
-    unoptimized: false,
-    path: '/_next/image',
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    // Native fix for images opening as downloads: Next's optimizer defaults to
-    // Content-Disposition: attachment on every /_next/image response (a
-    // content-injection safeguard); 'inline' makes direct opens/lightbox views
-    // display in the browser. This replaces the previous triple workaround
-    // (middleware.js + vercel.json + headers() overrides).
-    contentDispositionType: 'inline',
-    // Storyfile URLs are *not* content-hashed by Next — the query string only
-    // carries url/w/q. A long TTL is therefore only safe because every image this
-    // site serves is either named with a content hash (public/static/opt/**) or
-    // is a build asset that changes with the deploy. Replacing an image means
-    // replacing its URL; see docs/CONTENT.md.
-    minimumCacheTTL: 2678400,
-    // Self-hosted machines write optimized images to .next/cache/images. Cap the
-    // LRU at 128 MiB: a 256 MB Fly Machine has a small rootfs and the default
-    // (50% of free disk) can grow enough to fill it.
-    maximumDiskCacheSize: 134217728
+    // Build-time WebP variants: scripts/build-image-variants.mjs writes the
+    // files and data/image-variants.js, and this loader maps next/image widths
+    // to those immutable static URLs. No sharp work happens at request time.
+    loader: "custom",
+    loaderFile: "./src/lib/image-loader.js",
+    deviceSizes: [480, 720, 1080, 1440, 1920, 2048],
+    // Tiny chrome images fall back to their original static URL when a width
+    // has no generated variant.
+    imageSizes: [16, 32, 48, 64, 96, 128, 256],
   },
 
   // Long-lived browser caching for the immutable, content-hashed derivatives.
@@ -91,6 +84,12 @@ const nextConfig = {
       },
       {
         source: '/static/opt/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+      {
+        source: '/static/variants/:path*',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
         ],

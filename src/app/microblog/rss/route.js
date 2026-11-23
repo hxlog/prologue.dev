@@ -90,7 +90,7 @@ export async function GET() {
   return new Response(finalizeRss(feed.rss2().trim()), {
     headers: {
       "Content-Type": "application/rss+xml; charset=utf-8",
-      "Cache-Control": "public, s-maxage=600, stale-while-revalidate=86400",
+      "Cache-Control": "public, s-maxage=31536000, stale-while-revalidate=604800",
     },
   });
 }

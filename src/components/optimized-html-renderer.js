@@ -61,17 +61,12 @@ export function OptimizedHTMLRenderer({ htmlContent }) {
               fetchPriority={eager ? "high" : undefined}
               className={`drop-shadow-xs rounded-sm ${attr("class")}`.trim()}
               style={{ height: "auto", width: "100%" }}
-              // Content images bypass the runtime optimizer entirely. Every
-              // markdown image is already authored/compressed and content-hashed
-              // under public/static/opt/, so /static/** is immutable + edge-cached
-              // by Cloudflare and the origin serves a plain file. Running these
-              // through /_next/image meant a shared-CPU 256 MB Fly Machine encoding
-              // WebP/AVIF per cold variant: measured 8 s cold AVIF / 1.8 s cold WebP
-              // for one card, which saturated the CPU when a page loaded ~10 images
-              // and tripped the health check. It also made the lightbox's 4K upgrade
-              // re-encode on open. SVG/GIF keep working here too (the optimizer
-              // would reject SVG and flatten animation).
-              unoptimized
+              // next.config uses the build-time custom loader, so this is a
+              // pre-generated WebP srcset. Keep the authored file in a data
+              // attribute for the lightbox's original/download action. SVG and
+              // animated GIF cannot be resized/transcoded by sharp here.
+              data-original-src={src}
+              unoptimized={/\.svg$/i.test(src) || /\.gif$/i.test(src)}
             />
           );
         }

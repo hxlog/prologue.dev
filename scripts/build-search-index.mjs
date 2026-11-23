@@ -160,8 +160,13 @@ const IMAGE_RE = /\.(png|jpe?g|gif|webp|avif|svg)$/i;
 function walkImages(dir, out = []) {
   for (const entry of readdirSync(dir)) {
     const full = path.join(dir, entry);
-    if (statSync(full).isDirectory()) walkImages(full, out);
-    else if (IMAGE_RE.test(entry)) out.push(full);
+    if (statSync(full).isDirectory()) {
+      // Generated responsive thumbnails are not authored source assets; keeping
+      // them out of data/image-sizes.js stops the size table growing on every
+      // build and keeps the lightbox/original lookup clean.
+      if (path.join(dir, entry) === path.join(ROOT, "public", "static", "variants")) continue;
+      walkImages(full, out);
+    } else if (IMAGE_RE.test(entry)) out.push(full);
   }
   return out;
 }

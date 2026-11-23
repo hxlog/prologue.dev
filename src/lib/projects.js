@@ -24,7 +24,7 @@ const TIMEOUT_MS = 4000;
 
 export async function getProjects() {
   "use cache";
-  cacheLife("days");
+  cacheLife("build");
 
   const raw = await readFile(
     path.join(process.cwd(), "data", "projects.yaml"),

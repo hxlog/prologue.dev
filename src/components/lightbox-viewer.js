@@ -558,6 +558,29 @@ export default function LightboxViewer({ slides, startIndex, onClose }) {
             <path d="M7 4H4v3M13 4h3v3M7 16H4v-3M13 16h3v-3" />
           </svg>
         </button>
+        {/* Same glass control recipe as the zoom buttons; clicking it must not
+            reach the scrim (which would close the viewer). */}
+        <a
+          className="lightbox-tool"
+          href={slide.original}
+          download={slide.filename}
+          aria-label="下载原图"
+          title="下载原图"
+          onClick={(event) => event.stopPropagation()}
+        >
+          <svg
+            viewBox="0 0 20 20"
+            aria-hidden="true"
+            className="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M10 3v9m0 0 3.2-3.2M10 12 6.8 8.8M4 15.5v.5a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-.5" />
+          </svg>
+        </a>
       </div>
     </div>
   );

@@ -79,7 +79,10 @@ secret on the app (not in fly.toml, not in git).
 ## Deploy
 
 Automatic: push to master -> CI -> "Deploy to Fly.io" -> rolling replacement of
-all Machines with flyctl deploy --remote-only and the commit SHA as build arg.
+all Machines with flyctl deploy --remote-only and the commit SHA as build arg,
+then a Cloudflare purge. The deploy workflow uses the scoped
+CLOUDFLARE_CACHE_PURGE_TOKEN and CLOUDFLARE_ZONE_ID repository secrets (Cache
+Purge permission only; never the global key).
 
 Manual:
 
@@ -101,8 +104,10 @@ connector and there is no downtime.
 - Production runs 256 MB + 512 MB swap on every Machine; the same burst
   returned 200s and the health check stayed passing. cloudflared adds a small
   constant overhead; watch RSS with fly ssh if traffic grows.
-- images.maximumDiskCacheSize = 128 MiB; .next/cache is ephemeral and a deploy
-  starts cold (posts are pre-rendered; feeds rebuild in about 0.3 s).
+- Runtime image optimization is gone (custom loader + build-time variants), so
+  there is no .next/cache/images growth on the Machines. The Docker image carries
+  the generated thumbnails; .next/cache is still ephemeral and a deploy starts
+  cold, but posts/feeds are already pre-rendered.
 
 ## TLS, IPv6 and Cloudflare cache rules
 
@@ -111,15 +116,60 @@ connector and there is no downtime.
 - IPv6: Cloudflare edge answers AAAA with its own dual-stack addresses; no
   origin AAAA is needed through the tunnel.
 - Cache rules (zone Rulesets API, phase http_request_cache_settings):
-  - /_next/static/ and /static/ -> cache, edge respects origin, browser respects origin
-  - /_next/image -> cache, edge respects origin (added 2026-11-23; see Images)
-  - /og* -> cache, edge respects origin (origin s-maxage=31536000)
-  - /rss /atomfeed /jsonfeed /microblog/rss -> cache, edge respects origin (600 s)
-  - /llms.txt /llms-full.txt /robots.txt /sitemap.xml -> cache, edge 1 h, browser 10 min
+  - /_next/static/ and /static/ (includes generated /static/variants/) -> cache, respect origin
+  - /og* -> cache, respect origin (origin s-maxage=31536000)
+  - /rss /atomfeed /jsonfeed /microblog/rss -> cache, respect origin (origin s-maxage=31536000)
+  - /llms.txt /llms-full.txt /robots.txt /sitemap.xml -> cache, edge 1 y, browser 4 h
   - /api/* -> bypass cache
-  - everything else (HTML/RSC) -> no cache rule, goes to the tunnel
-- Verified: /og, /rss, /static, /_next/image and /llms.txt return cf-cache-status
-  HIT after the first request; HTML/RSC stays DYNAMIC; www returns 301 to apex.
+  - HTML/RSC catch-all: everything except /api, /_next, /cdn-cgi and /__uptime
+    -> cache, edge + browser respect origin
+  - /_next/image is only a safety net; next/image now uses the build-time custom
+    loader, so the page path no longer requests it.
+- Browser TTL: Next sets build-lifetime s-maxage=31536000 without max-age, so
+  Cloudflare's default 4-hour browser cache applies (Q7B choice). A deploy purge
+  clears the edge, not browsers; repeat visitors can hold an old HTML response
+  for up to 4 hours. Static assets and generated thumbnails are content-hashed
+  and immutable for a year.
+- Verified after deploy: HTML/RSC/feeds/static return cf-cache-status HIT after
+  the first request; /api/search stays DYNAMIC/BYPASS; www returns 301 to apex.
+
+## Build-only static caching (2026-11-23)
+
+The site has no runtime data: posts, pages, feeds, sitemap, llms files and the
+search index are all produced by the build. The cache chain therefore uses one
+lifetime everywhere:
+
+- Next cacheLife: the custom "build" profile (stale/revalidate/expire
+  31536000 s) replaces the old max/days/600 s mix. The build table reports
+  1y/1y for content and feeds, and every HTML response carries
+  s-maxage=31536000.
+- Cloudflare caches HTML and RSC with respect-origin, so the CDN holds the same
+  build until a deploy purges it.
+- The deploy workflow runs POST /zones/<zone>/purge_cache
+  {purge_everything:true} after flyctl deploy succeeds. It retries three times
+  because the Free plan allows 5 purge requests/minute.
+- RSC requests keep the _rsc query parameter in the cache key (Cloudflare's
+  default key includes the full query string); the Vary headers Next emits are
+  ignored by Cloudflare but _rsc is what separates HTML from RSC. Verify client
+  navigation after a deploy; invalid _rsc requests 307-redirect and must not be
+  cached.
+- The previous 600 s feed window and 30-day max ISR window are gone; there is no
+  background revalidation to keep in sync with the CDN.
+
+## Images: build-time WebP thumbnails (current)
+
+`scripts/build-image-variants.mjs` runs before `next build` (and before
+`next dev`). It reads every bitmap referenced by the content/data/source tree,
+generates WebP sizes 480/720/1080/1440/1920/2048 for content images and
+64/96/128/256 for avatars/favicons, writes them to
+`public/static/variants/**` (gitignored) and updates
+`data/image-variants.js`. Filenames embed a 12-char content hash, so replacing
+an image changes its URL and immutable Cloudflare/browser caching stays safe.
+`next/image` uses `src/lib/image-loader.js` to map a requested width to the
+closest generated variant; SVG/GIF and ungenerated images fall back to their
+original URL. The authored path is kept in `data-original-src`, which the
+lightbox uses for the full-size view and the toolbar's download button. No
+`/_next/image` encoding runs at request time.
 
 ## Images (2026-11-23 incident)
 

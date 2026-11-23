@@ -35,7 +35,7 @@ import { assembleFeed, buildFeedItems } from "./build-feed";
  */
 export async function getFeedItems() {
   "use cache";
-  cacheLife({ stale: 600, revalidate: 600, expire: 604800 });
+  cacheLife("build");
   cacheTag("feeds");
   return buildFeedItems();
 }

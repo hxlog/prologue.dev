@@ -157,8 +157,13 @@ full URL.
 
 The file is served directly at `/static/images/<file>`, so the same path works
 in the page, the lightbox and the RSS feed — there is no second form to keep in
-sync. The one place the path does not resolve is Obsidian's own preview, for
-the reason in [Why the vault root is `data/`](#why-the-vault-root-is-data).
+sync. On every build, `scripts/build-image-variants.mjs` reads the referenced
+bitmaps, writes WebP thumbnails under `public/static/variants/**` (gitignored)
+and `data/image-variants.js`; `next/image` uses a custom loader so the page
+downloads the generated thumbnail, while the lightbox upgrades to the authored
+original and exposes a download button. The one place the path does not resolve
+is Obsidian's own preview, for the reason in
+[Why the vault root is `data/`](#why-the-vault-root-is-data).
 
 ### Replacing an image means replacing its URL
 
@@ -170,14 +175,15 @@ published image in place and expect readers to see the new one**:
 
 `public/static/opt/` holds the content-hashed derivatives produced by
 `node scripts/optimize-images.mjs --apply` (AVIF for stills at native pixel
-size, animated WebP for GIFs). Those URLs are served with
-`max-age=31536000, immutable`; everything else under `/static/` gets a
-7-day window. Both are keyed by URL, so a new filename is what publishes a new
-picture.
+size, animated WebP for GIFs). Those source URLs are served with
+`max-age=31536000, immutable`; the build-time WebP variants are immutable too,
+and everything else under `/static/` gets a 7-day window. All are keyed by
+content-hashed URLs, so a new filename is what publishes a new picture.
 
-Images are never upscaled or downscaled by that script: the lightbox upgrades to
-the largest `srcset` candidate, so the source file's pixel width is the
-sharpness ceiling for a zoomed view.
+The lightbox opens the authored original rather than a generated thumbnail, and
+the toolbar's download control saves that file. The source file's pixel width is
+therefore the sharpness ceiling for a zoomed view; the thumbnail variants only
+control normal page rendering.
 
 ## Frontmatter fields
 

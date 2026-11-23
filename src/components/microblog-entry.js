@@ -55,6 +55,7 @@ export default function MicroblogEntry({ entry, compact = false }) {
                   <Image
                     src={image.src}
                     alt={image.desc || "微博配图"}
+                    data-original-src={image.src}
                     fill
                     loading="lazy"
                     sizes={

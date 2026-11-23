@@ -1,7 +1,7 @@
 import { getFeedXml } from "../../lib/feed/cached";
 import { finalizeJson } from "../../lib/feed/finalize";
 
-const CACHE_CONTROL = "public, s-maxage=600, stale-while-revalidate=86400";
+const CACHE_CONTROL = "public, s-maxage=31536000, stale-while-revalidate=604800";
 
 export async function GET() {
   const json = await getFeedXml("json");

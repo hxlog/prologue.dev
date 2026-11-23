@@ -18,7 +18,8 @@
 - **KaTeX 公式**，行内与块级
 - **Shiki 代码高亮**，跟随站点主题自动切换
 - **Mermaid 图表**，网页端客户端渲染，RSS 阅读器里自动换成图片
-- **图片灯箱**，点击放大，多图可左右滑动
+- **图片灯箱**，自动使用构建期生成的 WebP 缩略图，点击放大原图并可下载原图
+- **构建期图片缩略图**，构建时用 sharp 生成多宽度 WebP srcset，不依赖运行时图片优化
 - **GFM 表格、脚注、任务列表、删除线**
 - **自适应深色模式**，切换时是圆形揭示动画
 - **完整 SEO**：OpenGraph、JSON-LD、sitemap、robots
@@ -43,7 +44,7 @@ yarn dev
 
 打开 `http://localhost:3000`。
 
-需要 **Node.js 22.13+**（见 `package.json` 的 `engines`），包管理器为 **Yarn 4**：版本固定在 `packageManager` 字段，通过 [Corepack](https://nodejs.org/api/corepack.html) 启用；仓库只提交 `yarn.lock`，没有 `package-lock.json`。
+需要 **Node.js 24.x**（见 `package.json` 的 `engines`），包管理器为 **Yarn 4**：版本固定在 `packageManager` 字段，通过 [Corepack](https://nodejs.org/api/corepack.html) 启用；仓库只提交 `yarn.lock`，没有 `package-lock.json`。
 
 改内容不需要重启开发服务器：保存文件，刷新页面即可。
 
@@ -70,7 +71,7 @@ yarn dev
 - 把 vault 根目录设为 **`data/`**，这样笔记之间的链接都能解析
 - **`draft` 和 `featured` 两个属性必须是 Checkbox 类型**，否则会写成字符串 `"false"`，构建会直接报错并指出文件和字段
 
-静态资源（图片、封面、头像）在 `public/static/` 下，不在 vault 里；在笔记中按 `/static/images/x.jpg` 这样的绝对路径引用即可。
+静态资源（图片、封面、头像）在 `public/static/` 下，不在 vault 里；在笔记中按 `/static/images/x.jpg` 这样的绝对路径引用即可。`yarn build` 会为引用到的位图生成 `public/static/variants/**` 下的 WebP 缩略图（生成的二进制不入库），页面与灯箱会自动使用它们。
 
 不用 Obsidian 也完全没问题，VS Code、vim 编辑同一批文件效果一样。
 

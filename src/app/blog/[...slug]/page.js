@@ -199,7 +199,7 @@ async function PostView({ params }) {
                       alt={"封面 " + post.title}
                       preload
                       fetchPriority="high"
-                      unoptimized
+                      data-original-src={post.image.trim()}
                       sizes="(min-width: 1280px) 896px, (min-width: 768px) 85vw, 100vw"
                       className="my-6 h-auto w-full rounded-card object-cover shadow-card"
                     />

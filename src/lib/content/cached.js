@@ -33,14 +33,14 @@ function toMeta({ body, ...meta }) {
  */
 export async function getCachedPosts() {
   "use cache";
-  cacheLife("max");
+  cacheLife("build");
   return getPosts().map(toMeta);
 }
 
 /** One post: metadata plus the rendered body HTML (Shiki included). */
 export async function getCachedPost(slug) {
   "use cache";
-  cacheLife("max");
+  cacheLife("build");
   const doc = getPosts().find((post) => post.slugAsParams === slug);
   if (!doc) return null;
   return { ...toMeta(doc), html: await getBodyHtml(doc) };
@@ -49,7 +49,7 @@ export async function getCachedPost(slug) {
 /** One markdown page (e.g. /about): metadata plus rendered body HTML. */
 export async function getCachedPage(slug) {
   "use cache";
-  cacheLife("max");
+  cacheLife("build");
   const doc = getPages().find((page) => page.slugAsParams === slug);
   if (!doc) return null;
   return { ...toMeta(doc), html: await getBodyHtml(doc) };

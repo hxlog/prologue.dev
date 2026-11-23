@@ -6,7 +6,7 @@ import { finalizeRss } from "../../lib/feed/finalize";
 // produced by getFeedXml(), which serialises the item list cached by
 // getFeedItems() (one shared 'use cache' corpus for rss/atom/json) instead of
 // re-rendering 65 bodies on every poll.
-const CACHE_CONTROL = "public, s-maxage=600, stale-while-revalidate=86400";
+const CACHE_CONTROL = "public, s-maxage=31536000, stale-while-revalidate=604800";
 
 export async function GET() {
   const xml = await getFeedXml("rss");

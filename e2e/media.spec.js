@@ -52,3 +52,22 @@ test("every body image decodes and no optimizer request fails", async ({ page })
 
   expect(failed, "asset or optimizer responses >= 400: " + failed.join(" | ")).toEqual([]);
 });
+
+test("lightbox opens the authored original and exposes a download control", async ({ page }) => {
+  await page.goto("/blog/2026-how-do-i-use-deepseek-harness", { waitUntil: "load" });
+  const img = page.locator("main img.lightbox-image").first();
+  await expect(img).toBeVisible();
+
+  // The rendered image is a build-time WebP variant, not a runtime optimizer URL.
+  const currentSrc = await img.evaluate((el) => el.currentSrc || el.getAttribute("src") || "");
+  expect(currentSrc).toContain("/static/variants/");
+  expect(currentSrc).not.toContain("/_next/image");
+
+  await img.click();
+  const dialog = page.getByRole("dialog", { name: /图片查看器/ });
+  await expect(dialog).toBeVisible();
+
+  const download = dialog.getByRole("link", { name: "下载原图" });
+  await expect(download).toHaveAttribute("href", /^\/static\/opt\/.+\.avif$/);
+  await expect(download).toHaveAttribute("download", /\.avif$/);
+});

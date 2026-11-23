@@ -21,6 +21,15 @@ function loadViewer() {
 
 const IMAGE_SELECTOR = "main img.lightbox-image";
 
+function filenameOf(src) {
+  try {
+    const path = src.split("?")[0].split("#")[0];
+    return decodeURIComponent(path.split("/").pop() || "image");
+  } catch {
+    return "image";
+  }
+}
+
 function captionOf(img) {
   return (
     img.alt ||
@@ -71,10 +80,15 @@ export default function Lightbox() {
         .split(",")
         .map((entry) => entry.trim().split(/\s+/)[0])
         .filter(Boolean);
-      const largest = candidates[candidates.length - 1] || element.src;
+      const smallest = candidates[0] || element.src;
+      /* The page paints a pre-generated WebP thumbnail; the authored original
+         is kept in data-original-src for the lightbox and its download action. */
+      const original = element.getAttribute("data-original-src") || element.src;
       return {
-        src: element.currentSrc || largest,
-        hires: largest,
+        src: element.currentSrc || smallest,
+        hires: original,
+        original,
+        filename: filenameOf(original),
         width: element.naturalWidth || undefined,
         height: element.naturalHeight || undefined,
         alt: element.alt || "",

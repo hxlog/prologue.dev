@@ -19,10 +19,14 @@ A content-first blog built with Next.js 16 and an in-repo filesystem content lay
 - 完整的 SEO 支持，支持 Opengraph、JSON-LD 和 RSS
 - 轻量级的搜索引擎，Fuse.js 实现全文搜索和模糊搜索
 - 支持 mermaid 渲染
+- 构建期生成 WebP 缩略图，灯箱显示原图并支持“下载原图”
+- 生产环境按“只有 build 才变更”缓存在 Cloudflare 边缘，部署后自动 purge
 
 博客链接：https://prologue.dev
 
-> 本仓库的生产站点托管在 **Fly.io**（自托管 Next.js standalone Docker，见 `docs/DEPLOY-FLY.md`）；下方 Vercel 按钮是给模板使用者的一键部署入口，仍可用。
+> 本仓库的生产站点托管在 **Fly.io**（自托管 Next.js standalone Docker）+ **Cloudflare Tunnel/CDN**，见 `docs/DEPLOY-FLY.md`；下方 Vercel 按钮是给模板使用者的一键部署入口，仍可用。
+>
+> 生产缓存策略是 **build-only**：HTML/RSC/feeds/图片全部在 Cloudflare 边缘缓存，每次成功 Deploy 后由 workflow 调用 Cloudflare API purge；内容只有 git push + build 之后才可能变化。图片由 `scripts/build-image-variants.mjs` 在构建期生成 WebP 缩略图，灯箱打开原图并可下载。
 
 ## Preview
 
@@ -55,7 +59,7 @@ yarn install
 yarn dev
 ```
 
-> Node.js **22.13+** is required (`engines` in `package.json`), and the package manager is **Yarn 4**, pinned by `packageManager` and enabled through [Corepack](https://nodejs.org/api/corepack.html). `npm`/ `pnpm` are not used: there is no `package-lock.json`, only `yarn.lock`.
+> Node.js **24.x** is required (`engines` in `package.json`), and the package manager is **Yarn 4**, pinned by `packageManager` and enabled through [Corepack](https://nodejs.org/api/corepack.html). `npm`/ `pnpm` are not used: there is no `package-lock.json`, only `yarn.lock`.
 
 You can easily customize the template site: all configurations are in `/data`, static files are in `/public`.
 

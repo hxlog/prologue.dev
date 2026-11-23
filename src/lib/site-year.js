@@ -24,7 +24,7 @@ export async function getSiteYear() {
   // 87 page routes to a daily re-render -- 2,600 full page renders a month for a
   // footer that changes once a year. "max" (30 days) matches the content cache
   // and still corrects the year on the next deploy, or within a month.
-  cacheLife("max");
+  cacheLife("build");
   cacheTag("site-year");
   return yearInBeijing();
 }
