@@ -61,11 +61,17 @@ export function OptimizedHTMLRenderer({ htmlContent }) {
               fetchPriority={eager ? "high" : undefined}
               className={`drop-shadow-xs rounded-sm ${attr("class")}`.trim()}
               style={{ height: "auto", width: "100%" }}
-              // SVG cannot go through /_next/image unless dangerouslyAllowSVG is
-              // enabled (it is not, deliberately): the optimizer answers 400 and
-              // the image disappears. Serve vector art and animated bitmaps as-is;
-              // the optimizer would also drop the animation frames.
-              unoptimized={/\.svg$/i.test(src) || /\.gif$/i.test(src)}
+              // Content images bypass the runtime optimizer entirely. Every
+              // markdown image is already authored/compressed and content-hashed
+              // under public/static/opt/, so /static/** is immutable + edge-cached
+              // by Cloudflare and the origin serves a plain file. Running these
+              // through /_next/image meant a shared-CPU 256 MB Fly Machine encoding
+              // WebP/AVIF per cold variant: measured 8 s cold AVIF / 1.8 s cold WebP
+              // for one card, which saturated the CPU when a page loaded ~10 images
+              // and tripped the health check. It also made the lightbox's 4K upgrade
+              // re-encode on open. SVG/GIF keep working here too (the optimizer
+              // would reject SVG and flatten animation).
+              unoptimized
             />
           );
         }
