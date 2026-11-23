@@ -36,7 +36,7 @@ export default function FriendLinks({ friends }) {
           >
             <span className="mx-auto mb-4 inline-block">
               {/* ring-gradient */}
-              {/* SVG/ICO avatars 400 through /_next/image when
+              {/* SVG/ICO avatars used to 400 through /_next/image when
                   dangerouslyAllowSVG is off (the site never enables it), so
                   they are served as-is instead of through the optimizer. */}
               <Image

@@ -139,7 +139,7 @@ yarn dev
 
 Open `http://localhost:3000`.
 
-**Node.js 22.13+** is required (see `engines` in `package.json`), and the package manager is **Yarn 4**: the version is pinned in `packageManager` and enabled through [Corepack](https://nodejs.org/api/corepack.html). Only `yarn.lock` is committed; there is no `package-lock.json`.
+**Node.js 24.x** is required (see `engines` in `package.json`), and the package manager is **Yarn 4**: the version is pinned in `packageManager` and enabled through [Corepack](https://nodejs.org/api/corepack.html). Only `yarn.lock` is committed; there is no `package-lock.json`.
 
 Editing content does not need a server restart: save the file and reload.
 

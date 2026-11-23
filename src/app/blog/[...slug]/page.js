@@ -187,9 +187,9 @@ async function PostView({ params }) {
                 (() => {
                   // The cover is a content-hashed /static/ asset already sized and
                   // cached like the body images; send it straight from the edge
-                  // instead of paying a runtime /_next/image encode (cold WebP on
-                  // the shared-CPU Fly Machine measured seconds per image, and the
-                  // cover is above the fold so it competes with the first paint).
+                  // of a runtime /_next/image encode (the custom loader emits
+                  // build-time WebP variants; the cover is above the fold and the
+                  // authored original stays available for download).
                   const heroSize = IMAGE_SIZES[post.image.trim()] || {};
                   return (
                     <Image

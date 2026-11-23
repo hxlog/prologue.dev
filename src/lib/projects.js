@@ -9,7 +9,7 @@ import { cacheLife } from "next/cache";
  *
  * data/projects.yaml is the hand-written list (repo, display name, blurb); the
  * GitHub API supplies the live stars/forks. The whole read is a 'use cache'
- * scope with cacheLife("days"): the about page is prerendered, and fetching
+ * scope with cacheLife("build"): the about page is prerendered, and fetching
  * GitHub per request would make it dynamic for numbers that move a few times a
  * week. A failed or rate-limited API call degrades to the YAML's stars/forks
  * (0 when absent) instead of failing the build — the portfolio is decoration,

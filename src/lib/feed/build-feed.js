@@ -80,7 +80,7 @@ function latestItemDate(items) {
  *
  * It deliberately does NOT call getAllPostsWithBody(): that would render the
  * corpus into a second copy of HTML. Each body instead comes from
- * getCachedPost(slug), the same `'use cache'` + `cacheLife("max")` entry the
+ * getCachedPost(slug), the same `'use cache'` + `cacheLife("build")` entry the
  * article route uses, so the feed and the page share one cached rendering.
  * Metadata comes from getCachedPosts() for the same reason: sorting needs every
  * publishDate up front, and that projection carries no HTML.
