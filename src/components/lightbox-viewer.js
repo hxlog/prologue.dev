@@ -145,12 +145,19 @@ export default function LightboxViewer({ slides, startIndex, onClose }) {
     ].filter(Boolean);
     const onLoad = (event) => {
       const node = event.currentTarget;
-      if (node?.naturalWidth > 0) setLoadedSrc(node.getAttribute("src"));
+      if (node?.naturalWidth > 0) {
+        const src = node.getAttribute("src");
+        // The base layer must never overwrite an already-loaded sharper layer:
+        // the two requests race, and a late base load used to hide the hires
+        // copy again (the overlay stayed at opacity 0).
+        setLoadedSrc((current) => (current === hiresSrc ? current : src));
+      }
     };
     for (const node of nodes) {
       node.addEventListener("load", onLoad);
       if (node.complete && node.naturalWidth > 0) {
-        setLoadedSrc(node.getAttribute("src"));
+        const src = node.getAttribute("src");
+        setLoadedSrc((current) => (current === hiresSrc ? current : src));
       }
     }
     return () => {

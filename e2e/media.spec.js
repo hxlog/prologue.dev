@@ -67,6 +67,11 @@ test("lightbox opens the authored original and exposes a download control", asyn
   const dialog = page.getByRole("dialog", { name: /图片查看器/ });
   await expect(dialog).toBeVisible();
 
+  // Both bitmap layers must decode and the sharper one must become visible;
+  // a late base load must not leave the overlay stuck at opacity 0.
+  await expect(dialog.locator(".lightbox-img--base")).toHaveAttribute("data-loaded", "true", { timeout: 5000 });
+  await expect(dialog.locator(".lightbox-img--hires")).toHaveAttribute("data-loaded", "true", { timeout: 5000 });
+
   const current = dialog.getByRole("link", { name: "下载当前图片" });
   await expect(current).toHaveAttribute("download", /\.(webp|avif)$/);
 
