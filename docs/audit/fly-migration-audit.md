@@ -130,3 +130,19 @@ The direct-proxy 525 was worked around with a Cloudflare Tunnel:
   microblog all 200, correct titles, 0 console errors, 0 broken images;
   theme toggle and the search dialog (API call /api/search?q=AI and rendered
   results) work; www redirects to apex.
+
+## Image performance incident (2026-11-23)
+
+- Live article images went through /_next/image with no Cloudflare cache rule;
+  a cold AVIF variant took 7.9 s (cold WebP 1.8 s, static file 0.32 s) on the
+  256 MB shared-CPU Machines. Two Machines with independent image caches meant
+  repeats could hit a cold one; ~10 images saturated the CPU, the health check
+  failed and the watchdog restarted sin, while a still-connected cloudflared
+  connector returned 502 through Cloudflare.
+- Fix: WebP-only for the remaining next/image calls; markdown images and the
+  post cover render unoptimized and are served as immutable /static/opt/**
+  files; the cover uses real dimensions from data/image-sizes.js; Cloudflare
+  now caches /_next/image.
+- Verified: article load 13.4 s -> 2.7 s (Fly direct), all body images load,
+  lightbox opens the cached static file, no 502s; Cloudflare page TTFB 0.47 s,
+  /static MISS 0.32 s then HIT 0.31 s; both Machines healthy.

@@ -112,13 +112,50 @@ connector and there is no downtime.
   origin AAAA is needed through the tunnel.
 - Cache rules (zone Rulesets API, phase http_request_cache_settings):
   - /_next/static/ and /static/ -> cache, edge respects origin, browser respects origin
+  - /_next/image -> cache, edge respects origin (added 2026-11-23; see Images)
   - /og* -> cache, edge respects origin (origin s-maxage=31536000)
   - /rss /atomfeed /jsonfeed /microblog/rss -> cache, edge respects origin (600 s)
   - /llms.txt /llms-full.txt /robots.txt /sitemap.xml -> cache, edge 1 h, browser 10 min
   - /api/* -> bypass cache
-  - everything else (HTML/RSC, /_next/image) -> no cache rule, goes to the tunnel
-- Verified: /og, /rss, /static and /llms.txt return cf-cache-status HIT after
-  the first request; HTML/RSC stays DYNAMIC; www returns 301 to apex.
+  - everything else (HTML/RSC) -> no cache rule, goes to the tunnel
+- Verified: /og, /rss, /static, /_next/image and /llms.txt return cf-cache-status
+  HIT after the first request; HTML/RSC stays DYNAMIC; www returns 301 to apex.
+
+## Images (2026-11-23 incident)
+
+Symptom: opening an article felt slow, especially images. Diagnosis on the live
+site showed this was not a pure CDN problem:
+
+- The client was asking /_next/image for every markdown image and the post
+  cover, and Cloudflare had no rule for /_next/image, so each image traversed
+  the tunnel to a Fly Machine and ran sharp.
+- Cold AVIF was 7.9 s for one image (cold WebP 1.8 s, static file 0.32 s).
+  The two Machines keep independent image caches, so a repeat could land on the
+  other cold Machine. A page that loaded ~10 images saturated the shared CPU,
+  tripped the health check and the watchdog restarted the Machine; during that
+  window Cloudflare saw 502s from a still-connected cloudflared connector.
+- The AVIF variants were also the source of the lightbox's slow 4K upgrade.
+
+Fix (deployed):
+
+- formats is now WebP-only for the remaining next/image users.
+- Markdown images and the post cover render next/image with unoptimized, so
+  they are served as plain /static/opt/** files (content-hashed, immutable).
+- The post cover takes its real width/height from data/image-sizes.js instead
+  of a hard-coded 1920x1080.
+- Cloudflare now caches /_next/image at the edge; since output is WebP-only a
+  cached response is safe for the browsers that can display it.
+
+Measured after the fix (article page, Fly direct): load 2.7 s (was 13.4 s),
+all 9 body images complete, lightbox opens from the already-cached static
+file, no 502s. Through Cloudflare: page TTFB 0.47 s, /static image MISS 0.32 s
+then HIT 0.31 s.
+
+Compatibility note: /static/opt/** originals are AVIF, so very old browsers
+without AVIF support will fall back to a broken image. Current Safari/Chrome/
+Firefox all support AVIF; if a WebP fallback set is needed later, generate
+responsive WebP files at build time rather than re-enabling the runtime
+optimizer.
 
 ## Runtime recovery
 
