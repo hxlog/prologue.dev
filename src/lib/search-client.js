@@ -134,61 +134,146 @@ export function searchItems(items, query) {
   return createSearch(items).search(query);
 }
 
-let indexPromise = null;
+const INDEX_URL = SEARCH_INDEX_URL;
+const LITE_INDEX_URL = "/search-index-lite.json";
+const CACHE_PREFIX = "prologue.search.v1:";
 
-/** Fetch and parse the static corpus. Not memoised on failure. */
-export function loadSearchIndex() {
+function readSession(key) {
+  try {
+    const raw = window.sessionStorage.getItem(CACHE_PREFIX + key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeSession(key, items) {
+  try {
+    window.sessionStorage.setItem(CACHE_PREFIX + key, JSON.stringify(items));
+  } catch {
+    /* storage full / disabled: the network path still works */
+  }
+}
+
+function loadIndexFrom(url) {
   if (typeof window === "undefined") {
     return Promise.reject(new Error("search index is browser-only"));
   }
-  if (!indexPromise) {
-    indexPromise = fetch(SEARCH_INDEX_URL)
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("search index request failed: " + response.status);
-        }
-        return response.json();
-      })
-      .then((items) => {
-        if (!Array.isArray(items)) {
-          throw new Error("search index is not an array");
-        }
-        return items;
-      })
-      .catch((error) => {
-        indexPromise = null;
-        throw error;
-      });
-  }
-  return indexPromise;
+  const cached = readSession(url);
+  if (cached) return Promise.resolve(cached);
+  return fetch(url)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error("search index request failed: " + response.status);
+      }
+      return response.json();
+    })
+    .then((items) => {
+      if (!Array.isArray(items)) throw new Error("search index is not an array");
+      writeSession(url, items);
+      return items;
+    });
 }
 
-let searcherPromise = null;
+let fullIndexPromise = null;
+export function loadSearchIndex() {
+  if (!fullIndexPromise) {
+    fullIndexPromise = loadIndexFrom(INDEX_URL).catch((error) => {
+      fullIndexPromise = null;
+      throw error;
+    });
+  }
+  return fullIndexPromise;
+}
 
-/**
- * Load the index once, build its Fuse index once, and hand back the searcher.
- * A rejected attempt is dropped so Retry in the dialog can start a new one.
- */
+let liteIndexPromise = null;
+function loadLiteIndex() {
+  if (!liteIndexPromise) {
+    liteIndexPromise = loadIndexFrom(LITE_INDEX_URL).catch((error) => {
+      liteIndexPromise = null;
+      throw error;
+    });
+  }
+  return liteIndexPromise;
+}
+
+let fullSearcherPromise = null;
 export function getSearcher() {
-  if (!searcherPromise) {
-    searcherPromise = loadSearchIndex()
+  if (!fullSearcherPromise) {
+    fullSearcherPromise = loadSearchIndex()
       .then((items) => createSearch(items))
       .catch((error) => {
-        searcherPromise = null;
+        fullSearcherPromise = null;
         throw error;
       });
   }
-  return searcherPromise;
+  return fullSearcherPromise;
+}
+
+let liteSearcherPromise = null;
+export function getLiteSearcher() {
+  if (!liteSearcherPromise) {
+    liteSearcherPromise = loadLiteIndex()
+      .then((items) => createSearch(items))
+      .catch((error) => {
+        liteSearcherPromise = null;
+        throw error;
+      });
+  }
+  return liteSearcherPromise;
 }
 
 /**
- * Intent preload used by the trigger (hover / focus / open): starts the fetch
- * and the Fuse build while the reader has not typed yet. Failures are ignored
- * here — the panel's own load path reports them and offers Retry.
+ * Two-stage load used by the dialog: hand the caller the lite searcher as soon
+ * as it is usable (first results in a few hundred ms), then the full-body
+ * searcher when it arrives (so body matches are added without another click).
+ * Rejects only if both stages fail.
  */
-export function preloadSearchIndex() {
-  return getSearcher().then(
+export function loadSearchEngines(onEngine) {
+  const lite = getLiteSearcher();
+  const full = getSearcher();
+  return lite
+    .then((engine) => {
+      onEngine?.(engine);
+      return full;
+    })
+    .then((engine) => {
+      onEngine?.(engine);
+      return engine;
+    })
+    .catch((error) => {
+      /* Lite failed but the full index may still work (and vice versa). */
+      return full.then((engine) => {
+        onEngine?.(engine);
+        return engine;
+      }).catch(() => {
+        throw error;
+      });
+    });
+}
+
+/** Idle preload: warm only the 36 KB lite corpus (no body text). */
+export function preloadLiteIndex() {
+  return getLiteSearcher().then(
     () => true,
     () => false
   );
+}
+
+/** Intent preload: warm the lite corpus immediately, full body in background. */
+export function preloadSearchIndex() {
+  return Promise.all([
+    getLiteSearcher().then(() => true, () => false),
+    getSearcher().then(() => true, () => false),
+  ]).then(([lite, full]) => lite || full);
+}
+
+/** Drop in-memory failures so the Retry button can start a fresh attempt. */
+export function resetSearchCache() {
+  fullIndexPromise = null;
+  liteIndexPromise = null;
+  fullSearcherPromise = null;
+  liteSearcherPromise = null;
 }

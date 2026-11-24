@@ -96,10 +96,18 @@ const pages = getPages()
 const index = [...posts, ...pages];
 const json = JSON.stringify(index);
 writeFileSync(OUT, json);
+
+// Lite corpus for the first keystroke: same documents/metadata but no body text.
+// The search dialog shows title/tag/description matches immediately from this
+// file (~1/10 the size) and swaps in the full index once it arrives.
+const liteJson = JSON.stringify(index.map(({ body, ...rest }) => ({ ...rest, body: "" })));
+const LITE_OUT = path.join(ROOT, "public", "search-index-lite.json");
+writeFileSync(LITE_OUT, liteJson);
 console.log(
   "search-index: wrote " + posts.length + " posts + " + pages.length +
     " pages (" + (Buffer.byteLength(json) / 1024).toFixed(0) +
-    " KB) to public/search-index.json"
+    " KB) to public/search-index.json, lite " +
+    (Buffer.byteLength(liteJson) / 1024).toFixed(0) + " KB"
 );
 
 // The route manifest is consumed by proxy.js to turn unknown dynamic paths into

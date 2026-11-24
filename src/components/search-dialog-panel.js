@@ -11,7 +11,7 @@ import {
 } from "react";
 import { Dialog, DialogPanel, Transition, TransitionChild } from "@headlessui/react";
 import { useRouter } from "next/navigation";
-import { MIN_QUERY, getSearcher } from "../lib/search-client";
+import { MIN_QUERY, loadSearchEngines, resetSearchCache } from "../lib/search-client";
 
 /**
  * Site-wide search dialog.
@@ -38,6 +38,7 @@ export default function SearchDialogPanel({ open, onClose }) {
   const [retryToken, setRetryToken] = useState(0);
   const [searcher, setSearcher] = useState(null);
   const [indexFailed, setIndexFailed] = useState(false);
+  const startedRef = useRef(false);
 
   // The input stays bound to the immediate value; results are computed from the
   // deferred one so typing never waits on Fuse.
@@ -68,27 +69,33 @@ export default function SearchDialogPanel({ open, onClose }) {
      synchronously in an effect body: that is both what the React compiler lint
      requires and what keeps typing from cascading renders. */
   useEffect(() => {
-    if (!open || searcher) return undefined;
+    if (!open) {
+      startedRef.current = false;
+      return undefined;
+    }
+    if (startedRef.current) return undefined;
+    startedRef.current = true;
     let cancelled = false;
 
-    getSearcher().then(
-      (engine) => {
-        if (cancelled) return;
-        startTransition(() => {
-          setSearcher(engine);
-          setIndexFailed(false);
-        });
-      },
-      () => {
-        if (cancelled) return;
-        startTransition(() => setIndexFailed(true));
-      }
-    );
+    /* Two stages, one dialog: the lite corpus (no body text) resolves first so
+       title/tag/description matches appear within a few hundred ms; the full
+       corpus then replaces the searcher and the effect below re-runs the query
+       so body matches are added silently. */
+    loadSearchEngines((engine) => {
+      if (cancelled) return;
+      startTransition(() => {
+        setSearcher(engine);
+        setIndexFailed(false);
+      });
+    }).catch(() => {
+      if (cancelled) return;
+      startTransition(() => setIndexFailed(true));
+    });
 
     return () => {
       cancelled = true;
     };
-  }, [open, searcher, retryToken]);
+  }, [open, retryToken]);
 
   /* Local query. Old results stay on screen while the next ones are computed
      (the progress line is the only "busy" signal), matching the old network

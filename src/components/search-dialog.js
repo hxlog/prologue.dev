@@ -17,7 +17,9 @@ function loadPanel() {
 
 /* The corpus (and Fuse) lives in its own lazily-imported chunk: it must not land
    in the navbar shell. Only explicit search intent imports it; the idle preload
-   below warms the panel module only. */
+   below warms the panel module plus the 36 KB lite corpus (never the full body
+   corpus), so the first search has no network wait but the page load does not
+   pay for 734 KB. */
 let searchClientPromise = null;
 function loadSearchClient() {
   if (!searchClientPromise) {
@@ -61,7 +63,16 @@ export default function SearchDialog() {
       .catch(() => {});
   }, [preloadPanel]);
 
-  useEffect(() => scheduleIdlePreload(() => preloadPanel()), [preloadPanel]);
+  useEffect(
+    () =>
+      scheduleIdlePreload(() => {
+        preloadPanel();
+        loadSearchClient()
+          .then((client) => client.preloadLiteIndex())
+          .catch(() => {});
+      }),
+    [preloadPanel]
+  );
 
   const openDialog = useCallback(() => {
     preload();
