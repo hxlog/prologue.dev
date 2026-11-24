@@ -1,0 +1,58 @@
+name: Deploy (Cloudflare static export)
+
+# Manual dispatch is always allowed. The push trigger is gated by the repo
+# variable DEPLOY_CLOUDFLARE so a half-migrated branch cannot publish over
+# production until the cutover is approved:
+#   gh variable set DEPLOY_CLOUDFLARE --body true
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+
+concurrency:
+  group: deploy-cloudflare
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: ${{ vars.DEPLOY_CLOUDFLARE == 'true' }}
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Locate Yarn cache
+        id: yarn-cache
+        run: echo "dir=$(yarn config get cacheFolder)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Yarn packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.yarn-cache.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      - name: Build static export
+        run: yarn export
+
+      - name: Verify export output
+        run: node scripts/verify-export.mjs
+
+      - name: Deploy to Cloudflare Workers (assets-only)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler deploy --config wrangler.jsonc

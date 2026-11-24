@@ -147,6 +147,10 @@ async function applyStarterTemplate(worktreeRoot) {
   rmSync(path.join(worktreeRoot, "fly.toml"), { force: true });
   rmSync(path.join(worktreeRoot, ".github", "workflows", "deploy-fly.yml"), { force: true });
   rmSync(path.join(worktreeRoot, ".github", "workflows", "monitor.yml"), { force: true });
+  rmSync(path.join(worktreeRoot, ".github", "workflows", "deploy-cloudflare.yml"), { force: true });
+  // Cloudflare static-export config is maintainer-specific (worker name, zone
+  // routes). The template keeps its plain Next build.
+  rmSync(path.join(worktreeRoot, "wrangler.jsonc"), { force: true });
   // `dev` and `build` in the shipped package.json run this one, so it must ship
   // or a template clone fails on its first command.
   copyFile(
@@ -156,6 +160,13 @@ async function applyStarterTemplate(worktreeRoot) {
   copyFile(
     path.join(ROOT, "scripts", "build-image-variants.mjs"),
     path.join(worktreeRoot, "scripts", "build-image-variants.mjs")
+  );
+  // The static OG cards are generated at build time into public/og; the route
+  // that used to render them at request time no longer exists, so a template
+  // clone must run this before next build or every og:image URL would 404.
+  copyFile(
+    path.join(ROOT, "scripts", "build-og-images.mjs"),
+    path.join(worktreeRoot, "scripts", "build-og-images.mjs")
   );
   rmSync(path.join(worktreeRoot, ".github", "workflows", "publish-starter.yml"), { force: true });
   rmSync(path.join(worktreeRoot, ".github", "workflows", "publish-template.yml"), { force: true });
@@ -314,6 +325,22 @@ function patchStarterPackageJson(worktreeRoot) {
   delete packageJson.scripts.publish;
   delete packageJson.scripts["build:e2e"];
   delete packageJson.scripts["test:e2e"];
+  // Cloudflare-specific commands reference files that are not shipped with the
+  // template (wrangler config, export/cf-assets/build-og scripts).
+  delete packageJson.scripts.export;
+  delete packageJson.scripts["deploy:cf"];
+  delete packageJson.scripts["preview:cf"];
+  // The static OG cards must exist before next build prerenders the metadata,
+  // otherwise every og:image URL points at a missing /og/<key>.png.
+  if (
+    typeof packageJson.scripts.build === "string" &&
+    !packageJson.scripts.build.includes("build-og-images")
+  ) {
+    packageJson.scripts.build = packageJson.scripts.build.replace(
+      "next build",
+      "node scripts/build-og-images.mjs && next build"
+    );
+  }
   // Keep test devDependencies in the manifest: the published yarn.lock still
   // contains them, and `yarn install --immutable` in the template must pass.
   // The test files and scripts are removed above, so a template clone still
