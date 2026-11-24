@@ -94,6 +94,12 @@ Rollback: delete the custom domains, recreate the tunnel CNAMEs (the DNS
 snapshot has the exact values) — Fly never stopped serving, so this is a
 minutes-scale revert.
 
+## Verification results (2026-11-24)
+
+- **Feeds**: W3C Feed Validation Service reports `https://prologue.dev/rss`, `/atomfeed` and `/microblog/rss` as **valid** (the Atom feed's only notes are recommendations: the intentional Folo namespace and two posts sharing a publish date).
+- **Lighthouse** (same static build served by the Workers runtime; production measurement from an automated client is polluted by Cloudflare's bot-challenge injection for that client): desktop profile run **100 / 100 / 100 / 100** (performance / accessibility / best-practices / SEO); repeated runs vary 93-100 performance because hydration TBT fluctuates, while accessibility, best-practices and SEO stay at 100. Mobile performance remains below 100 (Next hydration + 4x CPU throttling), tracked as a bundle/hydration follow-up.
+- **CI**: the `export` job builds and verifies `out/`; the gated `deploy-cloudflare.yml` runs `wrangler deploy` on master (validated manually). The e2e job prebuilds on a cold runner and needs the longer Playwright webServer timeout.
+
 ## Maintenance
 
 - Content change = commit + push; CI builds and deploys a new asset version.
