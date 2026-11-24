@@ -53,6 +53,7 @@ Zone-level settings that matter:
   decommissioned.
 - **Rocket Loader: off** (it breaks Next hydration).
 - Keep: Always Use HTTPS, HSTS, TLS 1.3, Brotli, HTTP/3, 0-RTT, Early Hints.
+- **HTML charset**: Workers Static Assets serves `text/html` without a charset, so a zone Response Header Transform Rule sets `text/html; charset=utf-8` for extensionless HTML paths (`not path contains "."` and not `/static//og/`). It is scoped to the preview host first and extended to apex/www at cutover.
 - **Managed robots / AI crawler controls stay ON**: the zone prepends its
   managed robots block at the edge, which is what production served before the
   migration too (verified: both stacks return the same 3,153-byte `/robots.txt`).
@@ -71,6 +72,8 @@ SEO/JSON-LD/twitter meta and the Umami tag. Run it against the preview domain
 before cutover and against apex/www after.
 
 ## Cutover (approved procedure)
+
+The exact executable plan lives in `.tmp/m1/cutover.mjs` (dry-run by default; `--execute` after approval) with `.tmp/m1/rollback.mjs` as its inverse.
 
 1. Snapshot DNS/rules/settings: `.tmp/m1/zone-snapshot/` (read-only API dump).
 2. Build + deploy preview; acceptance on `https://cf.prologue.dev`.

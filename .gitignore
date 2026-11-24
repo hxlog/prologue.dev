@@ -52,3 +52,6 @@ commit-msg.tmp
 /.wrangler/
 /public/og/
 /data/og-manifest.js
+
+# cutover-only generated config
+/wrangler.cutover.jsonc
