@@ -2,6 +2,7 @@ import "./globals.css";
 import { Providers } from "../components/providers";
 import Navbar from "../components/navbar";
 import Footer from "../components/footer";
+import NavigationWatchdog from "../components/navigation-watchdog";
 import Spotlight from "../components/spotlight";
 import JsonLd from "../components/json-ld";
 import siteMetadata from "../../data/sitemetadata";
@@ -103,6 +104,7 @@ export default function RootLayout({ children }) {
           <Lightbox />
           {/* One delegated pointermove listener for every .card-spotlight. */}
           <Spotlight />
+        <NavigationWatchdog />
         </Providers>
         <UmamiAnalytics />
       </body>
