@@ -31,6 +31,18 @@ test.describe("instant client navigation", () => {
     });
   });
 
+
+  // Regression: full prefetch on the /about nav link left the router with an
+  // incomplete cache entry (tree + HTML only, no page payload) when the click
+  // came from any route except "/", so the click silently did nothing. The nav
+  // now uses the default prefetch strategy like every other link.
+  test("post page can navigate to /about through the navbar", async ({ page }) => {
+    await page.goto("/blog/2025-q1-economic-talk");
+    await page.locator('header a[href="/about"]').first().click();
+    await page.waitForURL((url) => url.pathname === "/about");
+    await expect(page.locator("main h1:visible")).toContainText("关于作者");
+  });
+
   test("archive card opens the post with its title available immediately", async ({ page }) => {
     await page.goto("/blog");
     await instant(page, async () => {
