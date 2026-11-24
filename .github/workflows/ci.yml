@@ -41,6 +41,23 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable
 
+      # Generated at build time from public/static + content; regenerating the
+      # 1,380 AVIF/WebP variants is what made the e2e job slow on cold runners.
+      - name: Cache generated assets
+        uses: actions/cache@v4
+        with:
+          path: |
+            public/static/variants
+            public/static/source
+            public/static/opt
+            public/og
+            data/image-variants.js
+            data/og-manifest.js
+            data/image-sources.js
+          key: ${{ runner.os }}-assets-${{ hashFiles('public/static/**', 'data/content/**', 'assets/og/**', 'scripts/build-image-variants.mjs', 'scripts/build-og-images.mjs', 'scripts/build-search-index.mjs') }}
+          restore-keys: |
+            ${{ runner.os }}-assets-
+
       - name: Lint
         run: yarn lint
 
@@ -76,6 +93,23 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable
 
+      # Generated at build time from public/static + content; regenerating the
+      # 1,380 AVIF/WebP variants is what made the e2e job slow on cold runners.
+      - name: Cache generated assets
+        uses: actions/cache@v4
+        with:
+          path: |
+            public/static/variants
+            public/static/source
+            public/static/opt
+            public/og
+            data/image-variants.js
+            data/og-manifest.js
+            data/image-sources.js
+          key: ${{ runner.os }}-assets-${{ hashFiles('public/static/**', 'data/content/**', 'assets/og/**', 'scripts/build-image-variants.mjs', 'scripts/build-og-images.mjs', 'scripts/build-search-index.mjs') }}
+          restore-keys: |
+            ${{ runner.os }}-assets-
+
       - name: Static export (Cloudflare target)
         run: yarn export
 
@@ -110,6 +144,23 @@ jobs:
 
       - name: Install dependencies
         run: yarn install --immutable
+
+      # Generated at build time from public/static + content; regenerating the
+      # 1,380 AVIF/WebP variants is what made the e2e job slow on cold runners.
+      - name: Cache generated assets
+        uses: actions/cache@v4
+        with:
+          path: |
+            public/static/variants
+            public/static/source
+            public/static/opt
+            public/og
+            data/image-variants.js
+            data/og-manifest.js
+            data/image-sources.js
+          key: ${{ runner.os }}-assets-${{ hashFiles('public/static/**', 'data/content/**', 'assets/og/**', 'scripts/build-image-variants.mjs', 'scripts/build-og-images.mjs', 'scripts/build-search-index.mjs') }}
+          restore-keys: |
+            ${{ runner.os }}-assets-
 
       - name: Install Chromium
         run: yarn playwright install --with-deps chromium

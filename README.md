@@ -1,101 +1,135 @@
+<div align="center">
+
+<img src="public/static/favicons/avatar.png" width="88" alt="Prologue Blog" />
+
 # Prologue Blog
 
-Next.js 16 + React 19 + Tailwindcss V4 + Markdown/MDX Blog
+**内容优先的 Next.js 16 全静态博客 · Markdown 写作 · AVIF/WebP 图片 · 全文搜索 · 一键部署到 Cloudflare 或 Vercel**
 
-A content-first blog built with Next.js 16 and an in-repo filesystem content layer.
+[![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
+[![Tailwind](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![Cloudflare](https://img.shields.io/badge/Cloudflare-Workers_Static_Assets-F38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com)
+[![Vercel](https://img.shields.io/badge/Vercel-ready-000000?logo=vercel&logoColor=white)](https://vercel.com)
+[![Node](https://img.shields.io/badge/Node.js-24-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org)
+[![Yarn](https://img.shields.io/badge/Yarn-4-2C8EBB?logo=yarn&logoColor=white)](https://yarnpkg.com)
+[![Playwright](https://img.shields.io/badge/Playwright-e2e-2EAD33?logo=playwright&logoColor=white)](https://playwright.dev)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![PRs](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#)
 
-**Prologue Blog 是一个面向内容创作者与开发者的现代博客模板：支持 Markdown/MDX、公式、Mermaid、Feed、SEO、搜索与暗黑模式，并保持简单的配置驱动体验，适合希望快速搭建个人博客、知识库或内容型网站的开发者与创作者。**
-
-
-## Features
-
-- Content Focused, in-repo Markdown content layer
-- Adaptive dark mode
-- Full SEO, Opengraph + JSON-LD + RSS
-- Lightweight search engine, powered by Fuse.js
-
-- 专注于内容创作，支持 markdown/mdx
-- 自适应黑暗模式
-- 完整的 SEO 支持，支持 Opengraph、JSON-LD 和 RSS
-- 轻量级的搜索引擎，Fuse.js 实现全文搜索和模糊搜索
-- 支持 mermaid 渲染
-- 构建期生成 WebP 缩略图，灯箱平滑升级到原图，支持“下载当前图片”和“下载原图（源文件）”
-- 生产环境按“只有 build 才变更”缓存在 Cloudflare 边缘，部署后自动 purge
-
-博客链接：https://prologue.dev
-
-> 本仓库的生产站点是 **Next.js 16 全静态导出**（`output: "export"`），托管在 **Cloudflare Workers Static Assets**（assets-only Worker，无服务端运行时代码），见 `docs/DEPLOY-CLOUDFLARE.md`；下方 Vercel 按钮是给模板使用者的一键部署入口，仍可用。
->
-> 生产缓存策略是 **build-only**：HTML/RSC/feeds/图片全部由 Cloudflare 边缘按 Worker deployment 版本化缓存，`out/_headers` 是缓存策略的唯一来源（不需要 purge）；内容只有 git push + build + deploy 之后才可能变化。图片由 `scripts/build-image-variants.mjs` 在构建期生成 **AVIF 优先 + WebP 回退**的多尺寸变体，灯箱先显示缩略图再平滑升级到原图，并提供“下载当前图片 / 下载原图（源文件）”两个动作。
-
-## Preview
-
-![首页与文章页](./public/static/opt/ss_pc-8a5c2d21.avif)
-
-首页与文章页
-
-![文章搜索与评论功能](./public/static/opt/ss_search_comment-0baf4846.avif)
-
-文章搜索与评论功能
-
-![手机端首页、个人页、友链页](./public/static/opt/ss_phone-023cd556.avif)
-
-手机端首页、个人页、友链页
-
-
-## Get Started
-
-想直接搭建自己的博客？可以直接 Fork 我的博客进行二次开发，也可以使用独立 Demo 模板仓库（最小版本，不含作者历史文章）：
-
-**[hxlog/prologue-blog-template](https://github.com/hxlog/prologue-blog-template)**（GitHub Template）
+[**在线体验**](https://prologue.dev) · [**使用模板**](https://github.com/hxlog/prologue-blog-template/generate) · [English](./README.en.md)
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fhxlog%2Fprologue-blog-template)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/hxlog/prologue-blog-template)
+
+<img src="docs/readme/home-light.webp" width="100%" alt="首页（浅色）" />
+
+</div>
+
+## ✨ 功能介绍
+
+| 能力 | 说明 |
+|---|---|
+| ✍️ **内容优先** | 仓库内 Markdown/MDX 内容层，无 CMS；frontmatter 校验失败会直接报错 |
+| 🖼 **图片最佳实践** | 构建期生成 **AVIF 优先 + WebP 回退** 多尺寸变体；灯箱支持下载当前图/原图 |
+| 🔎 **全站搜索** | 构建期索引 + 客户端 Fuse.js；lite 索引先出结果，全量后台补齐 |
+| 🌗 **双主题** | 语义化设计变量，自适应暗黑模式 + View Transition 主题切换动画 |
+| 🧭 **现代 SEO/GEO** | 静态 OG 卡片、sitemap、robots、RSS/Atom/JSON Feed、llms.txt、JSON-LD |
+| 📝 **富内容** | GFM、数学公式、Mermaid、代码高亮、图注、灯箱、目录 |
+| ⚡ **全静态交付** | `output: "export"` + Cloudflare Workers Static Assets（assets-only、$0） |
+| 🚀 **双平台部署** | Cloudflare（生产）与 Vercel（等价可选）均可一键部署 |
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/readme/home-dark.webp" alt="首页（深色）" /></td>
+    <td width="50%"><img src="docs/readme/post-light.webp" alt="文章页" /></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/readme/search-light.webp" alt="全文搜索" /></td>
+    <td width="50%"><img src="docs/readme/ui-light.webp" alt="设计系统 /ui" /></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/readme/home-mobile.webp" alt="移动端首页" /></td>
+    <td width="50%"><b>📱 响应式 & 可访问性</b><br/>移动端、暗黑模式、键盘导航、搜索与灯箱一致可用；Lighthouse A11y 100。</td>
+  </tr>
+</table>
+
+## 🧱 技术栈
+
+| 层 | 选型 |
+|---|---|
+| 框架 | Next.js 16 App Router · React 19 · Turbopack |
+| 样式 | Tailwind CSS v4 · CSS 设计变量（`/ui` 即规范页） |
+| 内容 | 文件系统 Markdown/MDX · unified/remark/rehype · Shiki · MathML · Mermaid |
+| 搜索 | 构建期索引 + Fuse.js（客户端，无搜索 API） |
+| 交付 | 全静态导出 → Cloudflare Workers Static Assets / Vercel |
+| 测试 | Playwright E2E + Lighthouse + W3C Feed Validator |
+
+## 🚀 Getting Started
 
 ```bash
-git clone https://github.com/hxlog/prologue-blog-template.git my-blog
-cd my-blog
-corepack enable   # once per machine — activates the Yarn 4 pinned in package.json
+corepack enable
 yarn install
-yarn dev
+yarn dev        # http://localhost:3000
 ```
 
-> Node.js **24.x** is required (`engines` in `package.json`), and the package manager is **Yarn 4**, pinned by `packageManager` and enabled through [Corepack](https://nodejs.org/api/corepack.html). `npm`/ `pnpm` are not used: there is no `package-lock.json`, only `yarn.lock`.
+改内容：编辑 `data/content/**`；改站点信息：`data/sitemetadata.js`；完整说明见 [内容指南](./docs/CONTENT.md)。
 
-You can easily customize the template site: all configurations are in `/data`, static files are in `/public`.
+## ☁️ 部署
 
-你可以很容易自定义网站，所有配置文件都在 `/data` 目录，静态文件存放在 `/public`。
+| Cloudflare（生产，推荐） | Vercel（等价可选） |
+|---|---|
+| 全静态导出 + assets-only Worker，静态请求免费、无服务端运行时代码 | 原生 Next.js 构建，自动 CDN；适合快速预览与模板用户 |
+| [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/hxlog/prologue-blog-template) | [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fhxlog%2Fprologue-blog-template) |
+| `yarn export` → `yarn deploy:cf` | `yarn build`（Vercel 自动执行） |
+| 详见 [部署文档](./docs/DEPLOY-CLOUDFLARE.md) | 详见 [Vercel 文档](./docs/DEPLOY-VERCEL.md) |
 
-- 博客文章和页面的Markdown静态文件分别存放在`/data/content/blog`和`/data/content/pages`。
-
-- 博客的基本元数据、友链、微博、tag标签关联存放在`sitemetadata.js`, `links.yaml`, `microblog.yaml`, `tagLabels.js`
-
-
-## Configuration
-
-Post Frontmatter
-
-```yaml
----
-title: title
-description: description
-publishDate: 2022-11-13
-(required)
-
-lastmod: 2023-07-02
-featured: true
-tags: ["tag1","tag2"]
-image: /static/photos/06.jpg
-imageDesc: This is a static file
-(optional)
----
+```mermaid
+flowchart LR
+  md[Markdown / MDX] --> build[Next.js 16]
+  build --> static[out/ · HTML + RSC + assets]
+  static --> cf[Cloudflare Workers Static Assets]
+  build -. yarn build .-> vercel[Vercel]
 ```
 
-Page Frontmatter
+## ✍️ 如何使用
 
-```yaml
-title: title
-description: description
-(required)
+| 我想… | 去哪里 |
+|---|---|
+| 写文章 / 改页面 | `data/content/blog`、`data/content/pages` → [docs/CONTENT.md](./docs/CONTENT.md) |
+| 改主题 / 设计变量 | `src/app/globals.css` → 打开 [/ui](https://prologue.dev/ui) 查看实时规范 |
+| 管理导航 / 友链 / 微博 | `data/headerNavLinks.js`、`data/links.yaml`、`data/microblog.yaml` |
+| 配置评论 / 统计 | Giscus + Umami（见 `src/components` 与 `data/sitemetadata.js`） |
+| 换部署平台 | [Cloudflare](./docs/DEPLOY-CLOUDFLARE.md) / [Vercel](./docs/DEPLOY-VERCEL.md) |
+
+## 🗂 项目结构
+
+```text
+data/content/      # 文章与页面（Markdown）
+data/*.yaml|js     # 导航、友链、微博、站点元信息
+src/app/           # App Router 路由（页面/feed/sitemap/robots/llms）
+src/components/    # UI 组件与交互
+scripts/           # 构建流水线：搜索索引、图片变体、OG、静态导出
+docs/              # 深度文档（内容/部署/审计）
 ```
 
-推荐配合 Obsidian 在 /Data 打开 Vault 编辑，YAML 和 FrontMatter 会以结构化表格形式渲染，方便作为知识库进行交互。
+## 📚 文档与 FAQ
+
+- [内容写作](./docs/CONTENT.md) · [Cloudflare 部署](./docs/DEPLOY-CLOUDFLARE.md) · [Vercel 部署](./docs/DEPLOY-VERCEL.md)
+- 模板仓库：[hxlog/prologue-blog-template](https://github.com/hxlog/prologue-blog-template)（Vercel / Cloudflare 一键部署按钮均指向模板）
+
+<details>
+<summary><b>为什么图片要在构建期生成 AVIF/WebP？</b></summary>
+
+请求时生成会占用服务端/边缘 CPU；构建期生成可以完全静态化，并把正确的 srcset/尺寸写进 HTML，LCP 更稳、成本为 0。
+</details>
+
+<details>
+<summary><b>Vercel 与 Cloudflare 的差异？</b></summary>
+
+两者跑的是同一份站点代码；Cloudflare 走 `output: "export"` 的 assets-only Worker（无服务端代码），Vercel 走原生 Next 构建。功能、SEO、OG 完全一致。
+</details>
+
+## License
+
+[MIT](./LICENSE) © 槐序 · Powered by [Next.js](https://nextjs.org) & [Cloudflare](https://cloudflare.com)

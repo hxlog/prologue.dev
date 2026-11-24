@@ -15,7 +15,7 @@ corepack enable        # once per machine — makes `yarn` resolve to the pinned
 yarn install           # install dependencies (node-modules linker)
 
 yarn dev               # build search index + next dev --turbopack
-yarn build             # same prep, then next build --turbopack (normal Next build; template path)
+yarn build             # search index + image variants + OG cards + next build --turbopack (Vercel path)
 yarn start             # serve production build
 yarn export            # static-export build into out/ (Cloudflare target; OG cards, feeds, host files)
 node scripts/verify-export.mjs  # structural checks on out/ before deploying
@@ -100,7 +100,7 @@ This repo is mirrored to a public template (`hxlog/prologue-blog-template`) **wi
 **Implications when editing:**
 - The `template/` directory is the starter's overrides — not used by this site, but *is* what template users receive. Edit it when you intend to change the template's default content/assets.
 - Anything new added for the template must be placed under `template/` (or whitelisted in `applyStarterTemplate`), or it won't ship. `ensureTemplateInputs()` asserts the required ones exist, so a missing file fails the publish rather than shipping a broken clone.
-- Template-critical files that live in `src/` or `scripts/` are copied explicitly by `applyStarterTemplate`: `scripts/build-search-index.mjs` and `scripts/build-image-variants.mjs` — the shipped `dev`/`build` scripts invoke both. **Anything the shipped `dev`/`build` scripts invoke must be in that list**, or a fresh clone fails on its first command.
+- Template-critical files that live in `src/` or `scripts/` are copied explicitly by `applyStarterTemplate`: `scripts/build-search-index.mjs`, `scripts/build-image-variants.mjs`, `scripts/build-og-images.mjs`, `scripts/next-export.mjs` and `scripts/build-cf-assets.mjs` — the shipped `dev`/`build`/`export` scripts invoke them. **Anything the shipped scripts invoke must be in that list**, or a fresh clone fails on its first command. `docs/readme/*.webp` is copied too, because the template README embeds the screenshots.
 - `template/data/{microblog.yaml,links.yaml,sitemetadata.js,headerNavLinks.js,tagLabels.js}` and `template/public/static/` are required inputs; five `src/` files import the two `.js` data modules, so a template without them does not build.
 - Locally, `yarn publish` builds and inspects the snapshot under `.tmp/` (gitignored) and stops; `yarn publish -- --push` is what force-pushes. CI passes `--push`.
 
@@ -108,11 +108,14 @@ This repo is mirrored to a public template (`hxlog/prologue-blog-template`) **wi
 
 Production is a **static export on Cloudflare**: yarn export writes out/, and wrangler deploy uploads it as an **assets-only Worker** (no main, no user code, no origin, no tunnel). Static asset requests are free and unlimited on the Free plan; custom domains are included. `prologue.dev` and `www.prologue.dev` are the only public hostnames (www 301s to apex at the zone edge). Full runbook: docs/DEPLOY-CLOUDFLARE.md.
 
+**Vercel is supported as an equivalent alternate target**: `yarn build` now includes `build-og-images.mjs` (so `/og/*.png` exists on Vercel), and the published template ships both deployment paths plus one-click buttons. See docs/DEPLOY-VERCEL.md. The published template keeps `wrangler.jsonc`, `scripts/next-export.mjs`, `scripts/build-cf-assets.mjs`, `export`/`deploy:cf` scripts and `docs/readme/` screenshots (publish-template copies the latter so its README images resolve).
+
 - **Why static export.** Next 16 rejects Cache Components/PPR together with output: "export" ("PPR cannot be enabled in export mode"), so cacheComponents, partialPrefetching, use cache, cacheLife, cacheTag, instant and ensureStatic are **removed from this codebase**. Every route is prerendered at build; client navigation uses the generated RSC .txt payloads; React 19 ViewTransition still animates (verified).
 - **Build pipeline.** scripts/build-search-index.mjs (full + lite search corpora, image sizes, route manifest) → scripts/build-image-variants.mjs (AVIF-first + WebP fallback multi-width variants) → scripts/build-og-images.mjs (70 static cards, local font subsets) → scripts/next-export.mjs (next build with NEXT_EXPORT=1) → scripts/build-cf-assets.mjs (out/_headers, out/_redirects, flattened RSC payload paths).
 - **Host semantics.** wrangler.jsonc is assets-only with html_handling auto-trailing-slash (extensionless routes → *.html) and not_found_handling 404-page (this replaces the deleted src/proxy.js hard-404). out/_headers carries feed Content-Type/caching, immutable hashed assets and max-age=0, must-revalidate HTML; content-hashed /_next/static, /static/variants|source|opt and /og are immutable.
 - **What used to be request-time is now build-time.** /og cards (route deleted; src/lib/og/{keys,render}.js + scripts/build-og-images.mjs, URL contract /og/<key>.png?v=5), /api/search (route deleted; browser Fuse over public/search-index.json, lite-first + idle preload), feeds/llms (static route handlers with export const dynamic = "force-static"). No server runtime: no runtime segment config, no proxy/middleware, no headers()/redirects() (zone rules instead).
 - **Zone.** No Cache Rules: the Worker asset version is the cache identity, _headers is the policy, and there is no post-deploy purge. Keep Rocket Loader **off**, TLS 1.3 / HSTS / Always Use HTTPS / Brotli / HTTP3 / 0-RTT / Early Hints on. A zone Response Header Transform Rule adds the missing `charset=utf-8` to extensionless HTML paths (excluding `/static/`, `/og/` and the four extensionless feeds) (Workers Assets serves bare `text/html`); managed robots stays on (it prepends the same 3,153-byte block production always served). Do not touch MX/SPF/DKIM/DMARC.
+- **Dual deploy**: the repo root README (zh) + README.en.md (en) documents both Cloudflare and Vercel; one-click buttons point at the template repository. The template also ships a Cloudflare config so `yarn export` + `yarn deploy:cf` works from a clone.
 - **Fly.io is decommissioned** (2026-11-24): the app, Machines, builder app, cloudflared tunnel, Fly DNS records and the old __uptime Worker were deleted after the Cloudflare cutover; `Dockerfile`, `fly.toml`, `deploy-fly.yml` and `monitor.yml` are removed from the repo. Rollback is now a Cloudflare-side DNS/rule operation, not a Fly redeploy.
 
 ## Design system

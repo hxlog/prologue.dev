@@ -9,6 +9,22 @@ const ROOT = path.resolve(__dirname, "..");
 const WORKTREE_DIR = path.join(ROOT, ".tmp", "template-worktree");
 const TEMPLATE_ROOT = path.join(ROOT, "template");
 const README_TEMPLATE = path.join(ROOT, "README.template.md");
+const TEMPLATE_WRANGLER =
+  JSON.stringify(
+    {
+      $schema: "node_modules/wrangler/config-schema.json",
+      name: "prologue-blog",
+      compatibility_date: "2026-11-24",
+      workers_dev: true,
+      assets: {
+        directory: "./out",
+        html_handling: "auto-trailing-slash",
+        not_found_handling: "404-page",
+      },
+    },
+    null,
+    2
+  ) + "\n";
 const TARGET_BRANCH = readArg("--branch") || "master";
 // Dry run by default. This script force-pushes to a public repository, and a
 // destructive action should not be the one you get by typing the obvious
@@ -135,6 +151,9 @@ async function applyStarterTemplate(worktreeRoot) {
   rmSync(path.join(worktreeRoot, ".obsidian"), { recursive: true, force: true });
   rmSync(path.join(worktreeRoot, "data", ".obsidian"), { recursive: true, force: true });
   rmSync(path.join(worktreeRoot, "README.template.md"), { force: true });
+  // The template ships one bilingual README (README.template.md -> README.md);
+  // the personal repo's English README links docs that the template does not ship.
+  rmSync(path.join(worktreeRoot, "README.en.md"), { force: true });
   rmSync(path.join(worktreeRoot, "scripts"), { recursive: true, force: true });
   rmSync(path.join(worktreeRoot, "e2e"), { recursive: true, force: true });
   rmSync(path.join(worktreeRoot, "playwright.config.js"), { force: true });
@@ -148,9 +167,10 @@ async function applyStarterTemplate(worktreeRoot) {
   rmSync(path.join(worktreeRoot, ".github", "workflows", "deploy-fly.yml"), { force: true });
   rmSync(path.join(worktreeRoot, ".github", "workflows", "monitor.yml"), { force: true });
   rmSync(path.join(worktreeRoot, ".github", "workflows", "deploy-cloudflare.yml"), { force: true });
-  // Cloudflare static-export config is maintainer-specific (worker name, zone
-  // routes). The template keeps its plain Next build.
-  rmSync(path.join(worktreeRoot, "wrangler.jsonc"), { force: true });
+  // Ship a template-specific Cloudflare config: the published starter supports
+  // both Vercel (normal next build) and Cloudflare (static export + assets-only
+  // Worker), so the one-click Deploy to Cloudflare button works on a clone.
+  writeFileSync(path.join(worktreeRoot, "wrangler.jsonc"), TEMPLATE_WRANGLER);
   // `dev` and `build` in the shipped package.json run this one, so it must ship
   // or a template clone fails on its first command.
   copyFile(
@@ -167,6 +187,17 @@ async function applyStarterTemplate(worktreeRoot) {
   copyFile(
     path.join(ROOT, "scripts", "build-og-images.mjs"),
     path.join(worktreeRoot, "scripts", "build-og-images.mjs")
+  );
+  // Cloudflare path: yarn export runs next-export with NEXT_EXPORT=1 and then
+  // build-cf-assets writes out/_headers, out/_redirects and the RSC payload
+  // copies; wrangler deploy uploads ./out as an assets-only Worker.
+  copyFile(
+    path.join(ROOT, "scripts", "next-export.mjs"),
+    path.join(worktreeRoot, "scripts", "next-export.mjs")
+  );
+  copyFile(
+    path.join(ROOT, "scripts", "build-cf-assets.mjs"),
+    path.join(worktreeRoot, "scripts", "build-cf-assets.mjs")
   );
   rmSync(path.join(worktreeRoot, ".github", "workflows", "publish-starter.yml"), { force: true });
   rmSync(path.join(worktreeRoot, ".github", "workflows", "publish-template.yml"), { force: true });
@@ -311,6 +342,11 @@ jobs:
   });
 
   copyFile(README_TEMPLATE, path.join(worktreeRoot, "README.md"));
+  // The template README embeds the screenshots under docs/readme; docs/ was
+  // removed above, so re-add just that directory (assets only, no maintainer docs).
+  cpSync(path.join(ROOT, "docs", "readme"), path.join(worktreeRoot, "docs", "readme"), {
+    recursive: true,
+  });
   patchStarterPackageJson(worktreeRoot);
 }
 
@@ -325,11 +361,9 @@ function patchStarterPackageJson(worktreeRoot) {
   delete packageJson.scripts.publish;
   delete packageJson.scripts["build:e2e"];
   delete packageJson.scripts["test:e2e"];
-  // Cloudflare-specific commands reference files that are not shipped with the
-  // template (wrangler config, export/cf-assets/build-og scripts).
-  delete packageJson.scripts.export;
-  delete packageJson.scripts["deploy:cf"];
-  delete packageJson.scripts["preview:cf"];
+  // Cloudflare commands stay: the template ships wrangler.jsonc and the export
+  // scripts, so both yarn build (Vercel) and yarn export + yarn deploy:cf
+  // (Cloudflare) work from a fresh clone.
   // The static OG cards must exist before next build prerenders the metadata,
   // otherwise every og:image URL points at a missing /og/<key>.png.
   if (

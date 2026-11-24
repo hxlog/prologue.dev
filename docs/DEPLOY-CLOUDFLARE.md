@@ -2,8 +2,17 @@
 
 The site is a **Next.js 16 static export** (`output: "export"`) deployed as a
 **Cloudflare Worker with static assets only** — no Worker script, no origin, no
-server runtime. `next start` / Docker / Fly remain as the historical/rollback
-path only (the published template still targets Vercel).
+server runtime. This is the production target; **Vercel is an equivalent
+alternative** for the same codebase (see [DEPLOY-VERCEL](./DEPLOY-VERCEL.md)),
+and the published template supports both one-click.
+
+## One-click
+
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/hxlog/prologue-blog-template)
+
+The button clones the template repository and deploys it as an assets-only
+Worker. The template ships its own `wrangler.jsonc` + `yarn export` /
+`yarn deploy:cf` scripts; this repository uses the same pipeline.
 
 ## Why static export
 

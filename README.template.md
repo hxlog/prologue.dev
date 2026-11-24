@@ -1,194 +1,98 @@
+<div align="center">
+
+<img src="public/static/favicons/avatar-template.svg" width="88" alt="Prologue Blog" />
+
 # Prologue Blog Template
 
-[中文](#中文) · [English](#english)
+**A content-first, fully static blog starter · Next.js 16 · Markdown · AVIF/WebP · search · deploy to Cloudflare or Vercel**
 
----
+[![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev)
+[![Tailwind](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![Cloudflare](https://img.shields.io/badge/Cloudflare-Workers_Static_Assets-F38020?logo=cloudflare&logoColor=white)](https://workers.cloudflare.com)
+[![Vercel](https://img.shields.io/badge/Vercel-ready-000000?logo=vercel&logoColor=white)](https://vercel.com)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## 中文
-
-一个内容优先的博客模板，基于 **Next.js 16 App Router + React 19 + Tailwind CSS v4**。
-
-这不是作者本人的站点，而是一个可以直接用的起点：内容与配置在 `data/` 下，静态资源在 `public/static/` 下，用 Obsidian 或任何编辑器都能改。
-
-在线示例：https://prologue-blog-demo.prologue.dev/
-
-### 特性一览
-
-- **Markdown 写作**，不需要数据库，也没有后台
-- **KaTeX 公式**，行内与块级
-- **Shiki 代码高亮**，跟随站点主题自动切换
-- **Mermaid 图表**，网页端客户端渲染，RSS 阅读器里自动换成图片
-- **图片灯箱**，自动使用构建期生成的 WebP 缩略图，点击后平滑升级到优化原图，可下载当前图片
-- **构建期图片缩略图**，构建时用 sharp 生成多宽度 WebP srcset，不依赖运行时图片优化
-- **GFM 表格、脚注、任务列表、删除线**
-- **自适应深色模式**，切换时是圆形揭示动画
-- **完整 SEO**：OpenGraph、JSON-LD、sitemap、robots
-- **三种订阅格式**：RSS2 / Atom / JSON Feed，另有微博独立 feed
-- **站内搜索**，Fuse.js，构建期生成精简索引
-- **标签体系**，英文 slug + 可翻译的显示名
-- **相关文章**、阅读进度条、目录、Giscus 评论
-
-### 快速开始
+[**Live demo**](https://prologue.dev) · [中文说明](#中文说明) · [![Use this template](https://img.shields.io/badge/Use_this_template-2ea44f?logo=github&logoColor=white)](https://github.com/hxlog/prologue-blog-template/generate)
 
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fhxlog%2Fprologue-blog-template)
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/hxlog/prologue-blog-template)
 
-或者用 GitHub 上的 **Use this template**，然后：
+<img src="docs/readme/home-light.webp" width="100%" alt="Home" />
+
+</div>
+
+## ✨ Features
+
+| Capability | What you get |
+|---|---|
+| ✍️ Markdown-first | Edit `data/content/**`, no CMS, loud frontmatter validation |
+| 🖼 Images | Build-time AVIF + WebP variants, lightbox with original download |
+| 🔎 Search | Build-time index + client Fuse.js (no search API) |
+| 🌗 Themes | Semantic tokens, dark mode, View Transition animations |
+| 🧭 SEO/GEO | OG cards, sitemap, robots, RSS/Atom/JSON, llms.txt, JSON-LD |
+| 📝 Rich content | GFM, math, Mermaid, Shiki, captions, TOC |
+| ⚡ Static | `output: "export"` for Cloudflare, native build for Vercel |
+| 🚀 Deploy | One-click on both platforms |
+
+<table>
+  <tr><td width="50%"><img src="docs/readme/home-dark.webp" alt="Home dark" /></td><td width="50%"><img src="docs/readme/post-light.webp" alt="Post" /></td></tr>
+  <tr><td width="50%"><img src="docs/readme/search-light.webp" alt="Search" /></td><td width="50%"><img src="docs/readme/ui-light.webp" alt="Design system" /></td></tr>
+</table>
+
+## 🚀 Getting Started
 
 ```bash
-git clone https://github.com/hxlog/prologue-blog-template.git my-blog
-cd my-blog
-corepack enable   # 每台机器只需一次，用于启用 package.json 里固定的 Yarn 4
+corepack enable
 yarn install
-yarn dev
+yarn dev        # http://localhost:3000
 ```
 
-打开 `http://localhost:3000`。
+Edit `data/content/**` for posts, `data/sitemetadata.js` for site identity, `src/app/globals.css` for design tokens. Full guide: [docs/CONTENT.md](https://github.com/hxlog/prologue.dev/blob/master/docs/CONTENT.md).
 
-需要 **Node.js 24.x**（见 `package.json` 的 `engines`），包管理器为 **Yarn 4**：版本固定在 `packageManager` 字段，通过 [Corepack](https://nodejs.org/api/corepack.html) 启用；仓库只提交 `yarn.lock`，没有 `package-lock.json`。
+## ☁️ Deploy
 
-改内容不需要重启开发服务器：保存文件，刷新页面即可。
+| Cloudflare | Vercel |
+|---|---|
+| [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/hxlog/prologue-blog-template) | [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fhxlog%2Fprologue-blog-template) |
+| `yarn export` → `yarn deploy:cf` | `yarn build` (Vercel auto-runs it) |
 
-![首页](./public/static/images/Index-Screenshot.jpg)
-
-![文章页](./public/static/images/Post-Screenshot.jpg)
-
-### 先改这五处
-
-1. **`data/sitemetadata.js`** — `title`、`author`、`description`、`siteUrl`；以及 `github`、`siteRepo`、`repoid`、`categoryid`（Giscus 评论）
-2. **`data/headerNavLinks.js`** — 导航栏链接
-3. **`data/content/pages/about.md`** — 关于页
-4. **`data/content/blog/hello-prologue.md`** — 第一篇文章
-5. **`data/microblog.yaml`** 和 **`data/links.yaml`** — 微博与友链
-
-配色、圆角、阴影都在 `src/app/globals.css` 的 `@theme inline` 里，改 CSS 变量即可换主题色。
-
-### 用 Obsidian 写作
-
-`data/` 目录本身可以当作一个 Obsidian vault：文章、页面和 YAML 数据都在里面，一个窗口就能编辑。
-
-设置方式见 [docs/CONTENT.md](https://github.com/hxlog/prologue.dev/blob/master/docs/CONTENT.md)。要点：
-
-- 把 vault 根目录设为 **`data/`**，这样笔记之间的链接都能解析
-- **`draft` 和 `featured` 两个属性必须是 Checkbox 类型**，否则会写成字符串 `"false"`，构建会直接报错并指出文件和字段
-
-静态资源（图片、封面、头像）在 `public/static/` 下，不在 vault 里；在笔记中按 `/static/images/x.jpg` 这样的绝对路径引用即可。`yarn build` 会为引用到的位图生成 `public/static/variants/**` 下的 WebP 缩略图（生成的二进制不入库），页面与灯箱会自动使用它们。
-
-不用 Obsidian 也完全没问题，VS Code、vim 编辑同一批文件效果一样。
-
-### 常用命令
-
-```bash
-yarn dev               # 开发服务器
-yarn build             # 生产构建
-yarn start             # 本地跑生产版本
-yarn lint              # ESLint
+```mermaid
+flowchart LR
+  md[Markdown content] --> build[Next.js 16]
+  build --> cf[Cloudflare Workers Static Assets]
+  build -. yarn build .-> vercel[Vercel]
 ```
 
-### 同步上游更新
+## ✍️ Usage
 
-```bash
-git remote add upstream https://github.com/hxlog/prologue-blog-template.git
-git fetch upstream
-git merge upstream/master
-```
+| I want to… | Go to |
+|---|---|
+| Write a post | `data/content/blog` |
+| Change site identity | `data/sitemetadata.js` |
+| Change design tokens | `src/app/globals.css`, preview at `/ui` |
+| Nav / links / microblog | `data/headerNavLinks.js`, `data/links.yaml`, `data/microblog.yaml` |
+| Comments / analytics | Giscus + Umami (see `src/components`) |
 
-如果你已经写了自己的内容，合并时保留本地的 `data/**`，只取上游的 `src/**` 和构建配置。
+## 📚 Docs
 
-### 许可
+- [Content authoring](https://github.com/hxlog/prologue.dev/blob/master/docs/CONTENT.md) · [Cloudflare deploy](https://github.com/hxlog/prologue.dev/blob/master/docs/DEPLOY-CLOUDFLARE.md) · [Vercel deploy](https://github.com/hxlog/prologue.dev/blob/master/docs/DEPLOY-VERCEL.md)
 
-发布前请自行添加适合你项目的 LICENSE。
+## 中文说明
 
----
+<details open>
+<summary>中文快速开始</summary>
 
-## English
+- **在线示例**：[prologue.dev](https://prologue.dev)
+- **一键部署**：上方 Vercel / Cloudflare 按钮会克隆本模板仓库
+- **本地开发**：`corepack enable && yarn install && yarn dev`
+- **写内容**：`data/content/blog`（文章）、`data/content/pages`（页面）；站点信息在 `data/sitemetadata.js`
+- **部署 Cloudflare**：`yarn export` 后 `yarn deploy:cf`（assets-only Worker，静态请求免费）
+- **部署 Vercel**：直接导入仓库，构建命令 `yarn build`
+- 详细文档：[内容](https://github.com/hxlog/prologue.dev/blob/master/docs/CONTENT.md) · [Cloudflare](https://github.com/hxlog/prologue.dev/blob/master/docs/DEPLOY-CLOUDFLARE.md) · [Vercel](https://github.com/hxlog/prologue.dev/blob/master/docs/DEPLOY-VERCEL.md)
 
-A content-first blog template built on **Next.js 16 App Router + React 19 + Tailwind CSS v4**.
+</details>
 
-This is not the author's personal site — it is a starting point you can use as-is. Content and configuration live under `data/`, static assets under `public/static/`, and all of it is editable in Obsidian or any text editor.
+## License
 
-Live demo: https://prologue-blog-demo.prologue.dev/
-
-### Features
-
-- **Markdown authoring** — no database, no admin panel
-- **KaTeX math**, inline and display
-- **Shiki code highlighting** that follows the site theme
-- **Mermaid diagrams**, rendered client-side on the web and swapped for hosted images in RSS readers
-- **Image lightbox** — click to zoom, swipe between grouped images
-- **GFM tables, footnotes, task lists, strikethrough**
-- **Adaptive dark mode** with a circular reveal transition
-- **Complete SEO** — OpenGraph, JSON-LD, sitemap, robots
-- **Three feed formats** — RSS2 / Atom / JSON Feed, plus a separate microblog feed
-- **Site-wide search** with Fuse.js over a slim build-time index
-- **Tag taxonomy** — ASCII slugs with translatable display labels
-- **Related posts**, reading progress, table of contents, Giscus comments
-
-### Quick Start
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fhxlog%2Fprologue-blog-template)
-
-Or use **Use this template** on GitHub, then:
-
-```bash
-git clone https://github.com/hxlog/prologue-blog-template.git my-blog
-cd my-blog
-corepack enable   # once per machine, to activate the Yarn 4 pinned in package.json
-yarn install
-yarn dev
-```
-
-Open `http://localhost:3000`.
-
-**Node.js 24.x** is required (see `engines` in `package.json`), and the package manager is **Yarn 4**: the version is pinned in `packageManager` and enabled through [Corepack](https://nodejs.org/api/corepack.html). Only `yarn.lock` is committed; there is no `package-lock.json`.
-
-Editing content does not need a server restart: save the file and reload.
-
-![Index Screenshot](./public/static/images/Index-Screenshot.jpg)
-
-![Post Screenshot](./public/static/images/Post-Screenshot.jpg)
-
-### 5 Things To Change First
-
-1. **`data/sitemetadata.js`** — `title`, `author`, `description`, `siteUrl`; and `github`, `siteRepo`, `repoid`, `categoryid` (Giscus comments)
-2. **`data/headerNavLinks.js`** — navigation links
-3. **`data/content/pages/about.md`** — the about page
-4. **`data/content/blog/hello-prologue.md`** — your first post
-5. **`data/microblog.yaml`** and **`data/links.yaml`** — microblog and friend links
-
-Colours, radii and shadows are tokens in `src/app/globals.css` under `@theme inline` — change the CSS variables to re-theme the whole site.
-
-### Writing with Obsidian
-
-The `data/` directory can be opened as an Obsidian vault: posts, pages and the YAML data files all live inside it, so one window reaches all of them.
-
-Setup is documented in [docs/CONTENT.md](https://github.com/hxlog/prologue.dev/blob/master/docs/CONTENT.md). The essentials:
-
-- Set the vault root to **`data/`**, so links between notes resolve
-- **`draft` and `featured` must be Checkbox properties** — typed as text, Obsidian writes the string `"false"`, which fails the build with a message naming the file and the field
-
-Static assets (images, covers, avatars) live under `public/static/`, outside the vault; reference them from a note with an absolute path like `/static/images/x.jpg`.
-
-Obsidian is optional. Editing the same files in VS Code or vim works identically.
-
-### Common Commands
-
-```bash
-yarn dev               # dev server
-yarn build             # production build
-yarn start             # serve the production build locally
-yarn lint              # ESLint
-```
-
-### Keeping Your Fork Updated
-
-```bash
-git remote add upstream https://github.com/hxlog/prologue-blog-template.git
-git fetch upstream
-git merge upstream/master
-```
-
-If you already rewrote your own content, keep your local `data/**` and take upstream changes from `src/**` and the build config.
-
-### License
-
-Please add a license file suitable for your own project before public release.
+[MIT](./LICENSE)
