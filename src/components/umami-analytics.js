@@ -1,14 +1,19 @@
 import Script from "next/script";
 import siteMetadata from "../../data/sitemetadata";
+import UmamiRecorderLazy from "./umami-recorder-lazy";
 
 /**
  * Self-hosted Umami. Production only.
  *
- * Both tags are `lazyOnload`: the analytics script is not part of the first
+ * The pageview + web-vitals script is `lazyOnload`: it is not part of the first
  * paint and used to be preloaded from <head>, where it competed with the
  * article's own bytes for bandwidth. Umami reads web vitals from the browser's
  * buffered PerformanceEntry list, so deferring the script does not lose LCP /
  * INP / CLS -- it only stops the measurement from slowing the thing it measures.
+ *
+ * The separate session-replay recorder is interaction-gated (see
+ * umami-recorder-lazy.js) because it is another ~58 KB of scripting on every
+ * visit that Lighthouse measures as blocking work.
  */
 export default function UmamiAnalytics() {
   const { umami } = siteMetadata;
@@ -28,12 +33,7 @@ export default function UmamiAnalytics() {
         data-performance="true"
         strategy="lazyOnload"
       />
-      <Script
-        id="umami-recorder"
-        src={umami.recorderUrl}
-        data-website-id={umami.websiteId}
-        strategy="lazyOnload"
-      />
+      <UmamiRecorderLazy src={umami.recorderUrl} websiteId={umami.websiteId} />
     </>
   );
 }

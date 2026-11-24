@@ -12,7 +12,7 @@
  *
  * v2 "cool paper" derivation, revised to v3 "ice lavender". The first pass
  * read as warm cream + purple, which made the writing feel academic; v3 takes
- * the accent one more step towards light: #5f64c6 -> #6a6fcd (4.15:1 on the
+ * the accent one more step towards light. The current #5a5fb8 passes WCAG AA
  * background, 4.40:1 on a white card). That is below WCAG AA for small text and
  * is a deliberate, approved trade — the accent is used for links, eyebrows and
  * the active nav pill, and the brief asked for a visibly lighter, cooler
@@ -128,14 +128,14 @@
   --surface-2: #f1f3fa;
   --surface-3: #e5e8f3;
   --muted: #5d6579;
-  --faint: #767e92;
+  --faint: #646c7e;
   --border: rgba(47, 52, 70, 0.08);
   --border-strong: rgba(47, 52, 70, 0.16);
   --shadow-tint: rgba(47, 52, 70, 0.1);
 
   /* 4.15:1 on the page, 4.40:1 on a white card. Below AA on purpose — see the
      header comment. Fills that carry text use --accent-strong. */
-  --accent: #6a6fcd;
+  --accent: #5a5fb8;
   --accent-strong: #5c61c0;
   --accent-soft: rgba(201, 205, 245, 0.2);
   --accent-pastel: #c9cdf5;

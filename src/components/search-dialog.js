@@ -63,15 +63,28 @@ export default function SearchDialog() {
       .catch(() => {});
   }, [preloadPanel]);
 
+  /* Idle preload warms only the 36 KB lite corpus as plain data: importing the
+     panel/Fuse chunks here would add unused JS to every first load (Lighthouse
+     flags it), while the intent preload below still warms the dialog code. */
   useEffect(
     () =>
       scheduleIdlePreload(() => {
-        preloadPanel();
-        loadSearchClient()
-          .then((client) => client.preloadLiteIndex())
+        fetch("/search-index-lite.json")
+          .then((response) => (response.ok ? response.json() : null))
+          .then((items) => {
+            if (!Array.isArray(items)) return;
+            try {
+              window.sessionStorage.setItem(
+                "prologue.search.v1:/search-index-lite.json",
+                JSON.stringify(items)
+              );
+            } catch {
+              /* storage unavailable: the intent load fetches the corpus again */
+            }
+          })
           .catch(() => {});
       }),
-    [preloadPanel]
+    []
   );
 
   const openDialog = useCallback(() => {

@@ -1,17 +1,19 @@
 {
-  // Cloudflare Workers Static Assets deploy target for the full-static build.
-  // This is an assets-only Worker: no `main`, no script, no `assets.binding`.
-  // `yarn export` writes ./out; scripts/build-cf-assets.mjs adds _headers,
-  // _redirects and the flattened RSC payloads. Generated file - keep in sync
-  // with the build script, not edited by hand at deploy time.
+  // Cloudflare Workers Static Assets deploy target for the full-static export.
+  // Assets-only Worker: no main, no script, no assets binding. yarn export writes
+  // ./out; scripts/build-cf-assets.mjs adds _headers, _redirects and the flattened
+  // RSC payload paths before wrangler uploads the directory.
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "prologue-blog",
   "compatibility_date": "2026-11-24",
-  // Keep the workers.dev hostname available for pre-cutover verification.
-  "workers_dev": true,
-  // Zone-internal preview hostname for A/B testing (workers.dev is unreachable
-  // from mainland China). The apex/www custom domains are added at cutover.
-  "routes": [{ "pattern": "cf.prologue.dev", "custom_domain": true }],
+  // No workers.dev hostname in production: both public hostnames are Custom
+  // Domains. The preview hostname (cf.prologue.dev) was removed at cutover.
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [
+    { "pattern": "prologue.dev", "custom_domain": true },
+    { "pattern": "www.prologue.dev", "custom_domain": true }
+  ],
   "assets": {
     "directory": "./out",
     "html_handling": "auto-trailing-slash",

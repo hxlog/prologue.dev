@@ -24,9 +24,9 @@ A content-first blog built with Next.js 16 and an in-repo filesystem content lay
 
 博客链接：https://prologue.dev
 
-> 本仓库的生产站点托管在 **Fly.io**（自托管 Next.js standalone Docker）+ **Cloudflare Tunnel/CDN**，见 `docs/DEPLOY-FLY.md`；下方 Vercel 按钮是给模板使用者的一键部署入口，仍可用。
+> 本仓库的生产站点是 **Next.js 16 全静态导出**（`output: "export"`），托管在 **Cloudflare Workers Static Assets**（assets-only Worker，无服务端运行时代码），见 `docs/DEPLOY-CLOUDFLARE.md`；下方 Vercel 按钮是给模板使用者的一键部署入口，仍可用。
 >
-> 生产缓存策略是 **build-only**：HTML/RSC/feeds/图片全部在 Cloudflare 边缘缓存，每次成功 Deploy 后由 workflow 调用 Cloudflare API purge；内容只有 git push + build 之后才可能变化。图片由 `scripts/build-image-variants.mjs` 在构建期生成 WebP 缩略图，灯箱先显示大尺寸缩略图再平滑升级到原图，并提供“下载当前图片 / 下载原图（源文件）”两个动作。
+> 生产缓存策略是 **build-only**：HTML/RSC/feeds/图片全部由 Cloudflare 边缘按 Worker deployment 版本化缓存，`out/_headers` 是缓存策略的唯一来源（不需要 purge）；内容只有 git push + build + deploy 之后才可能变化。图片由 `scripts/build-image-variants.mjs` 在构建期生成 **AVIF 优先 + WebP 回退**的多尺寸变体，灯箱先显示缩略图再平滑升级到原图，并提供“下载当前图片 / 下载原图（源文件）”两个动作。
 
 ## Preview
 

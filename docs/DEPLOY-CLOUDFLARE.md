@@ -71,6 +71,10 @@ SPA navigation, ViewTransition activation, theme toggle, client-side search,
 SEO/JSON-LD/twitter meta and the Umami tag. Run it against the preview domain
 before cutover and against apex/www after.
 
+## Migration status (2026-11-24)
+
+Cutover is **complete**: `prologue.dev` + `www.prologue.dev` are Worker Custom Domains, `www` 301s to apex at the zone edge, `cf.prologue.dev` and the Fly app/tunnel/uptime Worker were removed, and the Fly-era Cache Rules were cleared (no purge step).
+
 ## Cutover (approved procedure)
 
 The exact executable plan lives in `.tmp/m1/cutover.mjs` (dry-run by default; `--execute` after approval) with `.tmp/m1/rollback.mjs` as its inverse.
