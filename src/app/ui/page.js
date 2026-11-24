@@ -38,8 +38,6 @@ export const metadata = buildMetadata({
 
 /* Cache Components gates (Next 16.4) — same contract as the other static pages:
    the shell must resolve synchronously and stay prerendered. */
-export const instant = true;
-export const ensureStatic = "shell";
 
 const NAV = [
   { id: "colors", label: "颜色" },
@@ -501,7 +499,7 @@ export default function UiStandardPage() {
                 </div>
               </div>
               <p className="mt-3 text-xs leading-5 text-faint">
-                结果来自 <span className="font-mono">/api/search</span>（服务端 Fuse，索引不进浏览器）；高亮用
+                结果来自构建期生成的搜索索引（浏览器内 Fuse，首次打开搜索时按需加载）；高亮用
                 <span className="font-mono"> mark </span>承载 accent 淡底，正文仍是 --muted。
               </p>
             </Specimen>

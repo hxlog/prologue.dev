@@ -1,4 +1,4 @@
-import Image from "next/image";
+import ResponsiveImage from "./responsive-image";
 import { IMAGE_SOURCES } from "../../data/image-sources.js";
 import { formatRailDate } from "../lib/date";
 
@@ -53,11 +53,11 @@ export default function MicroblogEntry({ entry, compact = false }) {
             <div className={`microblog-media microblog-media--${cols}`}>
               {images.map((image, index) => (
                 <figure className="microblog-media-item" key={index}>
-                  <Image
+                  <ResponsiveImage
                     src={image.src}
                     alt={image.desc || "微博配图"}
-                    data-original-src={image.src}
-                    data-source-src={IMAGE_SOURCES[image.src] || undefined}
+                    dataOriginalSrc={image.src}
+                    dataSourceSrc={IMAGE_SOURCES[image.src] || undefined}
                     fill
                     loading="lazy"
                     sizes={

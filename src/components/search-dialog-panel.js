@@ -1,24 +1,32 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import {
+  Fragment,
+  startTransition,
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Dialog, DialogPanel, Transition, TransitionChild } from "@headlessui/react";
 import { useRouter } from "next/navigation";
+import { MIN_QUERY, getSearcher } from "../lib/search-client";
 
 /**
  * Site-wide search dialog.
  *
  * Interaction: ⌘K / Ctrl+K toggles it, "/" opens it when the reader is not in a
  * field, Esc / a click outside closes it (Headless UI Dialog owns focus trap,
- * scroll lock, inert background and outside-click). Results come from
- * /api/search, which runs Fuse on the server over the build-time corpus — the
- * client never downloads the index.
+ * scroll lock, inert background and outside-click). Results come from the
+ * build-time corpus fetched once as /search-index.json and queried locally with
+ * Fuse (src/lib/search-client.js) — there is no server endpoint after the
+ * Cloudflare static migration.
  *
- * The panel module is loaded only when the trigger opens; the lightweight
- * wrapper owns the trigger and keyboard shortcuts.
+ * The panel module is loaded only when the trigger opens, and the index fetch
+ * starts on trigger hover/focus (see search-dialog.js) so the first keystroke
+ * usually finds the searcher ready.
  */
-
-const DEBOUNCE_MS = 160;
-const MIN_QUERY = 2;
 
 export default function SearchDialogPanel({ open, onClose }) {
   const router = useRouter();
@@ -28,13 +36,17 @@ export default function SearchDialogPanel({ open, onClose }) {
   const [active, setActive] = useState(0);
   const [took, setTook] = useState(0);
   const [retryToken, setRetryToken] = useState(0);
+  const [searcher, setSearcher] = useState(null);
+  const [indexFailed, setIndexFailed] = useState(false);
+
+  // The input stays bound to the immediate value; results are computed from the
+  // deferred one so typing never waits on Fuse.
+  const deferredQuery = useDeferredValue(query);
 
   const inputRef = useRef(null);
   const listRef = useRef(null);
-  const abortRef = useRef(null);
 
   const reset = useCallback(() => {
-    abortRef.current?.abort();
     setQuery("");
     setResults([]);
     setStatus("idle");
@@ -47,22 +59,46 @@ export default function SearchDialogPanel({ open, onClose }) {
     reset();
   }, [onClose, reset]);
 
-  /* Debounced query. Old results stay on screen while loading (dimmed) so the
-     panel does not flash empty on every keystroke; the 2px progress line is the
-     only "busy" signal.
+  /* Search corpus load. The index is fetched and its Fuse table built once per
+     tab (module-level promise in search-client.js); this effect only wires the
+     result into panel state. It also runs on reopen, which is the only chance to
+     retry after a failed load, because a rejection is not memoised.
 
-     Every state write happens inside the timer callback or a fetch continuation,
-     never synchronously in the effect body: that is both what the React compiler
-     lint requires and what keeps typing from cascading renders. */
+     Every state write happens inside a timer/promise continuation, never
+     synchronously in an effect body: that is both what the React compiler lint
+     requires and what keeps typing from cascading renders. */
+  useEffect(() => {
+    if (!open || searcher) return undefined;
+    let cancelled = false;
+
+    getSearcher().then(
+      (engine) => {
+        if (cancelled) return;
+        startTransition(() => {
+          setSearcher(engine);
+          setIndexFailed(false);
+        });
+      },
+      () => {
+        if (cancelled) return;
+        startTransition(() => setIndexFailed(true));
+      }
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, searcher, retryToken]);
+
+  /* Local query. Old results stay on screen while the next ones are computed
+     (the progress line is the only "busy" signal), matching the old network
+     behaviour. The 0 ms timer keeps this a continuation rather than a
+     synchronous state write in the effect body. */
   useEffect(() => {
     if (!open) return undefined;
-    const q = query.trim();
-    const delay = q.length < MIN_QUERY ? 0 : DEBOUNCE_MS;
+    const q = deferredQuery.trim();
 
     const timer = setTimeout(() => {
-      abortRef.current?.abort();
-      abortRef.current = null;
-
       if (q.length < MIN_QUERY) {
         setResults([]);
         setStatus("idle");
@@ -70,32 +106,22 @@ export default function SearchDialogPanel({ open, onClose }) {
         return;
       }
 
-      const controller = new AbortController();
-      abortRef.current = controller;
-      setStatus("loading");
+      if (!searcher) {
+        setStatus(indexFailed ? "error" : "loading");
+        return;
+      }
 
-      fetch("/api/search?q=" + encodeURIComponent(q), {
-        signal: controller.signal,
-      })
-        .then((response) => {
-          if (!response.ok) throw new Error("search failed");
-          return response.json();
-        })
-        .then((data) => {
-          if (controller.signal.aborted) return;
-          setResults(Array.isArray(data.results) ? data.results : []);
-          setTook(data.took || 0);
-          setStatus("ready");
-          setActive(0);
-        })
-        .catch((error) => {
-          if (error.name === "AbortError") return;
-          setStatus("error");
-        });
-    }, delay);
+      startTransition(() => {
+        const data = searcher.search(q);
+        setResults(data.results);
+        setTook(data.took);
+        setStatus("ready");
+        setActive(0);
+      });
+    }, 0);
 
     return () => clearTimeout(timer);
-  }, [open, query, retryToken]);
+  }, [open, deferredQuery, searcher, indexFailed]);
 
   /* Headless UI only applies initialFocus on mount. Reopening during the leave
      transition reuses the same Dialog, so put the caret back in the field by
@@ -289,7 +315,10 @@ export default function SearchDialogPanel({ open, onClose }) {
                         <button
                           type="button"
                           className="search-dialog-retry"
-                          onClick={() => setRetryToken((token) => token + 1)}
+                          onClick={() => {
+                            setIndexFailed(false);
+                            setRetryToken((token) => token + 1);
+                          }}
                         >
                           重试
                         </button>

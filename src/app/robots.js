@@ -1,5 +1,8 @@
 import siteMetadata from "../../data/sitemetadata";
 
+// Static export requires metadata routes to opt into static generation.
+export const dynamic = "force-static";
+
 /**
  * Search engines and retrieval-oriented AI agents may index the site; training
  * crawlers are separate user-agent groups and are asked not to train on it.

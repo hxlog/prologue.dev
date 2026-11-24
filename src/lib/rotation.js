@@ -1,4 +1,3 @@
-import { cacheLife } from "next/cache";
 
 /**
  * Daily rotation offset for the friend-link grid.
@@ -16,8 +15,6 @@ import { cacheLife } from "next/cache";
  * wanted here: stable within a visit, different the next day.
  */
 export async function getRotationOffset(total) {
-  "use cache";
-  cacheLife("build");
   const day = Math.floor(Date.now() / 86_400_000);
   const n = Math.max(1, total);
   return ((day % n) + n) % n;

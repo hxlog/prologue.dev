@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import ResponsiveImage from "./responsive-image";
 import { getPosts } from "../lib/content";
 import siteMetadata from "../../data/sitemetadata";
 
@@ -23,13 +23,14 @@ export default function AboutMe() {
 
       <Link href="/about" className="group mt-6 inline-block">
         <span className="ring-gradient block transition-transform duration-(--duration-base) ease-out-expo group-hover:scale-105">
-          <Image
+          <ResponsiveImage
             src={siteMetadata.avatar}
             alt={siteMetadata.author}
             width={96}
             height={96}
             loading="eager"
             className="h-24 w-24 rounded-full object-cover ring-2 ring-background"
+            dataOriginalSrc={siteMetadata.avatar}
           />
         </span>
       </Link>

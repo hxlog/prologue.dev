@@ -15,6 +15,20 @@ function loadPanel() {
   return panelPromise;
 }
 
+/* The corpus (and Fuse) lives in its own lazily-imported chunk: it must not land
+   in the navbar shell. Only explicit search intent imports it; the idle preload
+   below warms the panel module only. */
+let searchClientPromise = null;
+function loadSearchClient() {
+  if (!searchClientPromise) {
+    searchClientPromise = import("../lib/search-client").catch((error) => {
+      searchClientPromise = null;
+      throw error;
+    });
+  }
+  return searchClientPromise;
+}
+
 const Panel = dynamic(loadPanel, { ssr: false });
 
 /**
@@ -23,7 +37,8 @@ const Panel = dynamic(loadPanel, { ssr: false });
  * The dialog and its Headless UI dependency are loaded only when the reader
  * asks for search; the keyboard shortcuts and the trigger button stay in this
  * light shell so the initial chunk on every route stays small. The panel is
- * preloaded on pointer/focus intent, not on page load.
+ * preloaded on pointer/focus intent, not on page load. The build-time search
+ * corpus is fetched on the same intent (hover/focus/open) and never at idle.
  */
 export default function SearchDialog() {
   const [open, setOpen] = useState(false);
@@ -31,11 +46,22 @@ export default function SearchDialog() {
   const [panelKey, setPanelKey] = useState(0);
   const openRef = useRef(false);
 
-  const preload = useCallback(() => {
+  const preloadPanel = useCallback(() => {
     loadPanel().catch(() => {});
   }, []);
 
-  useEffect(() => scheduleIdlePreload(() => preload()), [preload]);
+  /* Explicit search intent: hover / focus / open. Start the index download and
+     the local Fuse build while the pointer is still moving, so the first
+     keystroke does not wait on a 734 KB fetch. Failures are ignored here: the
+     panel renders its own error state and Retry. */
+  const preload = useCallback(() => {
+    preloadPanel();
+    loadSearchClient()
+      .then((client) => client.preloadSearchIndex())
+      .catch(() => {});
+  }, [preloadPanel]);
+
+  useEffect(() => scheduleIdlePreload(() => preloadPanel()), [preloadPanel]);
 
   const openDialog = useCallback(() => {
     preload();

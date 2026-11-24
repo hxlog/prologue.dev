@@ -1,4 +1,3 @@
-import { cacheLife, cacheTag } from "next/cache";
 import { yearInBeijing } from "./date";
 
 /**
@@ -17,14 +16,11 @@ import { yearInBeijing } from "./date";
  * be exact to the day.
  */
 export async function getSiteYear() {
-  "use cache";
   // "days" here is not a local decision: this value is read by the footer, which
   // the root layout renders, and Next sets a route's revalidate to the SHORTEST
   // window among every cache it contains. A one-day profile therefore pinned all
   // 87 page routes to a daily re-render -- 2,600 full page renders a month for a
   // footer that changes once a year. The custom "build" profile matches the
   // content cache and only refreshes on the next deploy.
-  cacheLife("build");
-  cacheTag("site-year");
   return yearInBeijing();
 }

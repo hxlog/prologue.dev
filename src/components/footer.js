@@ -9,10 +9,8 @@ import { getSiteYear } from "../lib/site-year";
  * the icon buttons). Nothing here reads the route or the request, so the whole
  * footer is part of the static shell.
  *
- * `getSiteYear()` is async because the year is read inside a cached scope:
- * `new Date()` is banned in the prerendered shell under Cache Components, and
- * a cached read pins the value to a revalidation boundary instead. See
- * src/lib/site-year.js.
+ * `getSiteYear()` is async so the year read happens once per build (the site
+ * is exported statically); see src/lib/site-year.js.
  */
 export default async function Footer() {
   const year = await getSiteYear();

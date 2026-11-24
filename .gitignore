@@ -45,3 +45,9 @@
 
 # scratch file used to hold multi-line git commit messages
 commit-msg.tmp
+
+# static export output + Cloudflare / generated OG artifacts
+/out/
+/.wrangler/
+/public/og/
+/data/og-manifest.js

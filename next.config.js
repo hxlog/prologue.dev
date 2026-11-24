@@ -1,30 +1,34 @@
 /** @type {import('next').NextConfig} */
+// Static export target (Cloudflare Workers Static Assets). The Fly/Docker build
+// and the published template keep their normal Next behaviour; only the
+// Cloudflare export build sets NEXT_EXPORT=1.
+const IS_EXPORT = process.env.NEXT_EXPORT === "1";
+
 const nextConfig = {
   reactStrictMode: true,
 
   // Self-hosting (Docker on Fly.io) needs the traced standalone bundle, while
   // Vercel and local `next start` must keep their normal output. The Docker
   // build sets NEXT_STANDALONE=1; nothing else does.
-  output: process.env.NEXT_STANDALONE === "1" ? "standalone" : undefined,
+  output: IS_EXPORT
+    ? "export"
+    : process.env.NEXT_STANDALONE === "1"
+      ? "standalone"
+      : undefined,
 
   // Cache Components: `use cache` scopes, a prerendered static shell per route,
   // and Partial Prefetching (App Shell prefetched by default, per-link data on
   // `<Link prefetch={true}>`). See src/app/globals.css and the components that
   // read the route for the Suspense boundaries this requires.
-  cacheComponents: true,
-  partialPrefetching: true,
+  // Cache Components (PPR) is removed from this codebase: the site is built as
+  // a static export, where PPR cannot be enabled (Next 16 invariant). The
+  // published template inherits the same plain-static Next setup.
 
   // Everything here changes only when a build runs, so caches live from one
   // deploy to the next. Cloudflare is purged by the deploy workflow; the Next
   // data cache uses the same build lifetime instead of the default 30-day
   // `max` profile.
-  cacheLife: {
-    build: {
-      stale: 31536000,
-      revalidate: 31536000,
-      expire: 31536000,
-    },
-  },
+  ...(IS_EXPORT ? { staticPageGenerationTimeout: 180 } : {}),
 
   // Version-skew protection. Next attaches the deployment id to RSC requests;
   // when a client prefetched from an older deployment navigates after a rollout,
@@ -33,8 +37,9 @@ const nextConfig = {
   // VERCEL_DEPLOYMENT_ID; Fly passes DEPLOYMENT_ID as a Docker build arg and
   // bakes the same value into the runtime ENV (see Dockerfile). Undefined
   // locally, which disables it.
-  deploymentId:
-    process.env.VERCEL_DEPLOYMENT_ID || process.env.DEPLOYMENT_ID || undefined,
+  deploymentId: IS_EXPORT
+    ? undefined
+    : process.env.VERCEL_DEPLOYMENT_ID || process.env.DEPLOYMENT_ID || undefined,
 
   // 15-minute client router cache. Every card here is `prefetch={true}`, so the
   // 5-minute default makes a long reading session re-fetch the same prefetched
@@ -71,6 +76,9 @@ const nextConfig = {
   // in array order and a later rule overwrites an earlier one (verified: with
   // the specific rule first, /static/opt/* was served with the 7-day generic
   // header). Put the generic rule first and the more specific rule last.
+  ...(IS_EXPORT
+    ? {}
+    : {
   async headers() {
     return [
       {
@@ -105,6 +113,7 @@ const nextConfig = {
 
   // www -> apex. Canonical URLs are all https://prologue.dev/...; doing this at
   // the origin keeps it working in DNS-only mode and behind Cloudflare alike.
+  // On the Cloudflare static target this moves to a zone Single Redirect rule.
   async redirects() {
     return [
       {
@@ -116,6 +125,7 @@ const nextConfig = {
       },
     ];
   },
+      }),
 
   // Content images are served straight from the CDN and are only ever named in
   // markdown/JS data — nothing reads them from the function filesystem any more
@@ -132,22 +142,11 @@ const nextConfig = {
     ],
   },
 
-  // The OG route reads the author avatar from disk at runtime to inline it in
-  // the card. Next's tracer follows imports and static `fs` paths, not a path
-  // built from `process.cwd()`, so without this the file is absent from the
-  // deployed function and every card would fall back to the initial letter.
+  // The static export target reads no project file at request time; the OG
+  // cards, feeds, llms files and the search index are all generated at build.
+  // The remaining trace entry keeps data/projects.yaml available for the
+  // Docker/standalone build of the published template.
   outputFileTracingIncludes: {
-    // The OG card reads its subset fonts, glyph table and pre-scaled avatar from
-    // assets/og/ with a runtime-computed path, so the tracer cannot follow it.
-    '/og': ['./assets/og/**', './public/static/favicons/avatar.png'],
-    // /api/search reads the generated corpus from disk on first request. It is
-    // built by scripts/build-search-index.mjs, which the tracer cannot see
-    // through, so the file must be included explicitly or the deployed function
-    // answers 503 index-unavailable.
-    '/api/search': ['./public/search-index.json'],
-    // The /about portfolio reads data/projects.yaml inside a 'use cache' scope.
-    // If that cache revalidates in a deployment, the file has to be present in
-    // the server trace; a catch-all key keeps the one small file available.
     '/*': ['./data/projects.yaml'],
   },
 };

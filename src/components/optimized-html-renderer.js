@@ -1,10 +1,10 @@
-import Image from "next/image";
+import ResponsiveImage from "./responsive-image";
 import { MermaidBlock } from "./mermaid-block";
 import { decodeHtmlEntities } from "../lib/html-entities";
 import { IMAGE_SOURCES } from "../../data/image-sources.js";
 
 /**
- * Split post HTML into React nodes: Next/Image for <img>, MermaidBlock for
+ * Split post HTML into React nodes: ResponsiveImage for <img>, MermaidBlock for
  * <pre class="mermaid">, and dangerouslySetInnerHTML for everything else.
  *
  * The width/height come from the attributes rehype-figure writes (it reads the
@@ -50,7 +50,7 @@ export function OptimizedHTMLRenderer({ htmlContent }) {
 
         if (src) {
           parts.push(
-            <Image
+            <ResponsiveImage
               key={`img-${keyIndex++}`}
               src={src}
               alt={attr("alt")}
@@ -62,12 +62,12 @@ export function OptimizedHTMLRenderer({ htmlContent }) {
               fetchPriority={eager ? "high" : undefined}
               className={`drop-shadow-xs rounded-sm ${attr("class")}`.trim()}
               style={{ height: "auto", width: "100%" }}
-              // next.config uses the build-time custom loader, so this is a
-              // pre-generated WebP srcset. Keep the authored file in a data
-              // attribute for the lightbox's original/download action. SVG and
-              // animated GIF cannot be resized/transcoded by sharp here.
-              data-original-src={src}
-              data-source-src={IMAGE_SOURCES[src] || undefined}
+              // AVIF-first picture generated from the build-time variant
+              // manifest. Keep the authored file in a data attribute for the
+              // lightbox's original/download action. SVG and animated GIF
+              // cannot be resized/transcoded by sharp here.
+              dataOriginalSrc={src}
+              dataSourceSrc={IMAGE_SOURCES[src] || undefined}
               unoptimized={/\.svg$/i.test(src) || /\.gif$/i.test(src)}
             />
           );

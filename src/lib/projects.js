@@ -2,14 +2,12 @@ import siteMetadata from "../../data/sitemetadata";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { parse } from "yaml";
-import { cacheLife } from "next/cache";
 
 /**
  * Open-source portfolio for /about.
  *
  * data/projects.yaml is the hand-written list (repo, display name, blurb); the
  * GitHub API supplies the live stars/forks. The whole read is a 'use cache'
- * scope with cacheLife("build"): the about page is prerendered, and fetching
  * GitHub per request would make it dynamic for numbers that move a few times a
  * week. A failed or rate-limited API call degrades to the YAML's stars/forks
  * (0 when absent) instead of failing the build — the portfolio is decoration,
@@ -23,8 +21,6 @@ const API = "https://api.github.com/repos/";
 const TIMEOUT_MS = 4000;
 
 export async function getProjects() {
-  "use cache";
-  cacheLife("build");
 
   const raw = await readFile(
     path.join(process.cwd(), "data", "projects.yaml"),

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Image from "next/image";
+import ResponsiveImage from "./responsive-image";
 import Comments from "./comments";
 import TenYearsLink from "./ten-years-link";
 import siteMetadata from "../../data/sitemetadata";
@@ -37,15 +37,17 @@ export default function FriendLinks({ friends }) {
             <span className="mx-auto mb-4 inline-block">
               {/* ring-gradient */}
               {/* SVG/ICO avatars used to 400 through /_next/image when
-                  dangerouslyAllowSVG is off (the site never enables it), so
-                  they are served as-is instead of through the optimizer. */}
-              <Image
+                  dangerouslyAllowSVG was off, so they have no variants and are
+                  served as-is. ResponsiveImage falls back to the original URL
+                  whenever the manifest has no entry. */}
+              <ResponsiveImage
                 src={friend.avatar}
                 height={80}
                 width={80}
                 alt=""
-                unoptimized={/\.svg$/i.test(friend.avatar)}
+                unoptimized={/\.(svg|ico)$/i.test(friend.avatar)}
                 className="h-20 w-20 rounded-full object-cover"
+                dataOriginalSrc={friend.avatar}
               />
             </span>
             <h2 className="card-title text-lg font-semibold text-foreground transition-colors duration-(--duration-fast)">

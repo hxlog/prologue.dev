@@ -1,9 +1,16 @@
-import { cacheLife } from "next/cache";
 import { getPages, getPosts } from "../lib/content";
 import { getMicroblog } from "../lib/microblog";
 import siteMetadata from "../../data/sitemetadata";
 import { getSortedTags } from "../lib/tag-counts";
 import { absoluteUrl } from "../lib/seo";
+import {
+  ogImagePathWithVersion,
+  ogKeyForPost,
+  ogKeyForTag,
+} from "../lib/og/keys.js";
+
+// Static export requires metadata routes to opt into static generation.
+export const dynamic = "force-static";
 
 /**
  * Sitemap.
@@ -26,8 +33,6 @@ import { absoluteUrl } from "../lib/seo";
  * read once per build, matching how every page consuming it is prerendered.
  */
 export default async function sitemap() {
-  "use cache";
-  cacheLife("build");
 
   const posts = getPosts().filter((post) => post.draft === false);
 
@@ -36,11 +41,22 @@ export default async function sitemap() {
     return !newest || date > newest ? date : newest;
   }, null);
 
-  const blogEntries = posts.map((post) => ({
-    url: `${siteMetadata.siteUrl}${post.slug}`,
-    lastModified: post.lastmod ?? post.publishDate,
-    ...(post.image ? { images: [absoluteUrl(post.image)] } : {}),
-  }));
+  // Image sitemap: every post points at its cover, or at its build-time
+  // pre-rendered OG card when it has no cover (scripts/build-og-images.mjs).
+  const blogEntries = posts.map((post) => {
+    const cover = String(post.image || "").trim();
+    return {
+      url: `${siteMetadata.siteUrl}${post.slug}`,
+      lastModified: post.lastmod ?? post.publishDate,
+      images: [
+        cover
+          ? absoluteUrl(cover)
+          : `${siteMetadata.siteUrl}${ogImagePathWithVersion(
+              ogKeyForPost(post.slugAsParams)
+            )}`,
+      ],
+    };
+  });
 
   const staticRoutes = ["", "/blog"].map((route) => ({
     url: `${siteMetadata.siteUrl}${route}`,
@@ -74,6 +90,9 @@ export default async function sitemap() {
     return {
       url: `${siteMetadata.siteUrl}/tags/${tag}`,
       ...(newestForTag ? { lastModified: newestForTag } : {}),
+      images: [
+        `${siteMetadata.siteUrl}${ogImagePathWithVersion(ogKeyForTag(tag))}`,
+      ],
     };
   });
 

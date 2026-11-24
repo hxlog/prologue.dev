@@ -31,8 +31,6 @@ export async function generateMetadata() {
      at build time. It is a ratchet against a later change quietly turning the
      route request-rendered — the failure mode is a build error, not a slow
      page nobody measures. */
-export const instant = true;
-export const ensureStatic = "shell";
 
 export default async function LinksPage() {
   const filePath = path.join(process.cwd(), "data", "links.yaml");

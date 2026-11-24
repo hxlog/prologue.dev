@@ -13,3 +13,6 @@ export async function GET() {
     },
   });
 }
+
+// Static export: this handler reads no request data.
+export const dynamic = "force-static";

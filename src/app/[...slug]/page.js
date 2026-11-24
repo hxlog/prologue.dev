@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import dynamic from "next/dynamic";
-import Image from "next/image";
+import ResponsiveImage from "../../components/responsive-image";
 import { getPages } from "../../lib/content";
 import { getCachedPage } from "../../lib/content/cached";
 import { OptimizedHTMLRenderer } from "../../components/optimized-html-renderer";
@@ -61,8 +61,6 @@ export function generateStaticParams() {
      at build time. It is a ratchet against a later change quietly turning the
      route request-rendered — the failure mode is a build error, not a slow
      page nobody measures. */
-export const instant = true;
-export const ensureStatic = "shell";
 
 export default function PagePage({ params }) {
   return (
@@ -128,12 +126,13 @@ async function PageBody({ params }) {
           article's prose rules off it. */}
       {page.avatar ? (
         <div className="not-prose flex justify-center pb-4 pt-2">
-          <Image
+          <ResponsiveImage
             src={page.avatar}
             alt="Avatar"
             width={100}
             height={100}
             className="rounded-full ring-2 ring-border transition-transform duration-(--duration-base) ease-out-expo hover:scale-105"
+            dataOriginalSrc={page.avatar}
           />
         </div>
       ) : null}

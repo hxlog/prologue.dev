@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Build the local assets /og needs at request time.
+ * Build the local assets the build-time OG card renderer needs
+ * (src/lib/og/render.js, driven by scripts/build-og-images.mjs).
  *
  * The Open Graph route used to fetch a Google Fonts `text=` subset per card
  * (three weights = three CSS hits + three TTF hits) and to resize the 871 KB
@@ -19,7 +20,8 @@
  *       ~380 KB — smaller than the 871 KB source avatar they replace.
  *   glyphs.json
  *       The codepoints the three fonts actually contain (intersection of their
- *       cmap tables). /og checks the drawn text against this at request time:
+ *       cmap tables). The card renderer checks the drawn text against this at
+ *       build time:
  *       if a title carries a character the subset does not have, the route
  *       falls back to the old per-card Google subset instead of drawing tofu.
  *   avatar-152.png
@@ -52,8 +54,8 @@ import { formatDate, readingTimeLabel } from "../src/lib/date.js";
 import { getPages, getPosts } from "../src/lib/content/standalone.js";
 
 // Weights the card draws with: 400 meta row, 600 title/author/+N, 700 the
-// initial-letter avatar. Keep in sync with `loadLocalFonts` in
-// src/app/og/route.js.
+// initial-letter avatar. Keep in sync with the WEIGHTS list in
+// src/lib/og/render.js.
 const WEIGHTS = [400, 600, 700];
 
 // Which Google Fonts endpoint returns a TTF: the CSS2 API picks the format from
@@ -90,6 +92,15 @@ for (const post of POSTS) {
 }
 for (const page of PAGES) add(page.title);
 
+// Fixed app pages (microblog/links/ui) draw their page-level title/heading on
+// the card; those strings live in data/sitemetadata.js, not in the content tree,
+// so enumerate them explicitly. Without this the static card generator has to
+// fall back to a per-card Google Fonts fetch for those three cards.
+for (const page of Object.values(siteMetadata.pages || {})) {
+  add(page.title);
+  add(page.heading);
+}
+
 // The card's fixed strings.
 add(siteMetadata.publishName);
 add(siteMetadata.title);
@@ -97,7 +108,7 @@ add(siteMetadata.siteName);
 add(siteMetadata.author);
 add(domain(siteMetadata.siteUrl));
 
-// Dates and reading times are generated at request time from those building
+// Dates and reading times are generated from those building blocks; enumerate
 // blocks; enumerate the alphabet they can emit rather than one instance.
 add("0123456789年月日");
 for (let minutes = 1; minutes <= 999; minutes += 1) {
@@ -105,7 +116,8 @@ for (let minutes = 1; minutes <= 999; minutes += 1) {
 }
 add("+0123456789");
 
-// A card URL is public (`/og?title=…`), so any printable ASCII can arrive even
+// Cards are generated from content/metadata titles, but a title can contain any
+// printable ASCII (latin tags, punctuation), so any printable ASCII can appear even
 // though the site's own content is CJK. Latin glyphs are a few hundred bytes
 // each in the subset, and the coverage check in /og keeps anything rarer on the
 // old remote path.

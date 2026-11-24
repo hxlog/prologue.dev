@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import Image from "next/image";
+import ResponsiveImage from "../../../components/responsive-image";
 import { getPosts } from "../../../lib/content";
 import { getCachedPost, getCachedPosts } from "../../../lib/content/cached";
 import siteMetadata from "../../../../data/sitemetadata";
@@ -116,8 +116,6 @@ export function generateStaticParams() {
      at build time. It is a ratchet against a later change quietly turning the
      route request-rendered — the failure mode is a build error, not a slow
      page nobody measures. */
-export const instant = true;
-export const ensureStatic = "shell";
 
 export default function PostPage({ params }) {
   return (
@@ -186,20 +184,20 @@ async function PostView({ params }) {
               {hasHero ? (
                 (() => {
                   // The cover is a content-hashed /static/ asset already sized and
-                  // cached like the body images; send it straight from the edge
-                  // of a runtime /_next/image encode (the custom loader emits
-                  // build-time WebP variants; the cover is above the fold and the
-                  // authored original stays available for download).
+                  // cached like the body images; ResponsiveImage serves an
+                  // AVIF-first <picture> from the build-time variants, and the
+                  // authored original stays available for download. The hero is
+                  // above the fold, so it is preloaded and high priority.
                   const heroSize = IMAGE_SIZES[post.image.trim()] || {};
                   return (
-                    <Image
+                    <ResponsiveImage
                       src={post.image.trim()}
                       width={heroSize.w || 1920}
                       height={heroSize.h || 1080}
                       alt={"封面 " + post.title}
                       preload
                       fetchPriority="high"
-                      data-original-src={post.image.trim()}
+                      dataOriginalSrc={post.image.trim()}
                       sizes="(min-width: 1280px) 896px, (min-width: 768px) 85vw, 100vw"
                       className="my-6 h-auto w-full rounded-card object-cover shadow-card"
                     />

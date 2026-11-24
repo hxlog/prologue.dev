@@ -21,7 +21,7 @@ const siteMetadata = {
   copyright: "CC BY-NC-SA 4.0",
   copyrightUrl: "https://creativecommons.org/licenses/by-nc-sa/4.0/",
   // Rendered by the footer; the template overrides it with its own host.
-  hosting: { label: "Fly.io", href: "https://fly.io/" },
+  hosting: { label: "Cloudflare", href: "https://www.cloudflare.com/" },
   feedEmail: "hello@prologue.dev",
   feedGenerator: "prologue.dev feed pipeline",
   blogLabel: "博客",

@@ -4,7 +4,8 @@
  *
  * The index is intentionally NOT shipped to the browser any more: it now holds
  * the full plain-text body of every post and page (~700 KB), so it is read on
- * the server by /api/search only. The dialog fetches results, not the index.
+ * the browser only: the search dialog lazily loads the index and runs Fuse
+ * client-side, so nothing on this path is request-time.
  *
  * Fields:
  *   type        "post" | "page"
@@ -117,8 +118,6 @@ const routeManifest = {
     "/atomfeed",
     "/jsonfeed",
     "/microblog/rss",
-    "/og",
-    "/api/search",
     "/_not-found",
     "/llms.txt",
     "/llms-full.txt",

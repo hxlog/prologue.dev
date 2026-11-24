@@ -1,5 +1,6 @@
 import siteMetadata from "../../data/sitemetadata";
 import { absolutize, ogImageUrl } from "./feed/urls";
+import { ogKeyForPost } from "./og/keys.js";
 import { absoluteUrl, SITE_NAME, SITE_URL } from "./seo";
 
 /**
@@ -67,11 +68,10 @@ export function siteGraph() {
 function postImage(post) {
   const custom = String(post.image || "").trim();
   if (custom) return absoluteUrl(custom);
-  return ogImageUrl({
-    title: post.title,
-    date: post.publishDate,
-    tags: post.tags || [],
-  });
+  // Build-time pre-rendered card (scripts/build-og-images.mjs). The explicit key
+  // is needed here because JSON-LD has no page path to derive it from; the old
+  // query-string card route no longer exists under output: "export".
+  return ogImageUrl({ key: ogKeyForPost(post.slugAsParams) });
 }
 
 /** BlogPosting + the post's breadcrumb, injected by the post route. */

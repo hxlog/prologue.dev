@@ -1,0 +1,19 @@
+{
+  // Cloudflare Workers Static Assets deploy target for the full-static build.
+  // This is an assets-only Worker: no `main`, no script, no `assets.binding`.
+  // `yarn export` writes ./out; scripts/build-cf-assets.mjs adds _headers,
+  // _redirects and the flattened RSC payloads. Generated file - keep in sync
+  // with the build script, not edited by hand at deploy time.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "prologue-blog",
+  "compatibility_date": "2026-11-24",
+  // Keep the workers.dev hostname available for pre-cutover verification.
+  // Set to false (or add `routes` with a custom domain) once prologue.dev
+  // is attached; worker routes/custom domains are added by the lead at cutover.
+  "workers_dev": true,
+  "assets": {
+    "directory": "./out",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page"
+  }
+}

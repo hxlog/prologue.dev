@@ -1,5 +1,11 @@
-import siteMetadata from "../../data/sitemetadata";
-import { absolutize, ogImageUrl } from "./feed/urls";
+import siteMetadata from "../../data/sitemetadata.js";
+import { absolutize, ogImageUrlForKey } from "./feed/urls.js";
+import {
+  OG_DEFAULT_KEY,
+  OG_IMAGE_HEIGHT,
+  OG_IMAGE_WIDTH,
+  ogKeyForPath,
+} from "./og/keys.js";
 
 /**
  * The single metadata factory for the site.
@@ -61,14 +67,43 @@ export function siteImage(title = "") {
   };
 }
 
-/** The generated 1200x630 card, used when a page has no bespoke image. */
+/**
+ * Which descriptors were built by defaultOgImage(). A WeakMap (not a property on
+ * the object) keeps metadata serialisable: Next validates image descriptors, and
+ * a card descriptor that leaks to a metadata export unrewritten (e.g. a direct
+ * `siteImage()` fallback) must still be a plain { url, width, height, alt }.
+ */
+const OG_CARD_IMAGES = new WeakMap();
+
+/**
+ * The generated 1200x630 card, used when a page has no bespoke image.
+ *
+ * The returned descriptor is marked so buildMetadata() can replace its URL with
+ * the card key derived from the route path (one pre-rendered PNG per page). When
+ * used outside buildMetadata() the url is the site-wide default card.
+ */
 export function defaultOgImage(title = siteMetadata.title, params = {}) {
-  return {
-    url: ogImageUrl({ title, ...params }),
-    width: 1200,
-    height: 630,
+  const descriptor = {
+    url: ogImageUrlForKey(params.key || OG_DEFAULT_KEY),
+    width: OG_IMAGE_WIDTH,
+    height: OG_IMAGE_HEIGHT,
     alt: `${title} · ${SITE_NAME}`,
   };
+  OG_CARD_IMAGES.set(descriptor, { title, key: params.key || null });
+  return descriptor;
+}
+
+/**
+ * Resolve a card descriptor to the pre-rendered PNG for this route.
+ *
+ * The page path is the locator: /blog/<slug> -> post-<slug>, /tags/<slug> ->
+ * tag-<slug>, /about -> page-about, / -> default. Explicit custom images pass
+ * through untouched.
+ */
+function resolveOgCard(image, path) {
+  const marked = OG_CARD_IMAGES.get(image);
+  if (!marked) return image;
+  return { ...image, url: ogImageUrlForKey(marked.key || ogKeyForPath(path)) };
 }
 
 /**
@@ -99,11 +134,9 @@ export function buildMetadata({
   feedTypes = FEED_TYPES,
 } = {}) {
   const url = absoluteUrl(path);
-  const images = Array.isArray(image)
-    ? image
-    : image
-      ? [image]
-      : [defaultOgImage(title)];
+  const images = (
+    Array.isArray(image) ? image : image ? [image] : [defaultOgImage(title)]
+  ).map((descriptor) => resolveOgCard(descriptor, path));
   const fullTitle = absoluteTitle ? title : `${title} - ${SITE_NAME}`;
 
   return {

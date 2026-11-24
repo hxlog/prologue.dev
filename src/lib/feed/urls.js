@@ -1,13 +1,13 @@
-import siteMetadata from "../../../data/sitemetadata";
-import { readingTimeLabel } from "../date";
+import siteMetadata from "../../../data/sitemetadata.js";
+import {
+  OG_DEFAULT_KEY,
+  ogImagePathWithVersion,
+  ogKeyForPath,
+  ogKeyForPost,
+  isValidOgKey,
+} from "../og/keys.js";
 
 const SITE = String(siteMetadata.siteUrl || "").replace(/\/+$/, "");
-
-// Bump when the card's visual language changes. The /og response sends
-// `s-maxage=31536000, immutable`, so a card URL that stays the same keeps
-// serving the old artwork from social-platform and browser caches for up to a
-// year; the version parameter is what makes the redesign reach those caches.
-const OG_VERSION = "4";
 
 /** Absolute site origin without a trailing slash. */
 export function siteUrl() {
@@ -35,43 +35,48 @@ export function postUrl(slug) {
 }
 
 /**
- * Dynamic OG image URL.
+ * Absolute URL of a pre-rendered OG card.
  *
- * Accepts either a bare title (legacy call shape — a feed-style title) or
- * `{ title, date, tags, read }`, which is what a post passes and what the OG
- * card renders. Every value is encoded individually: a title with `&`, `#` or
- * `+` (all common in Chinese titles) would otherwise truncate or corrupt the
- * query string, and an unencoded `/` in a tag would split the path.
+ * Cards are build-time PNGs under `public/og/<key>.png` (see
+ * scripts/build-og-images.mjs and ./og/keys.js). The `?v=` query is ignored by
+ * static hosts for file resolution; it only busts social-network/browser caches
+ * when OG_IMAGE_VERSION changes (the old route used `?v=` the same way).
  */
-export function ogImageUrl(input) {
-  const params =
-    typeof input === "string" || input == null
-      ? { title: input || "" }
-      : input;
-
-  const search = new URLSearchParams();
-  if (params.title) search.set("title", String(params.title));
-  if (params.date) search.set("date", String(params.date));
-  if (params.read) search.set("read", String(params.read));
-  search.set("v", OG_VERSION);
-  if (Array.isArray(params.tags) && params.tags.length) {
-    search.set("tags", params.tags.join(","));
-  }
-
-  const query = search.toString();
-  return query ? `${SITE}/og?${query}` : `${SITE}/og`;
+export function ogImageUrlForKey(key) {
+  const safeKey = isValidOgKey(key) ? key : OG_DEFAULT_KEY;
+  return `${SITE}${ogImagePathWithVersion(safeKey)}`;
 }
 
-/** Resolve a post cover image, falling back to the OG image generator. */
+/**
+ * Resolve a card key from the shapes callers already have:
+ *
+ *   { key }          explicit (preferred)
+ *   { path }         public page path, e.g. "/blog/a-post", "/tags/AI"
+ *   { slugAsParams } post slug
+ *   bare title / no locator -> the site-wide default card
+ *
+ * The title-only legacy shape (`/og?title=…`) has no stable key: a title is
+ * content, so it is not a URL. Callers with a post/page should pass a locator;
+ * see src/lib/seo.js (buildMetadata derives the key from `path`).
+ */
+export function ogImageKeyFor(input) {
+  if (!input) return OG_DEFAULT_KEY;
+  if (typeof input === "string") return OG_DEFAULT_KEY;
+  if (input.key) return isValidOgKey(input.key) ? input.key : OG_DEFAULT_KEY;
+  if (input.path) return ogKeyForPath(input.path);
+  if (input.slugAsParams) return ogKeyForPost(input.slugAsParams);
+  return OG_DEFAULT_KEY;
+}
+
+/** Absolute OG image URL from any of the locator shapes above. */
+export function ogImageUrl(input) {
+  return ogImageUrlForKey(ogImageKeyFor(input));
+}
+
+/** Resolve a post cover image, falling back to its pre-rendered OG card. */
 export function coverImageUrl(post) {
   const image = String(post.image || "").trim();
-  if (!image) {
-    return ogImageUrl({
-      title: post.title,
-      date: post.publishDate,
-      tags: post.tags,
-      read: readingTimeLabel(post.readingTime),
-    });
-  }
-  return absolutize(image);
+  if (image) return absolutize(image);
+  if (post.slugAsParams) return ogImageUrlForKey(ogKeyForPost(post.slugAsParams));
+  return ogImageUrl({ title: post.title });
 }

@@ -18,8 +18,6 @@ import { buildMetadata, siteImage } from "../lib/seo";
      at build time. It is a ratchet against a later change quietly turning the
      route request-rendered — the failure mode is a build error, not a slow
      page nobody measures. */
-export const instant = true;
-export const ensureStatic = "shell";
 
 export default function Home() {
   // getPosts() re-reads when the content files change; copy before sorting,

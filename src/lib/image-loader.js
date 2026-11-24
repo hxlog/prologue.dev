@@ -1,22 +1,28 @@
 import { IMAGE_VARIANTS } from "../../data/image-variants.js";
 
 /**
- * next/image custom loader for build-time WebP variants.
+ * next/image custom loader for build-time variants.
  *
- * scripts/build-image-variants.mjs writes public/static/variants/<hash>-<width>.webp
- * and data/image-variants.js. The filename hash is the source content hash, so a
- * changed image gets a new immutable URL. Anything not in the manifest (SVG,
- * animated GIF, tiny favicons that cannot be resized) falls back to its original
- * static URL; the browser still gets valid bytes, and next/image keeps the
- * width/height layout.
+ * The static site no longer renders next/image: <ResponsiveImage> emits an
+ * AVIF-first <picture> from the same manifest (data/image-variants.js). This
+ * loader is kept as a compatibility shim for any next/image call site that is
+ * reintroduced later; it serves the WebP family, because a single <img src>
+ * cannot negotiate AVIF vs WebP.
+ *
+ * Anything not in the manifest (SVG, animated GIF, tiny favicons) falls back to
+ * its original static URL.
  */
 export default function contentImageLoader({ src, width }) {
-  const clean = src.split("?")[0].split("#")[0];
-  const entry = IMAGE_VARIANTS[clean];
-  if (!entry || !entry.h || !Array.isArray(entry.widths) || entry.widths.length === 0) {
-    return src;
-  }
-  const sizes = entry.widths;
-  const target = sizes.find((candidate) => candidate >= width) || sizes[sizes.length - 1];
-  return "/static/variants/" + entry.h + "-" + target + ".webp";
+	const clean = src.split("?")[0].split("#")[0];
+	const entry = IMAGE_VARIANTS[clean];
+	if (!entry) return src;
+	const widths = Array.isArray(entry.widths) ? entry.widths : [];
+	if (!widths.length) return src;
+	const target = widths.find((candidate) => candidate >= width) || widths[widths.length - 1];
+	const webp = entry.webp && entry.webp[String(target)];
+	if (webp) return webp;
+	// Pre-manifest-extension shape (hash + widths only).
+	const hash = entry.hash || entry.h;
+	if (hash) return "/static/variants/" + hash + "-" + target + ".webp";
+	return src;
 }
