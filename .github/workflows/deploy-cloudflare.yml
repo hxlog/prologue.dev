@@ -56,3 +56,16 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npx --yes wrangler deploy --config wrangler.jsonc
+
+      # Static-export assets are content-hashed, but HTML and RSC payloads must
+      # never mix versions across a deploy for a client that already has the old
+      # HTML. Workers Assets is versioned; this purge also clears anything else
+      # Cloudflare cached for the zone, so a cold visitor always gets one build.
+      - name: Purge edge cache
+        env:
+          CLOUDFLARE_PURGE_TOKEN: ${{ secrets.CLOUDFLARE_PURGE_TOKEN }}
+        run: |
+          curl -sS -X POST "https://api.cloudflare.com/client/v4/zones/0bf0102de76cab34ef6089be6d6dc95a/purge_cache" \
+            -H "Authorization: Bearer $CLOUDFLARE_PURGE_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data '{"purge_everything":true}'
