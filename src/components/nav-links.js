@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import headerNavLinks from "../../data/headerNavLinks";
-import LinkPending from "./link-pending";
 
 /**
  * Desktop nav links. Client component only because the active-state highlight
@@ -30,7 +29,6 @@ export default function NavLinks() {
             className="nav-item select-none"
           >
             {link.title}
-            <LinkPending />
           </Link>
         );
       })}

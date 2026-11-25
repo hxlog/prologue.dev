@@ -5,7 +5,7 @@
   // RSC payload paths before wrangler uploads the directory.
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "prologue-blog",
-  "compatibility_date": "2026-11-24",
+  "compatibility_date": "2026-11-25",
   // No workers.dev hostname in production: both public hostnames are Custom
   // Domains. The preview hostname (cf.prologue.dev) was removed at cutover.
   "workers_dev": false,

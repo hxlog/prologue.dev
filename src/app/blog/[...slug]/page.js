@@ -11,7 +11,6 @@ import TableofContent from "../../../components/toc";
 import AboutMe from "../../../components/aboutme";
 import TagChips from "../../../components/tag-chips";
 import RelatedPosts from "../../../components/related-posts";
-import LinkPending from "../../../components/link-pending";
 import ReadingProgress from "../../../components/reading-progress";
 import { OptimizedHTMLRenderer } from "../../../components/optimized-html-renderer";
 import RouteTransition from "../../../components/route-transition";
@@ -256,7 +255,6 @@ async function PostView({ params }) {
                   </p>
                   <p className="mt-1 text-sm text-muted transition-colors duration-(--duration-fast) group-hover:text-accent">
                     {adjacentPosts.previousPostTitle}
-                    <LinkPending />
                   </p>
                 </Link>
               ) : (
@@ -272,7 +270,6 @@ async function PostView({ params }) {
                   </p>
                   <p className="mt-1 text-sm text-muted transition-colors duration-(--duration-fast) group-hover:text-accent">
                     {adjacentPosts.nextPostTitle}
-                    <LinkPending />
                   </p>
                 </Link>
               ) : null}

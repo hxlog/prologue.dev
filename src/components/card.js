@@ -1,7 +1,6 @@
 import Link from "next/link";
 import TagChips from "./tag-chips";
 import { formatDate } from "../lib/date";
-import LinkPending from "./link-pending";
 
 /**
  * The one post card used everywhere: home, archive, tag pages and related
@@ -45,7 +44,6 @@ export default function Card({
           className="after:absolute after:inset-0 after:content-['']"
         >
           {title}
-          <LinkPending />
         </Link>
       </h3>
 

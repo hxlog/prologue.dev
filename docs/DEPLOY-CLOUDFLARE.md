@@ -17,8 +17,8 @@ Worker. The template ships its own `wrangler.jsonc` + `yarn export` /
 ## Static correctness (important)
 
 - Every page awaits its build-time data directly: **no server Suspense fallbacks, no `loading.js`**. The exported HTML contains the full article/body, which is verified with JavaScript disabled in `e2e/static-html.spec.js`; this is both the crawler contract and the fix for the "layout renders but the article stays loading" failure mode.
-- **Do not use `prefetch={true}`** on links in this static export. A completed full prefetch can leave a client router-cache entry that makes clicks do nothing; Next's default prefetch strategy is used instead, and short waits show a fixed-size `useLinkStatus` hint.
-- `scripts/build-version.mjs` writes `public/version.json` on every build. `VersionGuard` re-fetches it on focus/visibility/pageshow and hard-reloads an open tab when a newer build is deployed. This bounds Cloudflare's documented HTML/asset [version skew](https://developers.cloudflare.com/workers/versions-and-deployments/version-skew/) for long-lived tabs; `staleTimes.static` is 60s for the same reason.
+- **Do not use `prefetch={true}`** on links in this static export. A completed full prefetch can leave a client router-cache entry that makes clicks do nothing; Next's default prefetch strategy is used instead; no navigation loading dot/skeleton is shown (the visible UI is unchanged).
+- `scripts/build-version.mjs` writes `public/version.json` on every build. `VersionGuard` checks it on idle load, focus/visibility/pageshow/online and every 5 minutes while visible, hard-reloading an open tab when a newer build is deployed. This bounds Cloudflare's documented HTML/asset [version skew](https://developers.cloudflare.com/workers/versions-and-deployments/version-skew/) for long-lived tabs; `staleTimes.static` is 60s for the same reason.
 
 ## Why static export
 

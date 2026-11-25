@@ -2423,37 +2423,3 @@ html.dark .shiki span {
     animation: none;
   }
 }
-
-
-/* Navigation pending hint (useLinkStatus). Always rendered at a fixed size so
-   toggling it can never shift the title/nav row; only opacity/scale animate. */
-.link-pending {
-  display: inline-block;
-  width: 0.42em;
-  height: 0.42em;
-  margin-inline-start: 0.3em;
-  border-radius: 999px;
-  background: currentColor;
-  opacity: 0;
-  transform: scale(0.55);
-  vertical-align: 0.08em;
-  transition:
-    opacity var(--duration-fast, 140ms) var(--ease-out-expo, ease-out),
-    transform var(--duration-fast, 140ms) var(--ease-out-expo, ease-out);
-}
-
-.link-pending[data-pending="true"] {
-  opacity: 0.65;
-  transform: scale(1);
-  animation: link-pending-pulse 900ms ease-in-out infinite;
-}
-
-@keyframes link-pending-pulse {
-  50% { opacity: 0.25; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .link-pending[data-pending="true"] {
-    animation: none;
-  }
-}

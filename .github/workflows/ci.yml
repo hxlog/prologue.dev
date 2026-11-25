@@ -116,6 +116,9 @@ jobs:
       - name: Verify export output
         run: node scripts/verify-export.mjs
 
+      - name: Performance budget (initial JS/CSS/HTML)
+        run: yarn budget:export
+
   e2e:
     runs-on: ubuntu-latest
     steps:

@@ -14,7 +14,7 @@ const TEMPLATE_WRANGLER =
     {
       $schema: "node_modules/wrangler/config-schema.json",
       name: "prologue-blog",
-      compatibility_date: "2026-11-24",
+      compatibility_date: "2026-11-25",
       workers_dev: true,
       assets: {
         directory: "./out",
@@ -191,6 +191,10 @@ async function applyStarterTemplate(worktreeRoot) {
   copyFile(
     path.join(ROOT, "scripts", "build-version.mjs"),
     path.join(worktreeRoot, "scripts", "build-version.mjs")
+  );
+  copyFile(
+    path.join(ROOT, "scripts", "check-export-budget.mjs"),
+    path.join(worktreeRoot, "scripts", "check-export-budget.mjs")
   );
   // Cloudflare path: yarn export runs next-export with NEXT_EXPORT=1 and then
   // build-cf-assets writes out/_headers, out/_redirects and the RSC payload
