@@ -253,7 +253,6 @@ async function PostView({ params }) {
               {adjacentPosts.previousPostSlug ? (
                 <Link
                   href={`/blog/${adjacentPosts.previousPostSlug}`}
-                  prefetch={true}
                   className="group max-w-sm"
                 >
                   <p className="text-xs uppercase tracking-wide text-faint">
@@ -269,7 +268,6 @@ async function PostView({ params }) {
               {adjacentPosts.nextPostSlug ? (
                 <Link
                   href={`/blog/${adjacentPosts.nextPostSlug}`}
-                  prefetch={true}
                   className="group max-w-sm sm:text-right"
                 >
                   <p className="text-xs uppercase tracking-wide text-faint">

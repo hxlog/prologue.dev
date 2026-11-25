@@ -13,9 +13,10 @@ import { formatDate } from "../lib/date";
  *   muted excerpt    → line-clamped
  *   tag chips        → real links, sit above the stretched link (z-10)
  *
- * `prefetch` is on: a card is an explicit "read this next" signal, and every
- * post is static, so the per-link prefetch resolves params from the static
- * cache instead of the runtime.
+ * Prefetch uses Next's default strategy. Do NOT set prefetch={true} on a card:
+ * in the static export, a completed full prefetch can leave a route-cache
+ * entry that the client router then fails to navigate from (click is
+ * preventDefault-ed and nothing happens), reproducing the dead-card bug.
  */
 export default function Card({
   slug,
@@ -40,7 +41,6 @@ export default function Card({
       <h3 className="card-title mt-2.5 text-lg font-semibold leading-7 tracking-tight text-foreground transition-colors duration-(--duration-fast)">
         <Link
           href={slug}
-          prefetch={true}
           className="after:absolute after:inset-0 after:content-['']"
         >
           {title}
