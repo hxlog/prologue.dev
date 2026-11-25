@@ -55,3 +55,4 @@ commit-msg.tmp
 
 # cutover-only generated config
 /wrangler.cutover.jsonc
+/public/version.json

@@ -14,6 +14,12 @@ The button clones the template repository and deploys it as an assets-only
 Worker. The template ships its own `wrangler.jsonc` + `yarn export` /
 `yarn deploy:cf` scripts; this repository uses the same pipeline.
 
+## Static correctness (important)
+
+- Every page awaits its build-time data directly: **no server Suspense fallbacks, no `loading.js`**. The exported HTML contains the full article/body, which is verified with JavaScript disabled in `e2e/static-html.spec.js`; this is both the crawler contract and the fix for the "layout renders but the article stays loading" failure mode.
+- **Do not use `prefetch={true}`** on links in this static export. A completed full prefetch can leave a client router-cache entry that makes clicks do nothing; Next's default prefetch strategy is used instead, and short waits show a fixed-size `useLinkStatus` hint.
+- `scripts/build-version.mjs` writes `public/version.json` on every build. `VersionGuard` re-fetches it on focus/visibility/pageshow and hard-reloads an open tab when a newer build is deployed. This bounds Cloudflare's documented HTML/asset [version skew](https://developers.cloudflare.com/workers/versions-and-deployments/version-skew/) for long-lived tabs; `staleTimes.static` is 60s for the same reason.
+
 ## Why static export
 
 - Next 16 rejects Cache Components / PPR together with `output: "export"`
@@ -61,6 +67,9 @@ Zone-level settings that matter:
   Fly-era cache rules and the post-deploy purge step when the Fly origin is
   decommissioned.
 - **Rocket Loader: off** (it breaks Next hydration).
+- **Speed Brain / Speculation Rules: off.** They duplicate Next's own prefetch and, on a Worker custom domain, made `/cdn-cgi/speculation` return the SPA's HTML instead of the rules JSON.
+- **Cloudflare Workers Builds: disabled** (its trigger was configured as `yarn run build` + `wrangler deploy`, but that build never produces `out/`). GitHub Actions is the single CI/CD path: tests → `yarn export` → verify → deploy → edge purge.
+- **Security headers** are generated into `out/_headers`: nosniff, Referrer-Policy, Permissions-Policy, X-Frame-Options and a `frame-ancestors 'self'` CSP, inherited by every asset.
 - Keep: Always Use HTTPS, HSTS, TLS 1.3, Brotli, HTTP/3, 0-RTT, Early Hints.
 - **HTML charset**: Workers Static Assets serves `text/html` without a charset, so a zone Response Header Transform Rule sets `text/html; charset=utf-8` for extensionless HTML paths (`not path contains "."`, not `/static//og/`, and not the four extensionless feed paths). It is scoped to the preview host first and extended to apex/www at cutover.
 - **Managed robots / AI crawler controls stay ON**: the zone prepends its

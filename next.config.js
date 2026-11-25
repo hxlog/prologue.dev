@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-// Static export target (Cloudflare Workers Static Assets). The published
+// Static-export target (Cloudflare Workers Static Assets). The published
 // template and local development keep their normal Next behaviour; only the
 // Cloudflare export build sets NEXT_EXPORT=1.
 const IS_EXPORT = process.env.NEXT_EXPORT === "1";
@@ -9,68 +9,49 @@ const nextConfig = {
 
   output: IS_EXPORT ? "export" : undefined,
 
-  // Cache Components: `use cache` scopes, a prerendered static shell per route,
-  // and Partial Prefetching (App Shell prefetched by default, per-link data on
-  // `<Link prefetch={true}>`). See src/app/globals.css and the components that
-  // read the route for the Suspense boundaries this requires.
-  // Cache Components (PPR) is removed from this codebase: the site is built as
-  // a static export, where PPR cannot be enabled (Next 16 invariant). The
-  // published template inherits the same plain-static Next setup.
-
-  // Everything here changes only when a build runs, so caches live from one
-  // deploy to the next. Cloudflare is purged by the deploy workflow; the Next
-  // data cache uses the same build lifetime instead of the default 30-day
-  // `max` profile.
+  // A full static export renders every route once at build time. Some routes
+  // are large (Shiki-highlighted posts), so give the build a generous budget.
   ...(IS_EXPORT ? { staticPageGenerationTimeout: 180 } : {}),
 
-  // 15-minute client router cache. Every card here is `prefetch={true}`, so the
-  // 5-minute default makes a long reading session re-fetch the same prefetched
-  // RSC payloads from the server every five minutes. Content only changes on
-  // deploy, and `deploymentId` scopes the router cache to one build, so a longer
-  // window cannot mix two builds.
-  //
-  // The instant-navigation testing API is enabled only for the e2e build; a
-  // normal `yarn build` omits that key entirely instead of serialising it false.
+  // Client router cache. Content is immutable per deployment, but a tab that
+  // stays open across a deploy can otherwise navigate with RSC payloads that
+  // reference the previous build's chunks. 60s keeps prefetch useful inside a
+  // reading session while bounding that cross-deploy window; the version guard
+  // (src/components/version-guard.js) hard-reloads a stale tab on refocus.
+  // Dynamic routes are not prefetched here (they have no loading.js), so their
+  // scrollback/cache behaviour stays at the default.
   experimental: {
-    staleTimes: { static: 900 },
+    staleTimes: { static: 60 },
     ...(process.env.EXPOSE_TESTING_API === "1"
       ? { exposeTestingApiInProductionBuild: true }
       : {}),
   },
 
-  images: {
-    // Build-time WebP variants: scripts/build-image-variants.mjs writes the
-    // files and data/image-variants.js, and this loader maps next/image widths
-    // to those immutable static URLs. No sharp work happens at request time.
-    loader: "custom",
-    loaderFile: "./src/lib/image-loader.js",
-    deviceSizes: [480, 720, 1080, 1440, 1920, 2048],
-    // Tiny chrome images fall back to their original static URL when a width
-    // has no generated variant.
-    imageSizes: [16, 32, 48, 64, 96, 128, 256],
-  },
+  // The static export serves images from build-time AVIF/WebP variants via
+  // <ResponsiveImage>, not next/image, so the custom image loader and its
+  // config are gone. next/image with the default loader is not supported by
+  // output: "export" anyway.
 
   // Content images are served straight from the CDN and are only ever named in
-  // markdown/JS data — nothing reads them from the function filesystem any more
-  // (the markdown pipeline and the feeds resolve through data/image-sizes.js).
-  // Keeping them out of the traces removes ~27 MB from every serverless bundle;
-  // favicons/ and avatars/ stay traced because /og and the site metadata read them.
+  // markdown/JS data — nothing reads them from the function filesystem. Keeping
+  // them out of the traces removes ~27 MB from a normal Next build (template /
+  // Vercel path).
   outputFileTracingExcludes: {
-    '/*': [
-      './public/static/images/**',
-      './public/static/photos/**',
-      './public/static/opt/**',
-      './public/static/variants/**',
-      './public/static/source/**',
+    "/*": [
+      "./public/static/images/**",
+      "./public/static/photos/**",
+      "./public/static/opt/**",
+      "./public/static/variants/**",
+      "./public/static/source/**",
     ],
   },
 
-  // The static export target reads no project file at request time; the OG
-  // cards, feeds, llms files and the search index are all generated at build.
-  // The remaining trace entry keeps data/projects.yaml available for the
-  // normal Next build of the published template.
+  // The static export reads no project file at request time; the OG cards,
+  // feeds, llms files and the search index are all generated at build. The
+  // remaining trace entry keeps data/projects.yaml available for the normal
+  // Next build of the published template.
   outputFileTracingIncludes: {
-    '/*': ['./data/projects.yaml'],
+    "/*": ["./data/projects.yaml"],
   },
 };
 

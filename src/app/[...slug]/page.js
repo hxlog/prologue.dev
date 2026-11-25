@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import dynamic from "next/dynamic";
 import ResponsiveImage from "../../components/responsive-image";
 import { getPages } from "../../lib/content";
@@ -10,7 +9,6 @@ import TableofContent from "../../components/toc";
 import ScrollTopAndComment from "../../components/scroll";
 import PageTransition from "../../components/page-transition";
 import RouteTransition from "../../components/route-transition";
-import { PageSkeleton } from "../../components/skeletons";
 import Portfolio from "../../components/portfolio";
 import { absoluteUrl, buildMetadata, defaultOgImage } from "../../lib/seo";
 import JsonLd from "../../components/json-ld";
@@ -49,9 +47,9 @@ export function generateStaticParams() {
 }
 
 /**
- * The page shell is URL-independent, so it prerenders; the params read lives in
- * a <Suspense> child. Anything that awaited `params` up here would leave the
- * route with no static shell and fail the build (blocking-prerender-dynamic).
+ * Markdown pages are a static export: every route is rendered once at build,
+ * so the data is awaited directly and the real content is in the HTML (no
+ * server streaming, no Suspense fallback that only JS could replace).
  */
 /* Cache Components gates (Next 16.4).
    - instant = true: assert that a navigation into this route paints UI
@@ -68,17 +66,13 @@ export default function PagePage({ params }) {
       <RouteTransition>
         <div className="relative gap-10 xl:grid xl:grid-cols-[minmax(0,1fr)_16rem]">
           <PageTransition className="min-w-0">
-            <Suspense fallback={<PageSkeleton />}>
-              <PageBody params={params} />
-            </Suspense>
+            <PageBody params={params} />
           </PageTransition>
           <aside className="hidden xl:block">
             <div className="sticky-below-nav toc-panel pt-12">
               <h2 className="section-label">目录</h2>
               <div className="mt-3">
-                <Suspense fallback={<div className="h-24" aria-hidden="true" />}>
-                  <PageToc params={params} />
-                </Suspense>
+                <PageToc params={params} />
               </div>
             </div>
           </aside>
@@ -141,9 +135,7 @@ async function PageBody({ params }) {
           template ships this page without the flag. */}
       {page.portfolio ? <Portfolio /> : null}
       <hr />
-      <Suspense fallback={<div className="h-32" aria-hidden="true" />}>
-        <Comments />
-      </Suspense>
+      <Comments />
       </article>
     </>
   );

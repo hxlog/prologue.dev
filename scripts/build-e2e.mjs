@@ -18,4 +18,5 @@ function run(args) {
 
 run(["scripts/build-search-index.mjs"]);
 run(["scripts/build-image-variants.mjs"]);
+run(["scripts/build-version.mjs"]);
 run(["node_modules/next/dist/bin/next", "build", "--turbopack"]);

@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import ResponsiveImage from "../../../components/responsive-image";
@@ -12,10 +11,10 @@ import TableofContent from "../../../components/toc";
 import AboutMe from "../../../components/aboutme";
 import TagChips from "../../../components/tag-chips";
 import RelatedPosts from "../../../components/related-posts";
+import LinkPending from "../../../components/link-pending";
 import ReadingProgress from "../../../components/reading-progress";
 import { OptimizedHTMLRenderer } from "../../../components/optimized-html-renderer";
 import RouteTransition from "../../../components/route-transition";
-import { ArticleSkeleton } from "../../../components/skeletons";
 import { formatDate, readingTimeLabel } from "../../../lib/date";
 import { absoluteUrl, buildMetadata, defaultOgImage } from "../../../lib/seo";
 import JsonLd from "../../../components/json-ld";
@@ -118,11 +117,10 @@ export function generateStaticParams() {
      page nobody measures. */
 
 export default function PostPage({ params }) {
-  return (
-    <Suspense fallback={<ArticleSkeleton />}>
-      <PostView params={params} />
-    </Suspense>
-  );
+  // Fully static export: await the build-time data directly. A Suspense
+  // fallback here can never stream from a server, it only hides the real
+  // HTML inside a <template> until client JS swaps it in.
+  return <PostView params={params} />;
 }
 
 async function PostView({ params }) {
@@ -234,9 +232,7 @@ async function PostView({ params }) {
               </Link>
             </div>
 
-            <Suspense fallback={<div className="h-32" aria-hidden />}>
-              <Comments />
-            </Suspense>
+            <Comments />
 
             <div className="not-prose">
               <RelatedPosts
@@ -260,6 +256,7 @@ async function PostView({ params }) {
                   </p>
                   <p className="mt-1 text-sm text-muted transition-colors duration-(--duration-fast) group-hover:text-accent">
                     {adjacentPosts.previousPostTitle}
+                    <LinkPending />
                   </p>
                 </Link>
               ) : (
@@ -275,6 +272,7 @@ async function PostView({ params }) {
                   </p>
                   <p className="mt-1 text-sm text-muted transition-colors duration-(--duration-fast) group-hover:text-accent">
                     {adjacentPosts.nextPostTitle}
+                    <LinkPending />
                   </p>
                 </Link>
               ) : null}

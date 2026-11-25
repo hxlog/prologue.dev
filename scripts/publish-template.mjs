@@ -188,6 +188,10 @@ async function applyStarterTemplate(worktreeRoot) {
     path.join(ROOT, "scripts", "build-og-images.mjs"),
     path.join(worktreeRoot, "scripts", "build-og-images.mjs")
   );
+  copyFile(
+    path.join(ROOT, "scripts", "build-version.mjs"),
+    path.join(worktreeRoot, "scripts", "build-version.mjs")
+  );
   // Cloudflare path: yarn export runs next-export with NEXT_EXPORT=1 and then
   // build-cf-assets writes out/_headers, out/_redirects and the RSC payload
   // copies; wrangler deploy uploads ./out as an assets-only Worker.

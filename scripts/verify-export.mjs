@@ -30,6 +30,7 @@ ok(existsSync(join(OUT, "sitemap.xml")), "out/sitemap.xml missing");
 ok(existsSync(join(OUT, "robots.txt")), "out/robots.txt missing");
 ok(existsSync(join(OUT, "search-index.json")), "out/search-index.json missing");
 ok(existsSync(join(OUT, "search-index-lite.json")), "out/search-index-lite.json missing");
+ok(existsSync(join(OUT, "version.json")), "out/version.json missing");
 
 const files = walk(OUT);
 ok(files.length < 20000, "out/ has " + files.length + " files (>20,000 static-asset limit)");

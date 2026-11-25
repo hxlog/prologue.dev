@@ -1,11 +1,9 @@
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { compareDesc } from "date-fns";
 import PostsLayout from "../../blog/bloglistlayout";
 import { getTagCounts, getSortedTags } from "../../../lib/tag-counts";
 import { getCachedPosts } from "../../../lib/content/cached";
 import { tagLabel } from "../../../../data/tagLabels";
-import { ArchiveSkeleton } from "../../../components/skeletons";
 import JsonLd from "../../../components/json-ld";
 import {
   breadcrumbJsonLd,
@@ -51,11 +49,7 @@ function slugOf(params) {
      page nobody measures. */
 
 export default function Tag({ params }) {
-  return (
-    <Suspense fallback={<ArchiveSkeleton />}>
-      <TagArchive params={params} />
-    </Suspense>
-  );
+  return <TagArchive params={params} />;
 }
 
 async function TagArchive({ params }) {
