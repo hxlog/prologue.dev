@@ -32,6 +32,17 @@ ok(existsSync(join(OUT, "search-index.json")), "out/search-index.json missing");
 ok(existsSync(join(OUT, "search-index-lite.json")), "out/search-index-lite.json missing");
 ok(existsSync(join(OUT, "version.json")), "out/version.json missing");
 
+const headerRules = readFileSync(join(OUT, "_headers"), "utf8");
+for (const needle of [
+  "Referrer-Policy",
+  "Permissions-Policy",
+  "X-Frame-Options",
+  "Content-Security-Policy",
+  "/version.json",
+]) {
+  ok(headerRules.includes(needle), "out/_headers missing " + needle);
+}
+
 const files = walk(OUT);
 ok(files.length < 20000, "out/ has " + files.length + " files (>20,000 static-asset limit)");
 const biggest = files.reduce((m, f) => Math.max(m, statSync(f).size), 0);
