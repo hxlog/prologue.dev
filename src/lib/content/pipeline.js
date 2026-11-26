@@ -32,6 +32,7 @@ import { visit } from "unist-util-visit";
 
 import rehypeFigure from "../../components/rehype-figure.js";
 import rehypeMermaidPre from "../../components/rehype-mermaid-pre.js";
+import rehypeTableWrap from "../../components/rehype-table-wrap.js";
 
 const YOUTUBE_ID = /^[\w-]{11}$/;
 const YOUTUBE_ALLOW =
@@ -121,6 +122,10 @@ async function getProcessor() {
         .use(rehypeSlug) // no options: it has no slugger hook, and needs none
         .use(rehypeFigure)
         .use(rehypeMermaidPre)
+        // Tables are wrapped after the markdown is HTML: the wrapper is what
+        // keeps a wide table from scrolling the whole page on a phone. It is
+        // part of the exported HTML, so the no-JS page gets it too.
+        .use(rehypeTableWrap)
         .use(rehypeShiki, {
           themes: {
             light: "material-theme-lighter",

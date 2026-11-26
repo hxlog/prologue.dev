@@ -1714,6 +1714,19 @@ figcaption {
   scrollbar-width: thin;
 }
 
+/* Inline formulas can be wider than a 320px reading column too. Without an
+   overflow container the <math> box escapes the article and grows the page's
+   horizontal scroll width (measured 344px at a 320px viewport on
+   /blog/first_job_first_exit_stop_the_bleeding). Scrolling stays on the inline
+   MathML box, so formulas that fit keep their exact baseline layout. */
+.prose .katex math:not([display="block"]) {
+  display: inline-block;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  vertical-align: baseline;
+}
+
 /* Shiki dual theme — colors come from CSS vars (defaultColor: false) */
 .shiki,
 .shiki span {
@@ -2423,3 +2436,150 @@ html.dark .shiki span {
     animation: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Client-navigation skeleton (src/components/navigation-skeleton.js)
+ *
+ * The overlay is only in the DOM while the App Router is swapping pages, and
+ * only after the ~140 ms delay has passed. It is fixed-position so covering and
+ * uncovering the page can never shift layout; the sticky navbar stays visible
+ * above it (the box starts at --nav-height) and modals stay above it.
+ * ------------------------------------------------------------------------- */
+.nav-skeleton {
+  position: fixed;
+  top: var(--nav-height);
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 45; /* above page content and floating actions, below modals (50) */
+  overflow: hidden;
+  background-color: var(--background);
+  pointer-events: none;
+  animation: nav-skeleton-in 140ms var(--ease-out-expo) both;
+}
+.nav-skeleton-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding-top: clamp(1.5rem, 5vh, 3rem);
+}
+.nav-skeleton-line,
+.nav-skeleton-card {
+  border-radius: var(--radius-control);
+  background-color: var(--surface-2);
+  background-image: linear-gradient(
+    90deg,
+    var(--surface-2),
+    var(--surface-3),
+    var(--surface-2)
+  );
+  background-size: 220% 100%;
+  animation: nav-skeleton-shimmer 1.6s linear infinite;
+}
+.nav-skeleton-line {
+  height: 0.7rem;
+}
+.nav-skeleton-line--eyebrow {
+  width: 5.5rem;
+  height: 0.55rem;
+  margin-bottom: 0.35rem;
+}
+.nav-skeleton-line--title {
+  width: min(72%, 30rem);
+  height: 1.45rem;
+  border-radius: var(--radius-card);
+}
+.nav-skeleton-line--short {
+  width: min(46%, 18rem);
+  margin-bottom: 0.6rem;
+}
+.nav-skeleton-line--body {
+  width: 92%;
+}
+.nav-skeleton-line--narrow {
+  width: 64%;
+}
+.nav-skeleton-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.1rem;
+}
+.nav-skeleton-card {
+  height: 8.5rem;
+  border-radius: var(--radius-card);
+}
+@keyframes nav-skeleton-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes nav-skeleton-shimmer {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: -220% 0;
+  }
+}
+@media (max-width: 767px) {
+  .nav-skeleton-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .nav-skeleton-card:nth-child(n + 2) {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-skeleton,
+  .nav-skeleton-line,
+  .nav-skeleton-card {
+    animation: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Horizontally scrollable tables (src/components/rehype-table-wrap.js)
+ *
+ * GFM tables get `width: 100%; table-layout: auto` from the typography plugin,
+ * so a five-column table with long CJK cells has a min-content width far wider
+ * than a 320px viewport. Nothing between the table and <html> scrolled, so the
+ * whole page grew a horizontal scrollbar. The build-time rehype plugin wraps
+ * every table in this div: the overflow stays on the wrapper and the page keeps
+ * document.scrollWidth === innerWidth at every phone width. The wrapper is
+ * focusable so keyboard users can scroll it, hence the visible focus ring.
+ * ------------------------------------------------------------------------- */
+.prose .table-scroll {
+  max-width: 100%;
+  /* The table's own 2em block margins move to the wrapper: an overflow box is a
+     BFC, so a margin inside it can no longer collapse with the neighbouring
+     paragraphs and would double the gap above and below every table. On the
+     wrapper they collapse exactly as the table's did before. */
+  margin-block: 2rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  overscroll-behavior-x: contain;
+}
+.prose .table-scroll > table {
+  margin-block: 0;
+}
+.prose .table-scroll:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-control);
+}
+
+/* An empty Mermaid placeholder has zero height, which some
+   IntersectionObserver implementations never report as intersecting. One pixel
+   keeps the lazy-render trigger reliable without reserving visible space; the
+   rule stops matching as soon as the SVG (or the error fallback text) is
+   written in. */
+.mermaid:empty {
+  min-height: 1px;
+}
+

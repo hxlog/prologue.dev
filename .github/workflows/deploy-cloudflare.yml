@@ -61,11 +61,16 @@ jobs:
       # never mix versions across a deploy for a client that already has the old
       # HTML. Workers Assets is versioned; this purge also clears anything else
       # Cloudflare cached for the zone, so a cold visitor always gets one build.
+      # out/_headers now sends s-maxage=31536000 for HTML and RSC payloads, so
+      # the purge is the only thing that makes a new deployment visible at the
+      # edge: fail the job on an API error instead of leaving a year-old cache.
       - name: Purge edge cache
         env:
           CLOUDFLARE_PURGE_TOKEN: ${{ secrets.CLOUDFLARE_PURGE_TOKEN }}
         run: |
-          curl -sS -X POST "https://api.cloudflare.com/client/v4/zones/0bf0102de76cab34ef6089be6d6dc95a/purge_cache" \
+          response="$(curl -sS --fail-with-body -X POST "https://api.cloudflare.com/client/v4/zones/0bf0102de76cab34ef6089be6d6dc95a/purge_cache" \
             -H "Authorization: Bearer $CLOUDFLARE_PURGE_TOKEN" \
             -H "Content-Type: application/json" \
-            --data '{"purge_everything":true}'
+            --data '{"purge_everything":true}')"
+          echo "$response"
+          echo "$response" | grep -Eq '"success"[[:space:]]*:[[:space:]]*true'

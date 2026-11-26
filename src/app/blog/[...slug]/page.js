@@ -184,7 +184,7 @@ async function PostView({ params }) {
                   // cached like the body images; ResponsiveImage serves an
                   // AVIF-first <picture> from the build-time variants, and the
                   // authored original stays available for download. The hero is
-                  // above the fold, so it is preloaded and high priority.
+                  // above the fold, so it is eager, preloaded and high priority.
                   const heroSize = IMAGE_SIZES[post.image.trim()] || {};
                   return (
                     <ResponsiveImage
@@ -192,6 +192,7 @@ async function PostView({ params }) {
                       width={heroSize.w || 1920}
                       height={heroSize.h || 1080}
                       alt={"封面 " + post.title}
+                      loading="eager"
                       preload
                       fetchPriority="high"
                       dataOriginalSrc={post.image.trim()}

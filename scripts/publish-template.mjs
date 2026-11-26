@@ -207,6 +207,10 @@ async function applyStarterTemplate(worktreeRoot) {
     path.join(ROOT, "scripts", "build-cf-assets.mjs"),
     path.join(worktreeRoot, "scripts", "build-cf-assets.mjs")
   );
+  copyFile(
+    path.join(ROOT, "scripts", "build-service-worker.mjs"),
+    path.join(worktreeRoot, "scripts", "build-service-worker.mjs")
+  );
   rmSync(path.join(worktreeRoot, ".github", "workflows", "publish-starter.yml"), { force: true });
   rmSync(path.join(worktreeRoot, ".github", "workflows", "publish-template.yml"), { force: true });
 

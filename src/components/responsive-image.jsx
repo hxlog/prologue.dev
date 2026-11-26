@@ -1,4 +1,3 @@
-import { preload as reactPreload } from "react-dom";
 import { IMAGE_VARIANTS } from "../../data/image-variants.js";
 
 /**
@@ -67,27 +66,33 @@ export default function ResponsiveImage({
 	const avifSet = entry ? srcSetFor(entry, "avif") : "";
 	const webpSet = entry ? srcSetFor(entry, "webp") : "";
 
-	// A post hero is the LCP candidate. next/image's preload prop used to emit
-	// <link rel="preload" imagesrcset=...>; React 19's preload() keeps that
-	// behaviour without needing next/image. Guarded because a plain
-	// renderToStaticMarkup test cannot service the request-time hoist.
-	if (preload) {
-		try {
-			if (avifSet) {
-				reactPreload(clean || src, {
-					as: "image",
-					type: "image/avif",
-					imageSrcSet: avifSet,
-					imageSizes: sizes,
-					fetchPriority: fetchPriority || "high",
-				});
-			} else {
-				reactPreload(clean || src, { as: "image", fetchPriority: fetchPriority || "high" });
-			}
-		} catch {
-			// preload is an optimisation only; never fail a render for it.
-		}
-	}
+	// A post hero is the LCP candidate: next/image's preload prop used to emit
+	// <link rel="preload" imagesrcset=...>. React 19 hoists a rendered
+	// <link rel="preload"> into <head> keyed on rel + href, so the link is
+	// rendered explicitly here. react-dom's preload() omits href whenever
+	// imageSrcSet is passed (React 19 imageSrcSet mode), which left production
+	// HTML with a preload link that had no href to resolve the hero against.
+	const preloadHref = clean || src;
+	const preloadLink = preload ? (
+		avifSet ? (
+			<link
+				rel="preload"
+				as="image"
+				type="image/avif"
+				href={preloadHref}
+				imageSrcSet={avifSet}
+				imageSizes={sizes}
+				fetchPriority={fetchPriority || "high"}
+			/>
+		) : (
+			<link
+				rel="preload"
+				as="image"
+				href={preloadHref}
+				fetchPriority={fetchPriority || "high"}
+			/>
+		)
+	) : null;
 
 	// The lightbox controller (lightbox-controller.js) picks the viewer's first
 	// frame from the LARGEST candidate in the img's own srcset, and falls back to
@@ -115,26 +120,29 @@ export default function ResponsiveImage({
 		: style;
 
 	return (
-		<picture style={pictureStyle}>
-			{avifSet ? <source type="image/avif" srcSet={avifSet} sizes={sizes} /> : null}
-			{webpSet ? <source type="image/webp" srcSet={webpSet} sizes={sizes} /> : null}
-			<img
-				src={src}
-				alt={alt}
-				title={title || undefined}
-				width={fill ? undefined : width}
-				height={fill ? undefined : height}
-				srcSet={imgFallbackSrcSet}
-				sizes={imgFallbackSrcSet ? sizes : undefined}
-				loading={loading}
-				fetchPriority={fetchPriority}
-				decoding={decoding}
-				className={className}
-				style={imgStyle}
-				data-original-src={dataOriginalSrc || undefined}
-				data-source-src={dataSourceSrc || undefined}
-				{...rest}
-			/>
-		</picture>
+		<>
+			{preloadLink}
+			<picture style={pictureStyle}>
+				{avifSet ? <source type="image/avif" srcSet={avifSet} sizes={sizes} /> : null}
+				{webpSet ? <source type="image/webp" srcSet={webpSet} sizes={sizes} /> : null}
+				<img
+					src={src}
+					alt={alt}
+					title={title || undefined}
+					width={fill ? undefined : width}
+					height={fill ? undefined : height}
+					srcSet={imgFallbackSrcSet}
+					sizes={imgFallbackSrcSet ? sizes : undefined}
+					loading={loading}
+					fetchPriority={fetchPriority}
+					decoding={decoding}
+					className={className}
+					style={imgStyle}
+					data-original-src={dataOriginalSrc || undefined}
+					data-source-src={dataSourceSrc || undefined}
+					{...rest}
+				/>
+			</picture>
+		</>
 	);
 }

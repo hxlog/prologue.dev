@@ -47,6 +47,12 @@ export function OptimizedHTMLRenderer({ htmlContent }) {
         const width = Number.parseInt(attr("width"), 10);
         const height = Number.parseInt(attr("height"), 10);
         const eager = /\bloading=["']eager["']/i.test(attributes);
+        // rehype-figure owns the priority policy: the first body image is
+        // eager, and only a non-heavy one also gets fetchpriority="high" (a
+        // 4.7 MB first image as the high-priority candidate was a multi-second
+        // LCP). Pass the decision through instead of forcing "high" onto
+        // every eager image.
+        const fetchPriorityAttr = attr("fetchpriority");
 
         if (src) {
           parts.push(
@@ -59,7 +65,7 @@ export function OptimizedHTMLRenderer({ htmlContent }) {
               title={attr("title")}
               sizes="(min-width: 1280px) 720px, (min-width: 768px) 85vw, 100vw"
               loading={eager ? "eager" : "lazy"}
-              fetchPriority={eager ? "high" : undefined}
+              fetchPriority={fetchPriorityAttr || undefined}
               className={`drop-shadow-xs rounded-sm ${attr("class")}`.trim()}
               style={{ height: "auto", width: "100%" }}
               // AVIF-first picture generated from the build-time variant

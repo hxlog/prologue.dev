@@ -5,9 +5,9 @@
  * Runs after `next build` with `output: "export"` (NEXT_EXPORT=1) and turns the
  * plain `out/` tree into a deployable Workers Assets directory:
  *
- *   1. writes `out/_headers`   — MIME types for extensionless files (feeds),
- *      cache lifetimes (immutable hashed assets, 7d originals, revalidating
- *      HTML/JSON), and text/plain for Next RSC payloads;
+ *   1. writes `out/_headers`   — baseline security headers, the browser/edge
+ *      cache policy, MIME types for extensionless files (feeds), and an Early
+ *      Hints / preload `Link` header for the build's shared stylesheet;
  *   2. writes `out/_redirects` — currently empty: www -> apex is a Cloudflare
  *      zone Single Redirect rule, because `_redirects` cannot match on host;
  *   3. flattens Next's segmented RSC payload files. Next's static-export client
@@ -16,6 +16,24 @@
  *      `/<route>/__next.<seg>/<...>/__PAGE__.txt`. Each segmented payload file
  *      is copied to its dot-joined sibling so client-side prefetch/navigation
  *      resolves instead of 404ing. Idempotent: unchanged copies are skipped.
+ *
+ * Cache policy (single source: out/_headers):
+ *   - HTML is never reused by the browser without revalidation
+ *     (`public, max-age=0, must-revalidate`) but the edge keeps the deployed
+ *     build for a year (`s-maxage=31536000`); the deploy workflow purges the
+ *     zone cache after every upload, so a new build is visible immediately and
+ *     a client can never pair new HTML with old hashed chunks.
+ *   - RSC payloads (`*.txt`) get a 60 s browser TTL — enough to make repeated
+ *     client navigations cheap, short enough to bound HTML/RSC version skew —
+ *     with the same year-long edge TTL.
+ *   - Deployment-visible surfaces (feeds, sitemap, robots, search index,
+ *     version.json, service worker) stay must-revalidate in the browser; the
+ *     narrow `llms*.txt` rule overrides the RSC TTL back to must-revalidate.
+ *   - Content-hashed assets (`/_next/static/*`, `/static/opt|variants|source/*`,
+ *     `/og/*`) are immutable.
+ *   - Every narrower Cache-Control rule detaches the broader `/*` value first:
+ *     matching rules are joined with commas, and a duplicated `max-age` is a
+ *     conflicting directive (RFC 9111), which silently breaks caching.
  *
  * Usage:
  *   node scripts/build-cf-assets.mjs            # out/ next to package.json
@@ -39,96 +57,209 @@ function resolveOutDir() {
 }
 
 /**
+ * Stylesheet hrefs referenced by one exported HTML document, in document order.
+ * Only `<link rel="stylesheet">` tags count; Next emits exactly one shared CSS
+ * chunk for this app, but the extraction does not assume that.
+ */
+function stylesheetHrefs(html) {
+  const hrefs = [];
+  for (const match of html.matchAll(/<link\b[^>]*>/gi)) {
+    const tag = match[0];
+    if (!/\brel="stylesheet"/i.test(tag)) continue;
+    const href = /\bhref="([^"]+)"/i.exec(tag);
+    if (href) hrefs.push(href[1]);
+  }
+  return hrefs;
+}
+
+/**
+ * Find the stylesheet(s) linked by EVERY exported HTML page, starting from
+ * index.html. Only same-origin paths are eligible (they must exist inside the
+ * asset directory for Cloudflare to send them as a preload hint). If the pages
+ * disagree, the shared intersection is returned and the mismatch is reported;
+ * if there is no shared stylesheet, no Link header is emitted (the caller
+ * skips it) rather than preloading a file some pages do not use.
+ */
+async function extractSharedStylesheets(outDir, htmlFiles) {
+  let indexHrefs = null;
+  const perPage = new Map();
+  for (const rel of htmlFiles) {
+    const html = await fs.readFile(path.join(outDir, rel), "utf8");
+    const hrefs = stylesheetHrefs(html);
+    if (rel === "index.html") indexHrefs = hrefs;
+    perPage.set(rel, new Set(hrefs));
+  }
+  const localIndexHrefs = [...new Set(indexHrefs ?? [])].filter(
+    (href) => href.startsWith("/") && !href.startsWith("//"),
+  );
+  const linkedEverywhere = localIndexHrefs.filter((href) => {
+    for (const hrefs of perPage.values()) {
+      if (!hrefs.has(href)) return false;
+    }
+    return true;
+  });
+  // A preload hint must point at a file that actually shipped; a stylesheet
+  // referenced by the HTML but missing from out/ would 404 twice.
+  const shared = [];
+  const missingFile = [];
+  for (const href of linkedEverywhere) {
+    try {
+      const stat = await fs.stat(path.join(outDir, href.replace(/^\/+/, "")));
+      if (stat.isFile()) shared.push(href);
+      else missingFile.push(href);
+    } catch {
+      missingFile.push(href);
+    }
+  }
+  const missingOn = localIndexHrefs.filter((href) => !linkedEverywhere.includes(href));
+  return { shared, indexHrefs: localIndexHrefs, missingOn, missingFile, pageCount: perPage.size };
+}
+
+/** One `Link` header value listing every shared stylesheet as a style preload. */
+function linkHeaderValue(hrefs) {
+  return hrefs.map((href) => "<" + href + ">; rel=preload; as=style").join(", ");
+}
+
+/**
  * Cloudflare Workers Static Assets `_headers`.
  *
  * Ordering is load-bearing: identical headers from several matching rules are
  * joined with commas, and a duplicated Cache-Control is a conflicting
- * directive (RFC 9111). So the broad /static/* rule comes first and every
- * narrower rule detaches Cache-Control with "! Cache-Control" before setting
- * its own value (Cloudflare docs: detach only removes headers added by rules
- * above it).
+ * directive (RFC 9111). So the broad `/*` rule comes first and every narrower
+ * rule detaches Cache-Control with "! Cache-Control" before setting its own
+ * value (Cloudflare docs: detach only removes headers added by rules above it).
  */
-const HEADERS = [
-  "# Generated by scripts/build-cf-assets.mjs - do not edit by hand.",
-  "# Cloudflare Workers Static Assets _headers (max 100 rules, 2,000 chars/line).",
-  "# Rules are applied in file order; narrower Cache-Control rules detach the",
-  "# broader value with '! Cache-Control' before setting their own.",
-  "",
-  "# Baseline security headers inherited by every matching asset response.",
-  "/*",
-  "  X-Content-Type-Options: nosniff",
-  "  Referrer-Policy: strict-origin-when-cross-origin",
-  "  Permissions-Policy: camera=(), microphone=(), geolocation=()",
-  "  X-Frame-Options: SAMEORIGIN",
-  "  Content-Security-Policy: frame-ancestors 'self'",
-  "",
-  "# Next RSC payloads and other plain-text payloads (Next emits *.txt).",
-  "/*.txt",
-  "  Content-Type: text/plain; charset=utf-8",
-  "",
-  "# Next build output: content-hashed chunk names, safe to cache forever.",
-  "/_next/static/*",
-  "  Cache-Control: public, max-age=31536000, immutable",
-  "",
-  "# Remaining /static assets are NOT content-hashed: 7d + SWR. Broad rule first.",
-  "/static/*",
-  "  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000",
-  "",
-  "# Generated image derivatives (content-hashed file names): immutable.",
-  "/static/opt/*",
-  "  ! Cache-Control",
-  "  Cache-Control: public, max-age=31536000, immutable",
-  "/static/variants/*",
-  "  ! Cache-Control",
-  "  Cache-Control: public, max-age=31536000, immutable",
-  "/static/source/*",
-  "  ! Cache-Control",
-  "  Cache-Control: public, max-age=31536000, immutable",
-  "",
-  "# Extensionless feed files have no MIME type from their name.",
-  "/rss",
-  "  Content-Type: application/rss+xml; charset=utf-8",
-  "  Cache-Control: public, max-age=600, stale-while-revalidate=86400",
-  "/atomfeed",
-  "  Content-Type: application/atom+xml; charset=utf-8",
-  "  Cache-Control: public, max-age=600, stale-while-revalidate=86400",
-  "/jsonfeed",
-  "  Content-Type: application/feed+json; charset=utf-8",
-  "  Cache-Control: public, max-age=600, stale-while-revalidate=86400",
-  "/microblog/rss",
-  "  Content-Type: application/rss+xml; charset=utf-8",
-  "  Cache-Control: public, max-age=600, stale-while-revalidate=86400",
-  "",
-  "# Plain-text SEO surfaces: must be revalidated so deployments are visible.",
-  "/llms*.txt",
-  "  ! Content-Type",
-  "  Content-Type: text/plain; charset=utf-8",
-  "  Cache-Control: public, max-age=0, must-revalidate",
-  "/sitemap.xml",
-  "  Content-Type: application/xml; charset=utf-8",
-  "  Cache-Control: public, max-age=0, must-revalidate",
-  "/robots.txt",
-  "  ! Content-Type",
-  "  Content-Type: text/plain; charset=utf-8",
-  "  Cache-Control: public, max-age=0, must-revalidate",
-  "",
-  "# Search corpus: rebuilt on every deploy, must be revalidated.",
-  "/search-index.json",
-  "  Content-Type: application/json; charset=utf-8",
-  "  Cache-Control: public, max-age=0, must-revalidate",
-  "/search-index-lite.json",
-  "  Content-Type: application/json; charset=utf-8",
-  "  Cache-Control: public, max-age=0, must-revalidate",
-  "",
-  "# Build version used by the client version guard (reload stale tabs).",
-  "/version.json",
-  "  Content-Type: application/json; charset=utf-8",
-  "  Cache-Control: public, max-age=0, must-revalidate",
-  "",
-  "# OG cards: build-generated PNGs with content-addressed file names.",
-  "/og/*",
-  "  Cache-Control: public, max-age=31536000, immutable",
-].join("\n");
+function buildHeaders(sharedStylesheets) {
+  const noLinkNote =
+    sharedStylesheets.length === 0
+      ? [
+          "# No stylesheet is linked by every exported HTML page, so no Link preload",
+          "# hint is emitted (see extractSharedStylesheets in this script).",
+        ]
+      : [];
+  const lines = [
+    "# Generated by scripts/build-cf-assets.mjs - do not edit by hand.",
+    "# Cloudflare Workers Static Assets _headers (max 100 rules, 2,000 chars/line).",
+    "# Rules are applied in file order; narrower Cache-Control rules detach the",
+    "# broader value with '! Cache-Control' before setting their own.",
+    "",
+    "# Baseline security headers inherited by every matching asset response.",
+    "# Default cache policy: browsers revalidate (max-age=0) while the edge keeps",
+    "# this build for a year (s-maxage=31536000); the deploy workflow purges the",
+    "# zone cache after every upload, so a new build is visible immediately. The",
+    "# Link header preloads the build's shared stylesheet for Early Hints.",
+    ...noLinkNote,
+    "/*",
+    "  X-Content-Type-Options: nosniff",
+    "  Referrer-Policy: strict-origin-when-cross-origin",
+    "  Permissions-Policy: camera=(), microphone=(), geolocation=()",
+    "  X-Frame-Options: SAMEORIGIN",
+    "  Content-Security-Policy: frame-ancestors 'self'",
+    "  Cache-Control: public, max-age=0, s-maxage=31536000, must-revalidate",
+  ];
+  if (sharedStylesheets.length > 0) {
+    lines.push("  Link: " + linkHeaderValue(sharedStylesheets));
+  }
+  lines.push(
+    "",
+    "# Next RSC payloads and other plain-text payloads (Next emits *.txt). A 60 s",
+    "# browser TTL bounds HTML/RSC version skew; the edge keeps the build a year.",
+    "# No stale-while-revalidate: s-maxage already implies proxy-revalidate for the",
+    "# shared cache, and a browser SWR window would extend the skew past 60 s.",
+    "/*.txt",
+    "  Content-Type: text/plain; charset=utf-8",
+    "  ! Cache-Control",
+    "  Cache-Control: public, max-age=60, s-maxage=31536000",
+    "",
+    "# Next build output: content-hashed chunk names, safe to cache forever.",
+    "/_next/static/*",
+    "  ! Cache-Control",
+    "  Cache-Control: public, max-age=31536000, immutable",
+    "",
+    "# Remaining /static assets are NOT content-hashed: 7d + SWR. Broad rule first.",
+    "/static/*",
+    "  ! Cache-Control",
+    "  Cache-Control: public, max-age=604800, stale-while-revalidate=2592000",
+    "",
+    "# Generated image derivatives (content-hashed file names): immutable.",
+    "/static/opt/*",
+    "  ! Cache-Control",
+    "  Cache-Control: public, max-age=31536000, immutable",
+    "/static/variants/*",
+    "  ! Cache-Control",
+    "  Cache-Control: public, max-age=31536000, immutable",
+    "/static/source/*",
+    "  ! Cache-Control",
+    "  Cache-Control: public, max-age=31536000, immutable",
+    "",
+    "# Extensionless feed files have no MIME type from their name. Deployment-",
+    "# visible surfaces: the browser must revalidate, never serve a stale feed.",
+    "/rss",
+    "  Content-Type: application/rss+xml; charset=utf-8",
+    "  ! Cache-Control",
+    "  Cache-Control: public, max-age=0, must-revalidate",
+    "/atomfeed",
+    "  Content-Type: application/atom+xml; charset=utf-8",
+    "  ! Cache-Control",
+    "  Cache-Control: public, max-age=0, must-revalidate",
+    "/jsonfeed",
+    "  Content-Type: application/feed+json; charset=utf-8",
+    "  ! Cache-Control",
+    "  Cache-Control: public, max-age=0, must-revalidate",
+    "/microblog/rss",
+    "  Content-Type: application/rss+xml; charset=utf-8",
+    "  ! Cache-Control",
+    "  Cache-Control: public, max-age=0, must-revalidate",
+    "",
+    "# Plain-text SEO surfaces: must be revalidated so deployments are visible.",
+    "/llms*.txt",
+    "  ! Content-Type",
+    "  Content-Type: text/plain; charset=utf-8",
+    "  ! Cache-Control",
+    "  Cache-Control: public, max-age=0, must-revalidate",
+    "/sitemap.xml",
+    "  Content-Type: application/xml; charset=utf-8",
+    "  ! Cache-Control",
+    "  Cache-Control: public, max-age=0, must-revalidate",
+    "/robots.txt",
+    "  ! Content-Type",
+    "  Content-Type: text/plain; charset=utf-8",
+    "  ! Cache-Control",
+    "  Cache-Control: public, max-age=0, must-revalidate",
+    "",
+    "# Search corpus: rebuilt on every deploy, must be revalidated.",
+    "/search-index.json",
+    "  Content-Type: application/json; charset=utf-8",
+    "  ! Cache-Control",
+    "  Cache-Control: public, max-age=0, must-revalidate",
+    "/search-index-lite.json",
+    "  Content-Type: application/json; charset=utf-8",
+    "  ! Cache-Control",
+    "  Cache-Control: public, max-age=0, must-revalidate",
+    "",
+    "# Build version used by the client version guard (reload stale tabs).",
+    "/version.json",
+    "  Content-Type: application/json; charset=utf-8",
+    "  ! Cache-Control",
+    "  Cache-Control: public, max-age=0, must-revalidate",
+    "",
+    "# Service worker + its manifest (emitted by the SW build step when present):",
+    "# always revalidated so a new deployment's worker is picked up.",
+    "/sw.js",
+    "  ! Cache-Control",
+    "  Cache-Control: public, max-age=0, must-revalidate",
+    "/sw-manifest.json",
+    "  Content-Type: application/json; charset=utf-8",
+    "  ! Cache-Control",
+    "  Cache-Control: public, max-age=0, must-revalidate",
+    "",
+    "# OG cards: build-generated PNGs with content-addressed file names.",
+    "/og/*",
+    "  ! Cache-Control",
+    "  Cache-Control: public, max-age=31536000, immutable",
+  );
+  return lines.join("\n");
+}
 
 const REDIRECTS = [
   "# Generated by scripts/build-cf-assets.mjs - do not edit by hand.",
@@ -199,7 +330,30 @@ async function main() {
   }
 
   const files = await walkFiles(outDir);
-  const headersChanged = await writeIfChanged(path.join(outDir, "_headers"), HEADERS + "\n");
+  const htmlFiles = files.filter((rel) => rel.endsWith(".html"));
+  const shared = await extractSharedStylesheets(outDir, htmlFiles);
+  if (shared.shared.length === 0) {
+    console.warn(
+      "[build-cf-assets] no stylesheet is linked by every exported HTML page; " +
+        "skipping the Link preload header",
+    );
+  } else if (shared.missingOn.length > 0) {
+    console.warn(
+      "[build-cf-assets] index.html stylesheets not linked by every page, " +
+        "preloading only the shared ones: " +
+        shared.missingOn.join(", "),
+    );
+  }
+  if (shared.missingFile.length > 0) {
+    console.warn(
+      "[build-cf-assets] shared stylesheet(s) missing from the export, " +
+        "not preloading them: " +
+        shared.missingFile.join(", "),
+    );
+  }
+
+  const headers = buildHeaders(shared.shared);
+  const headersChanged = await writeIfChanged(path.join(outDir, "_headers"), headers + "\n");
   const redirectsChanged = await writeIfChanged(path.join(outDir, "_redirects"), REDIRECTS + "\n");
 
   let created = 0;
@@ -227,13 +381,16 @@ async function main() {
   }
 
   const finalFiles = await walkFiles(outDir);
-  const ruleCount = HEADERS.split("\n").filter(
-    (line) => line.length > 0 && !line.startsWith("#") && !line.startsWith(" "),
-  ).length;
+  const ruleCount = headers
+    .split("\n")
+    .filter((line) => line.length > 0 && !line.startsWith("#") && !line.startsWith(" ")).length;
   const summary = {
     outDir,
     files: finalFiles.length,
     headerRules: ruleCount,
+    preloadedStylesheets: shared.shared,
+    htmlPagesChecked: shared.pageCount,
+    stylesheetsMissingFromExport: shared.missingFile,
     headersChanged,
     redirectsChanged,
     payloadCopies: copies.length,

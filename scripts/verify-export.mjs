@@ -31,8 +31,190 @@ ok(existsSync(join(OUT, "robots.txt")), "out/robots.txt missing");
 ok(existsSync(join(OUT, "search-index.json")), "out/search-index.json missing");
 ok(existsSync(join(OUT, "search-index-lite.json")), "out/search-index-lite.json missing");
 ok(existsSync(join(OUT, "version.json")), "out/version.json missing");
+ok(existsSync(join(OUT, "sw.js")), "out/sw.js missing");
+ok(existsSync(join(OUT, "sw-manifest.json")), "out/sw-manifest.json missing");
+try {
+  const manifest = JSON.parse(readFileSync(join(OUT, "sw-manifest.json"), "utf8"));
+  ok(typeof manifest.version === "string" && manifest.version.length > 0, "sw-manifest version missing");
+  ok(Array.isArray(manifest.precache) && manifest.precache.length > 0, "sw-manifest precache empty");
+} catch (error) {
+  failures.push("sw-manifest.json is not valid JSON: " + error.message);
+}
 
-const headerRules = readFileSync(join(OUT, "_headers"), "utf8");
+// ---------------------------------------------------------------------------
+// out/_headers: security baseline, cache policy, Early Hints preload, budget
+// ---------------------------------------------------------------------------
+
+/** Parse the _headers file into [{ pattern, headers: [{name,value}], detach }]. */
+function parseHeaderRules(text) {
+  const rules = [];
+  let current = null;
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.replace(/\s+$/, "");
+    if (line.trim() === "" || line.trimStart().startsWith("#")) continue;
+    if (!/^[ \t]/.test(line)) {
+      current = { pattern: line.trim(), headers: [], detach: [] };
+      rules.push(current);
+      continue;
+    }
+    const entry = line.trim();
+    if (!current) continue;
+    if (entry.startsWith("!")) {
+      current.detach.push(entry.slice(1).trim());
+      continue;
+    }
+    const colon = entry.indexOf(":");
+    if (colon > 0) {
+      current.headers.push({
+        name: entry.slice(0, colon).trim(),
+        value: entry.slice(colon + 1).trim(),
+      });
+    }
+  }
+  return rules;
+}
+
+function ruleOf(rules, pattern) {
+  return rules.find((rule) => rule.pattern === pattern);
+}
+
+function headersOf(rule, name) {
+  if (!rule) return [];
+  const lower = name.toLowerCase();
+  return rule.headers.filter((header) => header.name.toLowerCase() === lower).map((header) => header.value);
+}
+
+/**
+ * Exact Cache-Control directives of one rule. Exact comparison matters: a
+ * substring check for max-age=60 would also pass max-age=600.
+ */
+function cacheDirectives(rule) {
+  return headersOf(rule, "cache-control")
+    .flatMap((value) => value.split(","))
+    .map((directive) => directive.trim())
+    .filter(Boolean);
+}
+
+function expectCacheControl(pattern, { includes = [], excludes = [] } = {}) {
+  const rule = ruleOf(rules, pattern);
+  if (!rule) {
+    failures.push("_headers missing rule: " + pattern);
+    return;
+  }
+  const directives = cacheDirectives(rule);
+  ok(directives.length > 0, "_headers " + pattern + " has no Cache-Control");
+  for (const directive of includes) {
+    ok(
+      directives.includes(directive),
+      "_headers " + pattern + " Cache-Control missing " + directive + " (got: " + directives.join(", ") + ")",
+    );
+  }
+  for (const directive of excludes) {
+    ok(
+      !directives.includes(directive),
+      "_headers " + pattern + " Cache-Control must not contain " + directive + " (got: " + directives.join(", ") + ")",
+    );
+  }
+}
+
+const headersText = readFileSync(join(OUT, "_headers"), "utf8");
+const rules = parseHeaderRules(headersText);
+
+ok(rules.length > 0, "out/_headers defines no rules");
+ok(rules.length < 100, "out/_headers has " + rules.length + " rules (Workers limit: 100)");
+for (const line of headersText.split(/\r?\n/)) {
+  ok(line.length < 2000, "_headers line exceeds the 2,000-character limit: " + line.slice(0, 80));
+}
+ok(rules[0] !== undefined && rules[0].pattern === "/*", "_headers first rule must be the broad /* rule");
+
+// The broad rule: baseline security headers, browser revalidation plus the
+// year-long edge TTL, and the shared-stylesheet preload hint (Early Hints).
+const broad = rules[0];
+for (const securityHeader of [
+  "X-Content-Type-Options",
+  "Referrer-Policy",
+  "Permissions-Policy",
+  "X-Frame-Options",
+  "Content-Security-Policy",
+]) {
+  ok(headersOf(broad, securityHeader).length > 0, "_headers /* missing " + securityHeader);
+}
+expectCacheControl("/*", { includes: ["max-age=0", "s-maxage=31536000", "must-revalidate"] });
+
+const linkValues = headersOf(broad, "link");
+ok(linkValues.length === 1, "out/_headers /* should carry exactly one Link header (got " + linkValues.length + ")");
+const preloadCss = [];
+for (const value of linkValues) {
+  for (const match of value.matchAll(/<([^>]+)>\s*;\s*rel=preload\s*;\s*as=style/g)) preloadCss.push(match[1]);
+}
+ok(preloadCss.length >= 1, "out/_headers /* missing a rel=preload; as=style Link for the shared stylesheet");
+
+// RSC payloads: 60 s browser TTL (bounds HTML/RSC version skew), year long edge,
+// served as text/plain (the .txt files Next emits are RSC, not downloads).
+expectCacheControl("/*.txt", { includes: ["max-age=60", "s-maxage=31536000"] });
+ok(
+  headersOf(ruleOf(rules, "/*.txt"), "content-type").some((value) => value.startsWith("text/plain")),
+  "_headers /*.txt must serve Content-Type text/plain",
+);
+
+// Deployment-visible surfaces: browser must revalidate, never a stale copy.
+for (const pattern of ["/rss", "/atomfeed", "/jsonfeed", "/microblog/rss"]) {
+  expectCacheControl(pattern, {
+    includes: ["max-age=0", "must-revalidate"],
+    excludes: ["max-age=600"],
+  });
+}
+for (const pattern of ["/sitemap.xml", "/robots.txt", "/search-index.json", "/search-index-lite.json", "/version.json", "/sw.js", "/sw-manifest.json"]) {
+  expectCacheControl(pattern, { includes: ["max-age=0", "must-revalidate"] });
+}
+// The narrow llms rule must override the /*.txt RSC TTL back to revalidation.
+expectCacheControl("/llms*.txt", {
+  includes: ["max-age=0", "must-revalidate"],
+  excludes: ["max-age=60"],
+});
+
+// Content types the extensionless files cannot get from their name.
+for (const [pattern, expected] of [
+  ["/rss", "application/rss+xml"],
+  ["/atomfeed", "application/atom+xml"],
+  ["/jsonfeed", "application/feed+json"],
+  ["/microblog/rss", "application/rss+xml"],
+  ["/version.json", "application/json"],
+  ["/sitemap.xml", "application/xml"],
+  ["/robots.txt", "text/plain"],
+]) {
+  ok(
+    headersOf(ruleOf(rules, pattern), "content-type").some((value) => value.startsWith(expected)),
+    "_headers " + pattern + " Content-Type must start with " + expected,
+  );
+}
+// The llms/robots rules override the generic text/plain with a detach, not by
+// relying on Cloudflare to join two values.
+for (const pattern of ["/llms*.txt", "/robots.txt"]) {
+  ok(
+    ruleOf(rules, pattern)?.detach.some((name) => name.toLowerCase() === "content-type"),
+    "_headers " + pattern + " must detach Content-Type before overriding it",
+  );
+}
+
+// Content-hashed assets are immutable at both browser and edge.
+for (const pattern of ["/_next/static/*", "/static/opt/*", "/static/variants/*", "/static/source/*", "/og/*"]) {
+  expectCacheControl(pattern, { includes: ["max-age=31536000", "immutable"] });
+}
+expectCacheControl("/static/*", { includes: ["max-age=604800"] });
+
+// Detach discipline: a rule that sets Cache-Control after the broad rule must
+// detach the inherited value first, otherwise Cloudflare joins both values and
+// the duplicate max-age makes the response stale/undefined (RFC 9111).
+for (const [index, rule] of rules.entries()) {
+  const setsCacheControl = rule.headers.some((header) => header.name.toLowerCase() === "cache-control");
+  if (!setsCacheControl) continue;
+  const detached = rule.detach.some((name) => name.toLowerCase() === "cache-control");
+  if (index === 0) ok(!detached, "_headers /* should not detach its own Cache-Control");
+  else ok(detached, "_headers " + rule.pattern + " sets Cache-Control without a preceding '! Cache-Control'");
+}
+
+// Existing security/content-type expectations stay in force.
 for (const needle of [
   "Referrer-Policy",
   "Permissions-Policy",
@@ -40,8 +222,15 @@ for (const needle of [
   "Content-Security-Policy",
   "/version.json",
 ]) {
-  ok(headerRules.includes(needle), "out/_headers missing " + needle);
+  ok(headersText.includes(needle), "out/_headers missing " + needle);
 }
+for (const needle of ["/rss", "application/rss+xml", "/og/*", "immutable"]) {
+  ok(headersText.includes(needle), "_headers missing rule: " + needle);
+}
+
+// ---------------------------------------------------------------------------
+// File tree, HTML payloads and the shared stylesheet targeted by the preload
+// ---------------------------------------------------------------------------
 
 const files = walk(OUT);
 ok(files.length < 20000, "out/ has " + files.length + " files (>20,000 static-asset limit)");
@@ -53,6 +242,9 @@ ok(ogFiles.length >= 1, "no generated OG cards in out/og");
 
 const html = files.filter((f) => extname(f) === ".html");
 ok(html.length >= 85, "only " + html.length + " prerendered HTML files");
+
+// HTML file -> set of stylesheet hrefs it links (for the shared-CSS check).
+const stylesheetPages = new Map();
 for (const f of html) {
   const body = readFileSync(f, "utf8");
   if (body.includes("/_next/image")) failures.push("HTML contains /_next/image: " + f);
@@ -60,16 +252,46 @@ for (const f of html) {
   // the old query URL, so only assert on the meta tag itself.
   const ogMeta = body.match(/property="og:image" content="([^"]+)"/);
   if (ogMeta && ogMeta[1].includes("/og?")) failures.push("og:image still points at dynamic /og?: " + f);
+  const stylesheets = new Set();
+  for (const match of body.matchAll(/<link\b[^>]*>/gi)) {
+    const tag = match[0];
+    if (!/\brel="stylesheet"/i.test(tag)) continue;
+    const href = /\bhref="([^"]+)"/i.exec(tag);
+    if (href) stylesheets.add(href[1]);
+  }
+  stylesheetPages.set(f, stylesheets);
 }
 
-const headers = readFileSync(join(OUT, "_headers"), "utf8");
-for (const needle of ["/rss", "application/rss+xml", "/og/*", "immutable"]) {
-  if (!headers.includes(needle)) failures.push("_headers missing rule: " + needle);
+for (const href of preloadCss) {
+  ok(href.startsWith("/_next/static/"), "preload Link is not a hashed Next stylesheet: " + href);
+  ok(href.endsWith(".css"), "preload Link is not a .css file: " + href);
+  ok(existsSync(join(OUT, href.replace(/^\/+/, ""))), "preload CSS missing from out/: " + href);
+  const missing = [...stylesheetPages.entries()]
+    .filter(([, stylesheets]) => !stylesheets.has(href))
+    .map(([file]) => file);
+  ok(
+    missing.length === 0,
+    "preload CSS " + href + " is not linked by every HTML page (" + missing.length + " missing, e.g. " + (missing[0] ?? "") + ")",
+  );
 }
 
 if (failures.length) {
   console.error("verify-export FAILED:\n- " + failures.join("\n- "));
   process.exit(1);
 }
-console.log("verify-export OK: " + files.length + " files, " + html.length + " HTML, " + ogFiles.length + " OG cards, largest " + (biggest / 1024).toFixed(0) + " KB");
+console.log(
+  "verify-export OK: " +
+    files.length +
+    " files, " +
+    html.length +
+    " HTML, " +
+    ogFiles.length +
+    " OG cards, " +
+    rules.length +
+    " header rules, preload " +
+    preloadCss.join(", ") +
+    ", largest " +
+    (biggest / 1024).toFixed(0) +
+    " KB",
+);
 function sep() { return process.platform === "win32" ? "\\" : "/"; }

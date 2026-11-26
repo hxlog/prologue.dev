@@ -2,8 +2,9 @@ import "./globals.css";
 import { Providers } from "../components/providers";
 import Navbar from "../components/navbar";
 import Footer from "../components/footer";
-import NavigationWatchdog from "../components/navigation-watchdog";
+import NavigationSkeleton from "../components/navigation-skeleton";
 import VersionGuard from "../components/version-guard";
+import ServiceWorkerRegister from "../components/service-worker-register";
 import Spotlight from "../components/spotlight";
 import JsonLd from "../components/json-ld";
 import siteMetadata from "../../data/sitemetadata";
@@ -105,8 +106,12 @@ export default function RootLayout({ children }) {
           <Lightbox />
           {/* One delegated pointermove listener for every .card-spotlight. */}
           <Spotlight />
-        <NavigationWatchdog />
-        <VersionGuard />
+          {/* Delayed client-navigation skeleton: it only appears when a route
+              swap has been pending for ~140 ms, and it is absent from the
+              static HTML (the component renders null until a click arms it). */}
+          <NavigationSkeleton />
+          <VersionGuard />
+          <ServiceWorkerRegister />
         </Providers>
         <UmamiAnalytics />
       </body>

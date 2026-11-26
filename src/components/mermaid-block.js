@@ -1,19 +1,52 @@
 "use client";
 
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 
 /**
- * Client-side Mermaid renderer. Dynamically imports the official mermaid
- * package so pages without diagrams do not pay the bundle cost.
+ * Client-side Mermaid renderer.
+ *
+ * Mermaid (parser + layout engine + themes) is by far the heaviest client
+ * dependency on a post page, and most diagrams sit far below the fold. The
+ * placeholder is therefore observed with an IntersectionObserver and the
+ * dynamic import + render only happen once the diagram is within 400px of the
+ * viewport; a page whose diagrams are never reached never loads mermaid at all.
+ * Browsers without IntersectionObserver fall back to rendering immediately.
+ *
+ * The observer is disconnected on the first intersection and in the effect
+ * cleanup, so it cannot fire (or leak) after the block unmounts.
  */
+const NEAR_VIEWPORT_MARGIN = "400px";
+
 export function MermaidBlock({ chart }) {
   const containerRef = useRef(null);
   const { resolvedTheme } = useTheme();
   const reactId = useId().replace(/:/g, "");
+  // Without IntersectionObserver there is nothing to wait for: render on mount.
+  // The server pass always takes this branch, but its output is the same empty
+  // placeholder either way, so hydration is unaffected.
+  const [nearViewport, setNearViewport] = useState(
+    () => typeof IntersectionObserver !== "function",
+  );
 
   useEffect(() => {
-    if (!chart?.trim() || !containerRef.current) return;
+    const element = containerRef.current;
+    if (!element || typeof IntersectionObserver !== "function") return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        setNearViewport(true);
+        observer.disconnect();
+      },
+      { rootMargin: NEAR_VIEWPORT_MARGIN },
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!nearViewport || !chart?.trim() || !containerRef.current) return;
 
     let cancelled = false;
 
@@ -59,8 +92,11 @@ export function MermaidBlock({ chart }) {
     return () => {
       cancelled = true;
     };
-  }, [chart, resolvedTheme, reactId]);
+  }, [chart, nearViewport, reactId, resolvedTheme]);
 
+  // The :empty placeholder rule in globals.css gives this zero-height element a
+  // single pixel so IntersectionObserver reliably reports it in every engine;
+  // the rule stops applying as soon as the SVG or the fallback text is written.
   return (
     <div
       ref={containerRef}

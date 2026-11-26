@@ -17,7 +17,7 @@ Worker. The template ships its own `wrangler.jsonc` + `yarn export` /
 ## Static correctness (important)
 
 - Every page awaits its build-time data directly: **no server Suspense fallbacks, no `loading.js`**. The exported HTML contains the full article/body, which is verified with JavaScript disabled in `e2e/static-html.spec.js`; this is both the crawler contract and the fix for the "layout renders but the article stays loading" failure mode.
-- **Do not use `prefetch={true}`** on links in this static export. A completed full prefetch can leave a client router-cache entry that makes clicks do nothing; Next's default prefetch strategy is used instead; no navigation loading dot/skeleton is shown (the visible UI is unchanged).
+- **Do not use `prefetch={true}`** on links in this static export. A completed full prefetch can leave a client router-cache entry that makes clicks do nothing; Next's default prefetch strategy is used instead; pending navigation is covered by the client-only NavigationSkeleton (never a document navigation).
 - `scripts/build-version.mjs` writes `public/version.json` on every build. `VersionGuard` checks it on idle load, focus/visibility/pageshow/online and every 5 minutes while visible, hard-reloading an open tab when a newer build is deployed. This bounds Cloudflare's documented HTML/asset [version skew](https://developers.cloudflare.com/workers/versions-and-deployments/version-skew/) for long-lived tabs; `staleTimes.static` is 60s for the same reason.
 
 ## Why static export
@@ -128,3 +128,17 @@ minutes-scale revert.
   warns when a card falls back to Google Fonts.
 - Images: add the file under `public/static/`; `scripts/build-image-variants.mjs`
   generates AVIF+WebP variants on the next build (AVIF first, WebP fallback).
+
+
+## 2026-11-26 navigation/performance update
+
+This section supersedes older details above where they conflict.
+
+- **Navigation**: the former NavigationWatchdog was removed (its URL check was inverted, so a successful client navigation was followed by a full document reload after 4 s). Internal links now stay client-side. A client-only NavigationSkeleton overlay appears after ~140 ms of a pending route swap, renders null on the server (never in exported HTML), is pointer-events:none and causes no document request.
+- **Article priority**: the cover image is loading=eager + fetchpriority=high and has an explicit preload link with href/imageSrcSet/imageSizes. The first body image is eager; later images remain lazy. Markdown tables are wrapped in .table-scroll at build time; wide inline MathML scrolls inside its own box. At 320/375/390 px the document scrollWidth equals the viewport on the table-heavy test post.
+- **Progressive work**: mermaid is imported and rendered only when a diagram is within 400 px of the viewport; comments already use an IntersectionObserver; search/modals/lightbox panels remain intent-lazy.
+- **Service worker**: node scripts/build-service-worker.mjs runs after the export and writes out/sw.js + out/sw-manifest.json. It precaches the CSS/JS shared by every page, runtime-caches navigations/RSC/static assets, is versioned by version.json, and is registered only in production outside WebDriver. NEXT_PUBLIC_DISABLE_SW=1 disables registration. _headers gives /sw.js and /sw-manifest.json max-age=0, must-revalidate.
+- **Headers/cache**: out/_headers now has 20 rules. HTML: browser max-age=0, must-revalidate + edge s-maxage=31536000. RSC *.txt: browser max-age=60 + edge s-maxage=31536000. Feeds/sitemap/robots/search-index/version/SW: must-revalidate. /_next/static, content-hashed image variants and /og: immutable. The deploy workflow purges the whole zone and fails if the purge API does not report success (the long s-maxage makes purge the only invalidation).
+- **Early Hints**: the /* _headers rule adds Link: </_next/static/chunks/<shared>.css>; rel=preload; as=style. The zone Early Hints setting must stay ON (currently ON) to emit 103 responses. Verify with curl --http2 -v https://prologue.dev/.
+- **Cloudflare-injected scripts**: production HTML currently includes /.webmcp/bridge.js (~75,756 bytes) and Precursor challenge scripts. These are Cloudflare-side features (WebMCP/Challenges), not site code. They remain enabled for now; disable them in the Cloudflare dashboard if AI-agent tooling/continuous bot verification is not required, then re-check the HTML for both strings.
+- **Verification**: yarn lint; yarn export; node scripts/verify-export.mjs; yarn budget:export; yarn test:e2e (50 tests); production browser checks for 0 document navigations after a link click, 320/375/390 table layout, hero eager/preload, mermaid lazy, service-worker registration and offline fallback.
