@@ -212,6 +212,10 @@ async function applyStarterTemplate(worktreeRoot) {
     path.join(worktreeRoot, "scripts", "build-markdown.mjs")
   );
   copyFile(
+    path.join(ROOT, "scripts", "build-api-catalog.mjs"),
+    path.join(worktreeRoot, "scripts", "build-api-catalog.mjs")
+  );
+  copyFile(
     path.join(ROOT, "scripts", "build-cf-assets.mjs"),
     path.join(worktreeRoot, "scripts", "build-cf-assets.mjs")
   );

@@ -163,3 +163,10 @@ This section supersedes older details above where they conflict.
 - `yarn export` now runs `scripts/build-markdown.mjs` between `next-export` and `build-cf-assets`; the Markdown variants are content-only (nav/footer/asides stripped), carry YAML frontmatter and JSON-LD, and are disabled from indexing via `X-Robots-Tag`. Header rules are now 21 (one added `/__markdown/*` plus global `Content-Signal`).
 - This is the only non-static runtime layer. If the zone is upgraded to Pro+, enable native Markdown for Agents and remove `main`/`binding`/`run_worker_first` plus the Worker and build-markdown step; no public URL or content-type contract changes.
 - Vercel `yarn build` is unchanged and does not implement request-time Markdown negotiation; the generated Markdown files are only in the Cloudflare `export` path.
+
+## 2026-11-26 RFC 9727 API catalog
+
+- `yarn export`/`yarn build`/`yarn dev` now run `scripts/build-api-catalog.mjs` first, generating `public/.well-known/api-catalog`, `openapi.json` and `api-doc.md` for the configured site URL.
+- Cloudflare `_headers` (now 24 rules) serves `/.well-known/api-catalog` as `application/linkset+json`, the OpenAPI document as `application/vnd.oai.openapi+json;version=3.1`, and docs as `text/markdown`; the global `Link` header advertises `rel=api-catalog`. The content-negotiation Worker passes these paths through unchanged.
+- `vercel.json` carries matching Content-Type/CORS/revalidation rules for the Vercel target. The generated files are gitignored and rebuilt from `data/sitemetadata.js`.
+- Validate with `POST https://isitagentready.com/api/scan {"url":"https://prologue.dev"}`; `checks.discovery.apiCatalog` must be `pass`.

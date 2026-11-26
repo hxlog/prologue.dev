@@ -47,6 +47,9 @@
 # scratch file used to hold multi-line git commit messages
 commit-msg.tmp
 
+# generated RFC 9727 API catalog (rebuilt by scripts/build-api-catalog.mjs)
+/public/.well-known/
+
 # static export output + Cloudflare / generated OG artifacts
 /out/
 /.wrangler/

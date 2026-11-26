@@ -158,8 +158,14 @@ function buildHeaders(sharedStylesheets) {
     "  Content-Signal: ai-train=no, search=yes, ai-input=no",
     "  Cache-Control: public, max-age=0, s-maxage=31536000, must-revalidate",
   ];
-  if (sharedStylesheets.length > 0) {
-    lines.push("  Link: " + linkHeaderValue(sharedStylesheets));
+  {
+    // One Link header carries both the stylesheet preload (Early Hints) and
+    // the RFC 9727 api-catalog relation. Two Link lines in _headers would be
+    // merged by Cloudflare and the verify script intentionally rejects that.
+    const links = [];
+    if (sharedStylesheets.length > 0) links.push(linkHeaderValue(sharedStylesheets));
+    links.push("</.well-known/api-catalog>; rel=api-catalog");
+    lines.push("  Link: " + links.join(", "));
   }
   lines.push(
     "",
@@ -266,6 +272,23 @@ function buildHeaders(sharedStylesheets) {
     "  X-Robots-Tag: noindex",
     "  ! Cache-Control",
     "  Cache-Control: public, max-age=0, s-maxage=31536000, must-revalidate",
+    "",
+    "# RFC 9727 API catalog and its discovery documents.",
+    "/.well-known/api-catalog",
+    "  Content-Type: application/linkset+json",
+    "  Access-Control-Allow-Origin: *",
+    "  ! Cache-Control",
+    "  Cache-Control: public, max-age=0, must-revalidate",
+    "/.well-known/openapi.json",
+    "  Content-Type: application/vnd.oai.openapi+json;version=3.1",
+    "  Access-Control-Allow-Origin: *",
+    "  ! Cache-Control",
+    "  Cache-Control: public, max-age=0, must-revalidate",
+    "/.well-known/api-doc.md",
+    "  Content-Type: text/markdown; charset=utf-8",
+    "  Access-Control-Allow-Origin: *",
+    "  ! Cache-Control",
+    "  Cache-Control: public, max-age=0, must-revalidate",
   );
   return lines.join("\n");
 }

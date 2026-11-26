@@ -29,6 +29,24 @@ ok(existsSync(join(OUT, "jsonfeed")), "out/jsonfeed missing");
 ok(existsSync(join(OUT, "sitemap.xml")), "out/sitemap.xml missing");
 ok(existsSync(join(OUT, "robots.txt")), "out/robots.txt missing");
 {
+  const catalogPath = join(OUT, ".well-known", "api-catalog");
+  ok(existsSync(catalogPath), "out/.well-known/api-catalog missing");
+  ok(existsSync(join(OUT, ".well-known", "openapi.json")), "out/.well-known/openapi.json missing");
+  ok(existsSync(join(OUT, ".well-known", "api-doc.md")), "out/.well-known/api-doc.md missing");
+  const catalog = JSON.parse(readFileSync(catalogPath, "utf8"));
+  ok(Array.isArray(catalog.linkset) && catalog.linkset.length > 0, "API catalog linkset missing");
+  const entry = catalog.linkset[0];
+  ok(typeof entry.anchor === "string" && entry.anchor.startsWith("https://"), "API catalog anchor missing");
+  for (const relation of ["service-desc", "service-doc"]) {
+    ok(Array.isArray(entry[relation]) && entry[relation].length > 0, "API catalog missing " + relation);
+    ok(entry[relation][0].href.startsWith("https://"), "API catalog " + relation + " href missing");
+  }
+  const headers = readFileSync(join(OUT, "_headers"), "utf8");
+  ok(headers.includes("/.well-known/api-catalog"), "out/_headers missing API catalog rule");
+  ok(headers.includes("Content-Type: application/linkset+json"), "out/_headers missing linkset content type");
+  ok(headers.includes("rel=api-catalog"), "out/_headers missing api-catalog Link relation");
+}
+{
   const robots = readFileSync(join(OUT, "robots.txt"), "utf8");
   ok(robots.includes("Content-Signal: ai-train=no, search=yes, ai-input=no"), "out/robots.txt missing Content-Signal");
   const groups = (robots.match(/^User-Agent:/gm) || []).length;
