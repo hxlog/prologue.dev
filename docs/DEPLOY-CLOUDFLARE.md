@@ -176,3 +176,9 @@ This section supersedes older details above where they conflict.
 - The shared `Link` response header (generated in `scripts/build-cf-assets.mjs`) now carries, on one line, the shared CSS preload plus `rel="api-catalog"`, `rel="service-desc"` (OpenAPI), `rel="service-doc"` (Markdown docs), `rel="describedby"` (`/llms.txt`) and `rel="status"` (`/version.json`).
 - This satisfies RFC 8288/RFC 9727 Section 3 discovery on the homepage (and all HTML); `HEAD` carries the same relations. Vercel gets the same machine-resource links from `vercel.json`; Cloudflare's `_headers` is the source of truth for the production path.
 - `verify-export.mjs` asserts the relations remain in the combined header; the isitagentready `discoverability.linkHeaders` check additionally confirms them from the public response.
+
+## 2026-11-26 Auth.md agent registration discovery
+
+- `scripts/build-api-catalog.mjs` also writes `public/auth.md` from the site metadata before every build. It is gitignored and served as `text/markdown` by `_headers`/`vercel.json`.
+- The document is deliberately self-contained: the site has no user accounts, protected resource, Authorization Server or credential lifecycle, so it states anonymous read-only access, no registration/provisioning endpoint, no supported OAuth/bearer/API-key/mTLS/ID-JAG method and explicit credential-use guidance. No placeholder OAuth PRM/AS metadata is published, because there is no real authorization server to describe.
+- The H1 contains the literal `auth.md`; the scanner's `check.authMd` fetches `/auth.md` with `Accept: text/markdown, text/plain, */*`. If a real OAuth resource server is added later, publish PRM at `/.well-known/oauth-protected-resource`, AS metadata at the issuer's `/.well-known/oauth-authorization-server`, and add the `agent_auth` block then.

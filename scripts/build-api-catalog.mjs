@@ -22,7 +22,8 @@ import { fileURLToPath } from "node:url";
 import siteMetadata from "../data/sitemetadata.js";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const OUT_DIR = path.join(REPO_ROOT, "public", ".well-known");
+const PUBLIC_DIR = path.join(REPO_ROOT, "public");
+const OUT_DIR = path.join(PUBLIC_DIR, ".well-known");
 const BASE = String(siteMetadata.siteUrl || "").replace(/\/+$/, "");
 
 const PATHS = {
@@ -115,12 +116,67 @@ function apiDoc() {
   return lines.join("\n");
 }
 
+function authDoc() {
+  const issues = siteMetadata.github
+    ? "https://github.com/" + siteMetadata.github + "/" + (siteMetadata.siteRepo || "issues") + "/issues"
+    : BASE;
+  return [
+    "# Prologue.dev auth.md",
+    "",
+    "Agent registration and authentication discovery for " + BASE + ".",
+    "",
+    "## Audience",
+    "",
+    "AI agents, crawlers and automated clients that want to read the public content and machine-readable surfaces of this site. There is no end-user account system and no agent-specific account tier.",
+    "",
+    "## Registration or provisioning",
+    "",
+    "No registration, account creation, onboarding, invitation or credential provisioning is available or required. All public content is read-only and anonymous.",
+    "",
+    "- Registration endpoint: none. Do not POST to /agent/auth, /register, /token or any other endpoint expecting to create an account or receive credentials.",
+    "- Provisioning endpoint: none. No API keys, OAuth clients, mTLS certificates, ID-JAG assertions or verified-email credentials are issued.",
+    "- This document and the public discovery documents are the complete onboarding path.",
+    "",
+    "## Supported authentication methods",
+    "",
+    "- Anonymous, unauthenticated public GET access is the only supported access method.",
+    "- No OAuth 2.1 protected resource, no OpenID Provider, no Authorization Server, no API key, no mTLS, no ID-JAG, no verified-email and no DCR registration is supported.",
+    "- No OAuth Protected Resource Metadata or Authorization Server metadata is published because there is no protected resource or authorization server to describe; publishing placeholder metadata would be misleading.",
+    "- No WWW-Authenticate challenge is expected. A 401 response is an error, not an invitation to authenticate.",
+    "",
+    "## Credential use",
+    "",
+    "- Do not send Authorization headers, API keys, bearer tokens, cookies, client certificates or signed assertions. They are not accepted and are not needed.",
+    "- Do not attempt to create or store credentials for this site. There is no credential lifecycle, refresh, revocation or rotation to follow.",
+    "- Respect the content usage preferences in robots.txt and the Content-Signal response header; those are the applicable usage policy.",
+    "",
+    "## Machine-readable entry points",
+    "",
+    "- API catalog: " + BASE + "/.well-known/api-catalog",
+    "- OpenAPI 3.1: " + BASE + "/.well-known/openapi.json",
+    "- Markdown for Agents: send Accept: text/markdown to any HTML route",
+    "- Site docs for agents: " + BASE + "/llms.txt",
+    "- Feeds: " + BASE + "/rss, " + BASE + "/atomfeed, " + BASE + "/jsonfeed",
+    "- Version / health: " + BASE + "/version.json",
+    "",
+    "## Rate limits and policy",
+    "",
+    "The site is served by Cloudflare Workers Static Assets. Normal edge protections apply; there is no application-level registration quota. Content is licensed under " + (siteMetadata.copyright || "the site license") + ". Automated access should be polite, avoid write methods and follow robots.txt.",
+    "",
+    "## Contact",
+    "",
+    "Non-authentication questions or bug reports can be filed at " + issues + ".",
+    "",
+  ].join("\n");
+}
+
 async function main() {
   await fs.mkdir(OUT_DIR, { recursive: true });
   await fs.writeFile(path.join(OUT_DIR, "api-catalog"), JSON.stringify(catalog, null, 2) + "\n");
   await fs.writeFile(path.join(OUT_DIR, "openapi.json"), JSON.stringify(openApi(), null, 2) + "\n");
   await fs.writeFile(path.join(OUT_DIR, "api-doc.md"), apiDoc());
-  console.log(JSON.stringify({ base: BASE, files: ["api-catalog", "openapi.json", "api-doc.md"], endpoints: Object.keys(PATHS).length }));
+  await fs.writeFile(path.join(PUBLIC_DIR, "auth.md"), authDoc());
+  console.log(JSON.stringify({ base: BASE, files: ["auth.md", "api-catalog", "openapi.json", "api-doc.md"], endpoints: Object.keys(PATHS).length }));
 }
 
 main().catch((error) => { console.error("[build-api-catalog]", error); process.exit(1); });

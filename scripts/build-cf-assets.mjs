@@ -296,6 +296,14 @@ function buildHeaders(sharedStylesheets) {
     "  Access-Control-Allow-Origin: *",
     "  ! Cache-Control",
     "  Cache-Control: public, max-age=0, must-revalidate",
+    "",
+    "# Agent registration discovery (Auth.md).",
+    "/auth.md",
+    "  Content-Type: text/markdown; charset=utf-8",
+    "  Access-Control-Allow-Origin: *",
+    "  ! Cache-Control",
+    "  Cache-Control: public, max-age=0, must-revalidate",
+    "",
   );
   return lines.join("\n");
 }
