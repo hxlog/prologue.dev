@@ -2583,3 +2583,120 @@ html.dark .shiki span {
   min-height: 1px;
 }
 
+/* ---------------------------------------------------------------------------
+ * Tag partial-refresh skeleton (src/components/tag-header.js,
+ * src/components/tag-content-skeleton.js)
+ *
+ * The /tags layout is persistent, so a tag -> tag navigation only replaces the
+ * title and the card column. These blocks are painted in-flow (the header one
+ * is absolutely positioned inside the header) or absolutely inside the content
+ * column -- never as a fixed viewport overlay -- so they cannot cover the
+ * sidebar, navbar or footer, and they cannot shift layout when they appear or
+ * disappear. They are client-only: the pending provider is false during SSR, so
+ * the static HTML carries no skeleton marker.
+ * ------------------------------------------------------------------------- */
+.tag-header-skeleton {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  padding-top: 3rem; /* matches the header's pt-12 */
+  background-color: var(--background);
+  pointer-events: none;
+  animation: tag-skeleton-in 140ms var(--ease-out-expo) both;
+}
+.tag-header-skeleton-line,
+.tag-skeleton-line {
+  border-radius: var(--radius-control);
+  background-color: var(--surface-2);
+  background-image: linear-gradient(
+    90deg,
+    var(--surface-2),
+    var(--surface-3),
+    var(--surface-2)
+  );
+  background-size: 220% 100%;
+  animation: nav-skeleton-shimmer 1.6s linear infinite;
+}
+.tag-header-skeleton-line--eyebrow {
+  width: 5.5rem;
+  height: 0.6rem;
+  margin-top: 0.2rem;
+}
+.tag-header-skeleton-line--title {
+  width: min(62%, 22rem);
+  height: 1.5rem;
+  margin-top: 0.75rem;
+  border-radius: var(--radius-card);
+}
+.tag-header-skeleton-line--subtitle {
+  width: min(48%, 16rem);
+  height: 0.7rem;
+  margin-top: 0.8rem;
+}
+
+.tag-content-skeleton {
+  position: absolute;
+  inset: 0;
+  z-index: 20; /* above the cards' z-10 chips, below modals (50) */
+  overflow: hidden;
+  background-color: var(--background);
+  pointer-events: none;
+  animation: tag-skeleton-in 140ms var(--ease-out-expo) both;
+}
+.tag-content-skeleton-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1rem;
+}
+@media (min-width: 768px) {
+  .tag-content-skeleton-grid {
+    /* PostGrid's md:grid-cols-2 card rhythm */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.tag-skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: 12rem;
+  padding: 1.25rem;
+  border-radius: var(--radius-card);
+  background-color: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+.tag-skeleton-line--meta {
+  width: 7rem;
+  height: 0.6rem;
+}
+.tag-skeleton-line--title {
+  width: 82%;
+  height: 1.1rem;
+  margin-top: 0.35rem;
+}
+.tag-skeleton-line--short {
+  width: 58%;
+}
+.tag-skeleton-line--body {
+  width: 92%;
+  height: 0.65rem;
+}
+.tag-skeleton-line--narrow {
+  width: 64%;
+}
+@keyframes tag-skeleton-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tag-header-skeleton,
+  .tag-content-skeleton,
+  .tag-header-skeleton-line,
+  .tag-skeleton-line {
+    animation: none;
+  }
+}
+

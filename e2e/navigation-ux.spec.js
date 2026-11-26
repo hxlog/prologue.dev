@@ -2,6 +2,26 @@ import { test, expect } from "@playwright/test";
 
 const POST_PATH = "/blog/first_job_first_exit_stop_the_bleeding";
 
+// Synthetic clicks must happen after React has hydrated the client components
+// that install the click capture handlers; otherwise the test races hydration.
+async function waitForHydration(page) {
+  await page.waitForFunction(
+    () => {
+      const el = document.querySelector("header") || document.querySelector("main");
+      return (
+        el &&
+        Object.keys(el).some(
+          (key) =>
+            key.startsWith("__reactFiber$") ||
+            key.startsWith("__reactInternalInstance$"),
+        )
+      );
+    },
+    null,
+    { timeout: 15000 },
+  );
+}
+
 // The old navigation-watchdog forced a document navigation (a whole-tab reload)
 // when it decided a client navigation had failed. Every request the browser
 // makes to fetch a new HTML document is a reload; a client navigation only
@@ -52,6 +72,7 @@ test.describe("navigation skeleton", () => {
 
   test("shows only after the delay and hides on popstate", async ({ page }) => {
     await page.goto("/");
+    await waitForHydration(page);
 
     // A synthetic click on a same-origin anchor that changes the pathname is
     // exactly the signal the component listens for. preventDefault keeps the

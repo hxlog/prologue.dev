@@ -1,15 +1,31 @@
 import { notFound } from "next/navigation";
 import { compareDesc } from "date-fns";
-import PostsLayout from "../../blog/bloglistlayout";
-import { getTagCounts, getSortedTags } from "../../../lib/tag-counts";
+import { getSortedTags } from "../../../lib/tag-counts";
 import { getCachedPosts } from "../../../lib/content/cached";
 import { tagLabel } from "../../../../data/tagLabels";
+import { readingTimeLabel } from "../../../lib/date";
+import PostGrid from "../../../components/post-grid";
+import RouteTransition from "../../../components/route-transition";
 import JsonLd from "../../../components/json-ld";
 import {
   breadcrumbJsonLd,
   collectionPageJsonLd,
 } from "../../../lib/structured-data";
 import { absoluteUrl, buildMetadata, defaultOgImage } from "../../../lib/seo";
+
+/**
+ * One tag archive.
+ *
+ * The persistent chrome — the full-width header, the tag sidebar and the grid
+ * columns — moved to ../layout.js, so this page only renders what is allowed to
+ * change on a tag switch: the structured data and the card grid. The full
+ * content docs are mapped to the same slim objects PostsLayout passes to
+ * PostGrid for /blog, keeping the RSC payload of a switch small.
+ *
+ * generateStaticParams/generateMetadata/notFound stay exactly as before: every
+ * tag is still prerendered into its own HTML file with a real title (crawler /
+ * no-JS contract), and navigation between them is still a client-side RSC swap.
+ */
 
 /**
  * Prerender every known tag page at build time (the tag set is a finite,
@@ -39,15 +55,6 @@ function slugOf(params) {
   return Array.isArray(parts) ? parts.join("/") : parts;
 }
 
-/* Cache Components gates (Next 16.4).
-   - instant = true: assert that a navigation into this route paints UI
-     immediately. Validation runs in development and names the component that
-     would block it; the build is unaffected.
-   - ensureStatic = "shell": the App Shell for this route must stay prerendered
-     at build time. It is a ratchet against a later change quietly turning the
-     route request-rendered — the failure mode is a build error, not a slow
-     page nobody measures. */
-
 export default function Tag({ params }) {
   return <TagArchive params={params} />;
 }
@@ -55,18 +62,32 @@ export default function Tag({ params }) {
 async function TagArchive({ params }) {
   const slug = slugOf(await params);
   const posts = (await getCachedPosts()).filter((post) =>
-    (post.tags || []).includes(slug)
+    (post.tags || []).includes(slug),
   );
   if (posts.length === 0) {
     notFound();
   }
 
   const sorted = [...posts].sort((a, b) =>
-    compareDesc(new Date(a.publishDate), new Date(b.publishDate))
+    compareDesc(new Date(a.publishDate), new Date(b.publishDate)),
   );
 
   const label = tagLabel(slug);
   const url = absoluteUrl(`/tags/${slug}`);
+
+  // Same mapping PostsLayout applies for /blog: only these fields cross into
+  // the client boundary.
+  const slimPosts = sorted
+    .filter((post) => post.draft !== true)
+    .map((post) => ({
+      slug: post.slug,
+      title: post.title,
+      description: post.description || "",
+      publishDate: post.publishDate,
+      tags: post.tags || [],
+      readingTime: readingTimeLabel(post.readingTime),
+    }));
+
   return (
     <>
       <JsonLd
@@ -85,14 +106,14 @@ async function TagArchive({ params }) {
           { name: `标签「${label}」`, path: `/tags/${slug}` },
         ])}
       />
-      <PostsLayout
-        posts={sorted}
-        tagCounts={getTagCounts()}
-        sortedTags={getSortedTags()}
-        activeTag={slug}
-        title="标签"
-        subtitle={`「${label}」下共有 ${sorted.length} 篇文章`}
-      />
+      {/* Only the cards are inside the route transition: the header and the
+          sidebar belong to the persistent layout and must not be snapshotted
+          or faded during a tag switch. */}
+      <RouteTransition>
+        <div className="page-enter">
+          <PostGrid posts={slimPosts} />
+        </div>
+      </RouteTransition>
     </>
   );
 }

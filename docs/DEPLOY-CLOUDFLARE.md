@@ -142,3 +142,10 @@ This section supersedes older details above where they conflict.
 - **Early Hints**: the /* _headers rule adds Link: </_next/static/chunks/<shared>.css>; rel=preload; as=style. The zone Early Hints setting must stay ON (currently ON) to emit 103 responses. Verify with curl --http2 -v https://prologue.dev/.
 - **Cloudflare-injected scripts**: production HTML currently includes /.webmcp/bridge.js (~75,756 bytes) and Precursor challenge scripts. These are Cloudflare-side features (WebMCP/Challenges), not site code. They remain enabled for now; disable them in the Cloudflare dashboard if AI-agent tooling/continuous bot verification is not required, then re-check the HTML for both strings.
 - **Verification**: yarn lint; yarn export; node scripts/verify-export.mjs; yarn budget:export; yarn test:e2e (50 tests); production browser checks for 0 document navigations after a link click, 320/375/390 table layout, hero eager/preload, mermaid lazy, service-worker registration and offline fallback.
+
+## 2026-11-26 tag partial rendering + Cloudflare audit follow-up
+
+- Tag pages now have a persistent `src/app/tags/layout.js`; a tag-to-tag navigation only swaps the TagHeader title plus the card page segment. The sidebar/navbar/footer remain mounted; a client-only TagPending skeleton covers only the title+card column. No document request is made.
+- Full Cloudflare cache/CDN audit: `docs/CLOUDFLARE-AUDIT.md`. Verified: `_headers` cache policy matches production, Early Hints 103 works over HTTP/2 after cache warm, browser cache TTL is Respect Existing Headers, no Cache Rules/Page Rules needed, Worker is assets-only.
+- Applied Cloudflare changes: Hotlink Protection off (third-party Referer PNG requests were 403 due RSS images; verified 200 after), HSTS max-age raised to 31536000 to match the preload flag, and a Compression Rule added for the Atom/JSON feed MIME types that Cloudflare does not compress by default.
+- Kept deliberately: WebMCP and Precursor Cloudflare-injected scripts (user decision; overhead documented in the audit), min TLS 1.3, security level, Cache Reserve/Argo unavailable on the plan, legacy DNS records left pending confirmation.

@@ -28,6 +28,9 @@ import { useEffect, useRef, useState } from "react";
  * - The server render is null, so the exported HTML contains no skeleton marker
  *   and hydration cannot flash one; the overlay is fixed-position, so covering
  *   and uncovering the page can never shift layout.
+ * - When both the current and the target pathname are under /tags, this overlay
+ *   stays out of the way: the tag layout is persistent, so TagPendingProvider
+ *   paints in-flow title/card skeletons instead of hiding the whole page.
  * - `pointer-events: none` keeps the overlay from eating the reader's next
  *   click (a second click can start a different navigation) and `aria-hidden`
  *   keeps it out of the accessibility tree.
@@ -38,6 +41,10 @@ const MAX_VISIBLE_MS = 8000;
 function normalizePath(pathname) {
   const trimmed = pathname.replace(/\/+$/, "");
   return trimmed || "/";
+}
+
+function isTagPath(pathname) {
+  return pathname === "/tags" || pathname.startsWith("/tags/");
 }
 
 function navigationTarget(event) {
@@ -78,6 +85,13 @@ function navigationTarget(event) {
   // Same pathname covers hash-only anchors and query tweaks. This overlay is
   // for page navigations, not for in-page state.
   if (next === current) return null;
+
+  // /tags has its own persistent layout: a tag -> tag switch only replaces the
+  // title and the card column, so the in-flow skeletons from
+  // src/components/tag-pending.js own that feedback. This fixed overlay covers
+  // the whole viewport below the navbar, including the sidebar the reader is
+  // still using.
+  if (isTagPath(current) && isTagPath(next)) return null;
 
   return next;
 }
