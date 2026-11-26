@@ -164,7 +164,14 @@ function buildHeaders(sharedStylesheets) {
     // merged by Cloudflare and the verify script intentionally rejects that.
     const links = [];
     if (sharedStylesheets.length > 0) links.push(linkHeaderValue(sharedStylesheets));
-    links.push("</.well-known/api-catalog>; rel=api-catalog");
+    // RFC 8288 / RFC 9727 agent discovery. Keep all relations in one Link
+    // header: Cloudflare joins repeated Link lines into one value anyway and
+    // verify-export.mjs rejects duplicate Link lines.
+    links.push('</.well-known/api-catalog>; rel="api-catalog"');
+    links.push('</.well-known/openapi.json>; rel="service-desc"; type="application/vnd.oai.openapi+json;version=3.1"');
+    links.push('</.well-known/api-doc.md>; rel="service-doc"; type="text/markdown"');
+    links.push('</llms.txt>; rel="describedby"; type="text/plain"');
+    links.push('</version.json>; rel="status"; type="application/json"');
     lines.push("  Link: " + links.join(", "));
   }
   lines.push(

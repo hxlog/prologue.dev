@@ -224,3 +224,9 @@ OG cards are **build-time PNGs**, not a route: scripts/build-og-images.mjs rende
 - `/.well-known/api-catalog` returns RFC 9727 linkset JSON with anchor, `service-desc` (OpenAPI 3.1), `service-doc` (Markdown) and optional `status` (`/version.json`). `_headers` sets `application/linkset+json`, CORS, revalidation and a combined `Link: ...; rel=api-catalog` header (alongside the CSS preload). `HEAD` therefore carries the same relation.
 - The OpenAPI description covers the read-only content surfaces: RSS/Atom/JSON feeds, microblog RSS, full/lite search corpora, sitemap, llms files and version. It is generated rather than hand-maintained so template/site URLs stay correct.
 - Cloudflare serves the catalog through the same Worker/ASSETS path (no special-casing); Vercel gets equivalent headers from `vercel.json`. `scripts/verify-export.mjs`, `build-cf-assets.mjs` and the `isitagentready` discovery scan guard the contract.
+
+## 2026-11-26 homepage Link discovery relations
+
+- The shared `Link` response header (generated in `scripts/build-cf-assets.mjs`) now carries, on one line, the shared CSS preload plus `rel="api-catalog"`, `rel="service-desc"` (OpenAPI), `rel="service-doc"` (Markdown docs), `rel="describedby"` (`/llms.txt`) and `rel="status"` (`/version.json`).
+- This satisfies RFC 8288/RFC 9727 Section 3 discovery on the homepage (and all HTML); `HEAD` carries the same relations. Vercel gets the same machine-resource links from `vercel.json`; Cloudflare's `_headers` is the source of truth for the production path.
+- `verify-export.mjs` asserts the relations remain in the combined header; the isitagentready `discoverability.linkHeaders` check additionally confirms them from the public response.

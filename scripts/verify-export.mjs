@@ -44,7 +44,7 @@ ok(existsSync(join(OUT, "robots.txt")), "out/robots.txt missing");
   const headers = readFileSync(join(OUT, "_headers"), "utf8");
   ok(headers.includes("/.well-known/api-catalog"), "out/_headers missing API catalog rule");
   ok(headers.includes("Content-Type: application/linkset+json"), "out/_headers missing linkset content type");
-  ok(headers.includes("rel=api-catalog"), "out/_headers missing api-catalog Link relation");
+  ok(headers.includes('rel="api-catalog"'), "out/_headers missing api-catalog Link relation");
 }
 {
   const robots = readFileSync(join(OUT, "robots.txt"), "utf8");
@@ -207,6 +207,9 @@ for (const value of linkValues) {
   for (const match of value.matchAll(/<([^>]+)>\s*;\s*rel=preload\s*;\s*as=style/g)) preloadCss.push(match[1]);
 }
 ok(preloadCss.length >= 1, "out/_headers /* missing a rel=preload; as=style Link for the shared stylesheet");
+for (const relation of ["api-catalog", "service-desc", "service-doc", "describedby"]) {
+  ok(linkValues[0].includes('rel="' + relation + '"'), "out/_headers /* missing rel=" + relation + " Link relation");
+}
 
 // RSC payloads: 60 s browser TTL (bounds HTML/RSC version skew), year long edge,
 // served as text/plain (the .txt files Next emits are RSC, not downloads).

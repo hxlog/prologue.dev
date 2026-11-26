@@ -23,6 +23,10 @@
         {
           "key": "Content-Security-Policy",
           "value": "frame-ancestors 'self'"
+        },
+        {
+          "key": "Link",
+          "value": "</.well-known/api-catalog>; rel=\"api-catalog\", </.well-known/openapi.json>; rel=\"service-desc\"; type=\"application/vnd.oai.openapi+json;version=3.1\", </.well-known/api-doc.md>; rel=\"service-doc\"; type=\"text/markdown\", </llms.txt>; rel=\"describedby\"; type=\"text/plain\", </version.json>; rel=\"status\"; type=\"application/json\""
         }
       ]
     },

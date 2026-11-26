@@ -170,3 +170,9 @@ This section supersedes older details above where they conflict.
 - Cloudflare `_headers` (now 24 rules) serves `/.well-known/api-catalog` as `application/linkset+json`, the OpenAPI document as `application/vnd.oai.openapi+json;version=3.1`, and docs as `text/markdown`; the global `Link` header advertises `rel=api-catalog`. The content-negotiation Worker passes these paths through unchanged.
 - `vercel.json` carries matching Content-Type/CORS/revalidation rules for the Vercel target. The generated files are gitignored and rebuilt from `data/sitemetadata.js`.
 - Validate with `POST https://isitagentready.com/api/scan {"url":"https://prologue.dev"}`; `checks.discovery.apiCatalog` must be `pass`.
+
+## 2026-11-26 homepage Link discovery relations
+
+- The shared `Link` response header (generated in `scripts/build-cf-assets.mjs`) now carries, on one line, the shared CSS preload plus `rel="api-catalog"`, `rel="service-desc"` (OpenAPI), `rel="service-doc"` (Markdown docs), `rel="describedby"` (`/llms.txt`) and `rel="status"` (`/version.json`).
+- This satisfies RFC 8288/RFC 9727 Section 3 discovery on the homepage (and all HTML); `HEAD` carries the same relations. Vercel gets the same machine-resource links from `vercel.json`; Cloudflare's `_headers` is the source of truth for the production path.
+- `verify-export.mjs` asserts the relations remain in the combined header; the isitagentready `discoverability.linkHeaders` check additionally confirms them from the public response.
