@@ -201,3 +201,9 @@ This section supersedes older details above where they conflict.
 - `scripts/build-api-catalog.mjs` generates `/.well-known/agent-skills/index.json` (Agent Skills Discovery RFC v0.2.0, `$schema` fixed) and two `skill-md` artifacts: `content-discovery` and `markdown-retrieval`. Each index entry has name/type/description/absolute url and a `sha256:<hex>` digest computed over the exact artifact bytes.
 - Cloudflare `_headers`/`vercel.json` serve the index as JSON and each SKILL.md as `text/markdown` with CORS/revalidation; `verify-export.mjs` asserts the schema, name pattern, type, digest format and recomputes every artifact hash.
 - The index links the API catalog/OpenAPI/A2A/MCP/auth discovery documents and the feeds/search corpus; no auth is required.
+
+## 2026-11-26 Web Bot Auth
+
+- `scripts/build-api-catalog.mjs` publishes an Ed25519 JWKS at `/.well-known/http-message-signatures-directory` with `kty`, `crv`, `x` and the RFC 7638 key thumbprint as `kid`; content type is `application/http-message-signatures-directory+json` with CORS and cache headers.
+- The public key is fixed in the build generator (private key deliberately not committed); it is the verification key for future signed outgoing agent requests. The site itself is read-only and currently has no outbound bot traffic to sign; the directory is the discovery contract Cloudflare Web Bot Auth verifies.
+- `verify-export.mjs` asserts the JWKS shape; the directory is generated into `public/.well-known` and copied into the export. If the site later operates an outbound agent, sign requests with `Signature-Input` (`tag="web-bot-auth"`, `keyid` = thumbprint, `created`/`expires`/`nonce`) and `Signature`, plus `Signature-Agent: "https://prologue.dev"`.

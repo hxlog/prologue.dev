@@ -34,6 +34,14 @@ ok(existsSync(join(OUT, "robots.txt")), "out/robots.txt missing");
   ok(existsSync(catalogPath), "out/.well-known/api-catalog missing");
   ok(existsSync(join(OUT, ".well-known", "openapi.json")), "out/.well-known/openapi.json missing");
   ok(existsSync(join(OUT, ".well-known", "api-doc.md")), "out/.well-known/api-doc.md missing");
+  const webBotAuthPath = join(OUT, ".well-known", "http-message-signatures-directory");
+  ok(existsSync(webBotAuthPath), "out/.well-known/http-message-signatures-directory missing");
+  const webBotAuth = JSON.parse(readFileSync(webBotAuthPath, "utf8"));
+  ok(Array.isArray(webBotAuth.keys) && webBotAuth.keys.length > 0, "Web Bot Auth JWKS must contain keys");
+  for (const key of webBotAuth.keys) {
+    ok(key.kty === "OKP" && key.crv === "Ed25519" && typeof key.x === "string" && key.x.length > 0, "Web Bot Auth key must be Ed25519 OKP with x");
+    ok(typeof key.kid === "string" && key.kid.length > 0, "Web Bot Auth key missing kid");
+  }
   const skillsIndexPath = join(OUT, ".well-known", "agent-skills", "index.json");
   ok(existsSync(skillsIndexPath), "out/.well-known/agent-skills/index.json missing");
   const skillsIndex = JSON.parse(readFileSync(skillsIndexPath, "utf8"));

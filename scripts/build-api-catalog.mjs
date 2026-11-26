@@ -157,6 +157,19 @@ function authorizationServerDoc() {
   };
 }
 
+const WEBBOT_JWK = {
+  kty: "OKP",
+  crv: "Ed25519",
+  x: "Kl1jYRrmzreg3FqwngTEqUMJfbIwV058ua1wWVRhAFw",
+  kid: "vyK6J_DVVaRScR0feW1ITPni_THWs9sG1qzHWjZICrk",
+  use: "sig",
+  alg: "Ed25519",
+};
+
+function webBotAuthDirectory() {
+  return { keys: [WEBBOT_JWK] };
+}
+
 function mcpCardDoc() {
   return {
     "$schema": "https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json",
@@ -419,7 +432,8 @@ async function main() {
   await fs.mkdir(path.join(OUT_DIR, "mcp"), { recursive: true });
   await fs.writeFile(path.join(OUT_DIR, "mcp", "server-card.json"), JSON.stringify(mcpCardDoc(), null, 2) + "\n");
   const skillsIndex = await writeAgentSkills();
-  console.log(JSON.stringify({ base: BASE, files: ["auth.md", "api-catalog", "openapi.json", "api-doc.md", "oauth-protected-resource", "oauth-authorization-server", "agent-card.json", "mcp/server-card.json", "agent-skills/index.json"], skills: skillsIndex.skills.length, endpoints: Object.keys(PATHS).length }));
+  await fs.writeFile(path.join(OUT_DIR, "http-message-signatures-directory"), JSON.stringify(webBotAuthDirectory(), null, 2) + "\n");
+  console.log(JSON.stringify({ base: BASE, files: ["auth.md", "api-catalog", "openapi.json", "api-doc.md", "oauth-protected-resource", "oauth-authorization-server", "agent-card.json", "mcp/server-card.json", "agent-skills/index.json", "http-message-signatures-directory"], skills: skillsIndex.skills.length, endpoints: Object.keys(PATHS).length }));
 }
 
 main().catch((error) => { console.error("[build-api-catalog]", error); process.exit(1); });
