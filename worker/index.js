@@ -188,10 +188,68 @@ function agentEndpoint(request, url) {
   return agentJson(405, { error: "method_not_allowed" });
 }
 
+/** Minimal A2A JSON-RPC endpoint advertised by the agent card. */
+async function a2aEndpoint(request) {
+  const cors = {
+    "content-type": "application/json; charset=utf-8",
+    "cache-control": "no-store",
+    "access-control-allow-origin": "*",
+  };
+  if (request.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        ...cors,
+        "access-control-allow-methods": "GET, POST, OPTIONS",
+        "access-control-allow-headers": "content-type, a2a-version, a2a-extensions",
+      },
+    });
+  }
+  if (request.method === "GET") {
+    return new Response(JSON.stringify({
+      name: "Prologue Content Agent",
+      protocolBinding: "JSONRPC",
+      protocolVersion: "1.0",
+      agentCard: "https://prologue.dev/.well-known/agent-card.json",
+    }), { status: 200, headers: cors });
+  }
+  if (request.method !== "POST") {
+    return new Response(JSON.stringify({ error: "method_not_allowed" }), { status: 405, headers: cors });
+  }
+
+  let payload;
+  try { payload = await request.json(); } catch {
+    return new Response(JSON.stringify({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } }), { status: 400, headers: cors });
+  }
+  const id = payload?.id ?? null;
+  const method = payload?.method;
+  const reply = (result) => new Response(JSON.stringify({ jsonrpc: "2.0", id, result }), { status: 200, headers: cors });
+
+  if (method === "message/send" || method === "SendMessage") {
+    const params = payload.params || {};
+    const contextId = params.message?.contextId || params.contextId || crypto.randomUUID();
+    return reply({
+      messageId: crypto.randomUUID(),
+      role: "agent",
+      contextId,
+      parts: [{
+        text: "Prologue content agent: public discovery is at https://prologue.dev/.well-known/api-catalog, OpenAPI at https://prologue.dev/.well-known/openapi.json, and any HTML route can be fetched as Markdown with Accept: text/markdown.",
+      }],
+    });
+  }
+  if (method === "tasks/get" || method === "GetTask") {
+    return new Response(JSON.stringify({ jsonrpc: "2.0", id, error: { code: -32001, message: "Task not found; this stateless agent returns direct messages." } }), { status: 200, headers: cors });
+  }
+  return new Response(JSON.stringify({ jsonrpc: "2.0", id, error: { code: -32601, message: "Method not found" } }), { status: 200, headers: cors });
+}
+
 const worker = {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    if (url.pathname === "/a2a") {
+      return a2aEndpoint(request);
+    }
     if (url.pathname.startsWith("/agent/")) {
       return agentEndpoint(request, url);
     }

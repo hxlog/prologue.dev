@@ -33,6 +33,12 @@ ok(existsSync(join(OUT, "robots.txt")), "out/robots.txt missing");
   ok(existsSync(catalogPath), "out/.well-known/api-catalog missing");
   ok(existsSync(join(OUT, ".well-known", "openapi.json")), "out/.well-known/openapi.json missing");
   ok(existsSync(join(OUT, ".well-known", "api-doc.md")), "out/.well-known/api-doc.md missing");
+  const cardPath = join(OUT, ".well-known", "agent-card.json");
+  ok(existsSync(cardPath), "out/.well-known/agent-card.json missing");
+  const card = JSON.parse(readFileSync(cardPath, "utf8"));
+  ok(card.name && card.version && card.description, "A2A card missing name/version/description");
+  ok(Array.isArray(card.supportedInterfaces) && card.supportedInterfaces[0]?.url && (card.supportedInterfaces[0]?.protocolBinding || card.supportedInterfaces[0]?.transport), "A2A card supportedInterfaces missing url/transport");
+  ok(Array.isArray(card.skills) && card.skills.length > 0 && card.skills.every((skill) => skill.id && skill.name && skill.description), "A2A card skills missing required fields");
   for (const name of ["oauth-protected-resource", "oauth-authorization-server"]) {
     const pathname = join(OUT, ".well-known", name);
     ok(existsSync(pathname), "out/.well-known/" + name + " missing");

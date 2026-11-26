@@ -156,6 +156,56 @@ function authorizationServerDoc() {
   };
 }
 
+function agentCardDoc() {
+  return {
+    name: "Prologue Content Agent",
+    version: "1.0.0",
+    description: "Read-only A2A agent for discovering and reading the public content of prologue.dev. It returns links to posts, feeds, search corpora and Markdown representations; it does not write data or expose private content.",
+    provider: {
+      organization: siteMetadata.siteName || "Prologue",
+      url: BASE,
+    },
+    documentationUrl: BASE + "/.well-known/api-doc.md",
+    iconUrl: BASE + "/static/favicons/avatar.png",
+    supportedInterfaces: [
+      {
+        url: BASE + "/a2a",
+        protocolBinding: "JSONRPC",
+        protocolVersion: "1.0",
+      },
+    ],
+    capabilities: {
+      streaming: false,
+      pushNotifications: false,
+      extendedAgentCard: false,
+    },
+    defaultInputModes: ["text/plain"],
+    defaultOutputModes: ["text/plain", "text/markdown"],
+    skills: [
+      {
+        id: "content-discovery",
+        name: "Prologue content discovery",
+        description: "Find the site's public articles, feeds, search corpora and machine-readable discovery documents.",
+        tags: ["content", "search", "rss", "openapi", "markdown"],
+        examples: [
+          "What machine-readable surfaces does prologue.dev expose?",
+          "Where is the search corpus or RSS feed?",
+        ],
+      },
+      {
+        id: "markdown-retrieval",
+        name: "Markdown page retrieval",
+        description: "Return a link to the Markdown representation of any public HTML route on prologue.dev.",
+        tags: ["markdown", "content-negotiation"],
+        examples: [
+          "Give me the Markdown version of the about page.",
+          "Fetch the latest post as Markdown.",
+        ],
+      },
+    ],
+  };
+}
+
 function authDoc() {
   const issues = siteMetadata.github
     ? "https://github.com/" + siteMetadata.github + "/" + (siteMetadata.siteRepo || "issues") + "/issues"
@@ -231,7 +281,8 @@ async function main() {
   await fs.writeFile(path.join(PUBLIC_DIR, "auth.md"), authDoc());
   await fs.writeFile(path.join(OUT_DIR, "oauth-protected-resource"), JSON.stringify(protectedResourceDoc(), null, 2) + "\n");
   await fs.writeFile(path.join(OUT_DIR, "oauth-authorization-server"), JSON.stringify(authorizationServerDoc(), null, 2) + "\n");
-  console.log(JSON.stringify({ base: BASE, files: ["auth.md", "api-catalog", "openapi.json", "api-doc.md", "oauth-protected-resource", "oauth-authorization-server"], endpoints: Object.keys(PATHS).length }));
+  await fs.writeFile(path.join(OUT_DIR, "agent-card.json"), JSON.stringify(agentCardDoc(), null, 2) + "\n");
+  console.log(JSON.stringify({ base: BASE, files: ["auth.md", "api-catalog", "openapi.json", "api-doc.md", "oauth-protected-resource", "oauth-authorization-server", "agent-card.json"], endpoints: Object.keys(PATHS).length }));
 }
 
 main().catch((error) => { console.error("[build-api-catalog]", error); process.exit(1); });
