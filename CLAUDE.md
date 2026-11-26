@@ -261,3 +261,12 @@ OG cards are **build-time PNGs**, not a route: scripts/build-og-images.mjs rende
 - `scripts/build-api-catalog.mjs` publishes an Ed25519 JWKS at `/.well-known/http-message-signatures-directory` with `kty`, `crv`, `x` and the RFC 7638 key thumbprint as `kid`; content type is `application/http-message-signatures-directory+json` with CORS and cache headers.
 - The public key is fixed in the build generator (private key deliberately not committed); it is the verification key for future signed outgoing agent requests. The site itself is read-only and currently has no outbound bot traffic to sign; the directory is the discovery contract Cloudflare Web Bot Auth verifies.
 - `verify-export.mjs` asserts the JWKS shape; the directory is generated into `public/.well-known` and copied into the export. If the site later operates an outbound agent, sign requests with `Signature-Input` (`tag="web-bot-auth"`, `keyid` = thumbprint, `created`/`expires`/`nonce`) and `Signature`, plus `Signature-Agent: "https://prologue.dev"`.
+
+## 2026-11-26 DNS for AI Discovery (DNS-AID)
+
+- Cloudflare DNS now publishes three DNSSEC-signed ServiceMode SVCB records under `_agents`:
+  - `_index._agents.prologue.dev` → `1 prologue.dev. alpn="h2" port=443 mandatory=alpn,port,key65400 key65400="https://prologue.dev/.well-known/api-catalog"`
+  - `_a2a._agents.prologue.dev` → `alpn="a2a"` with `key65400="https://prologue.dev/.well-known/agent-card.json"`
+  - `_mcp._agents.prologue.dev` → `alpn="h2"` with `key65400="https://prologue.dev/.well-known/mcp/server-card.json"`
+- `key65400` is the numeric experimental SvcParamKey carrying the discovery metadata URL; DNSSEC is active on the zone and Cloudflare DoH returns `AD=true`.
+- Verified with Cloudflare DoH: all three records parse as valid ServiceMode, DNSSEC validated, and `checks.discoverability.dnsAid` passes. DNS records are external Cloudflare state, not repository files.
