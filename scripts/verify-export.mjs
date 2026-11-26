@@ -4,6 +4,7 @@
  * export before wrangler deploys it.
  */
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { join, extname } from "node:path";
 
 const OUT = process.env.CF_ASSETS_OUT || join(process.cwd(), "out");
@@ -33,6 +34,22 @@ ok(existsSync(join(OUT, "robots.txt")), "out/robots.txt missing");
   ok(existsSync(catalogPath), "out/.well-known/api-catalog missing");
   ok(existsSync(join(OUT, ".well-known", "openapi.json")), "out/.well-known/openapi.json missing");
   ok(existsSync(join(OUT, ".well-known", "api-doc.md")), "out/.well-known/api-doc.md missing");
+  const skillsIndexPath = join(OUT, ".well-known", "agent-skills", "index.json");
+  ok(existsSync(skillsIndexPath), "out/.well-known/agent-skills/index.json missing");
+  const skillsIndex = JSON.parse(readFileSync(skillsIndexPath, "utf8"));
+  ok(skillsIndex.$schema === "https://schemas.agentskills.io/discovery/0.2.0/schema.json", "agent skills $schema mismatch");
+  ok(Array.isArray(skillsIndex.skills) && skillsIndex.skills.length > 0, "agent skills array missing");
+  for (const skill of skillsIndex.skills) {
+    ok(/^[a-z0-9-]+$/.test(skill.name), "skill name must be lowercase alphanumeric/hyphens: " + skill.name);
+    ok(skill.type === "skill-md" || skill.type === "archive", "skill type invalid: " + skill.type);
+    ok(typeof skill.description === "string" && skill.description.length > 0, "skill description missing");
+    ok(typeof skill.url === "string" && skill.url.startsWith("https://"), "skill url missing");
+    ok(/^sha256:[0-9a-f]{64}$/.test(skill.digest), "skill digest format invalid");
+    const rel = new URL(skill.url).pathname.replace(/^\/+/, "");
+    const artifact = readFileSync(join(OUT, rel), "utf8");
+    const actual = "sha256:" + createHash("sha256").update(artifact, "utf8").digest("hex");
+    ok(actual === skill.digest, "skill digest mismatch for " + skill.name);
+  }
   const mcpCardPath = join(OUT, ".well-known", "mcp", "server-card.json");
   ok(existsSync(mcpCardPath), "out/.well-known/mcp/server-card.json missing");
   const mcpCard = JSON.parse(readFileSync(mcpCardPath, "utf8"));

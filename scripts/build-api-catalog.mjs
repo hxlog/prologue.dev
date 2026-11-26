@@ -18,6 +18,7 @@
  */
 import { promises as fs } from "node:fs";
 import path from "node:path";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import siteMetadata from "../data/sitemetadata.js";
 
@@ -312,6 +313,100 @@ function authDoc() {
   ].join("\n");
 }
 
+const AGENT_SKILLS = [
+  {
+    name: "content-discovery",
+    description: "Discover prologue.dev's API catalog, OpenAPI, A2A card, MCP server card and machine-readable feeds.",
+  },
+  {
+    name: "markdown-retrieval",
+    description: "Fetch any prologue.dev HTML page as Markdown using Accept: text/markdown.",
+  },
+];
+
+function skillContent(skill) {
+  if (skill.name === "content-discovery") {
+    return [
+      "# Prologue.dev content discovery",
+      "",
+      "Use this skill to find the public, machine-readable surfaces of prologue.dev before fetching content.",
+      "",
+      "## Discovery endpoints",
+      "",
+      "- API catalog: " + BASE + "/.well-known/api-catalog",
+      "- OpenAPI 3.1: " + BASE + "/.well-known/openapi.json",
+      "- A2A agent card: " + BASE + "/.well-known/agent-card.json",
+      "- MCP server card: " + BASE + "/.well-known/mcp/server-card.json",
+      "- Auth.md: " + BASE + "/auth.md",
+      "- LLM index: " + BASE + "/llms.txt",
+      "",
+      "## Feeds and corpora",
+      "",
+      "- RSS: " + BASE + "/rss",
+      "- Atom: " + BASE + "/atomfeed",
+      "- JSON Feed: " + BASE + "/jsonfeed",
+      "- Search corpus: " + BASE + "/search-index.json",
+      "- Sitemap: " + BASE + "/sitemap.xml",
+      "",
+      "## Recommended workflow",
+      "",
+      "1. Fetch the API catalog and OpenAPI description.",
+      "2. Choose a feed or search corpus for bulk discovery.",
+      "3. Fetch individual pages as Markdown with Accept: text/markdown.",
+      "4. Respect robots.txt and Content-Signal.",
+      "",
+    ].join("\n");
+  }
+  return [
+    "# Prologue.dev Markdown retrieval",
+    "",
+    "Every public HTML route on prologue.dev can be requested as Markdown.",
+    "",
+    "## Request",
+    "",
+    "Send a GET request with:",
+    "",
+    "- Accept: text/markdown",
+    "",
+    "The response is text/markdown with YAML frontmatter and the page body. HTML remains the default for browser requests.",
+    "",
+    "## Examples",
+    "",
+    "- " + BASE + "/about",
+    "- " + BASE + "/blog/first_job_first_exit_stop_the_bleeding",
+    "- " + BASE + "/tags/Inequality",
+    "",
+    "## Rules",
+    "",
+    "- Do not send credentials; the content is public.",
+    "- Respect robots.txt and the Content-Signal response header.",
+    "",
+  ].join("\n");
+}
+
+async function writeAgentSkills() {
+  const index = {
+    "$schema": "https://schemas.agentskills.io/discovery/0.2.0/schema.json",
+    skills: [],
+  };
+  for (const skill of AGENT_SKILLS) {
+    const content = skillContent(skill);
+    const artifactPath = path.join(OUT_DIR, "agent-skills", skill.name, "SKILL.md");
+    await fs.mkdir(path.dirname(artifactPath), { recursive: true });
+    await fs.writeFile(artifactPath, content);
+    const digest = "sha256:" + createHash("sha256").update(content, "utf8").digest("hex");
+    index.skills.push({
+      name: skill.name,
+      type: "skill-md",
+      description: skill.description,
+      url: BASE + "/.well-known/agent-skills/" + skill.name + "/SKILL.md",
+      digest,
+    });
+  }
+  await fs.writeFile(path.join(OUT_DIR, "agent-skills", "index.json"), JSON.stringify(index, null, 2) + "\n");
+  return index;
+}
+
 async function main() {
   await fs.mkdir(OUT_DIR, { recursive: true });
   await fs.writeFile(path.join(OUT_DIR, "api-catalog"), JSON.stringify(catalog, null, 2) + "\n");
@@ -323,7 +418,8 @@ async function main() {
   await fs.writeFile(path.join(OUT_DIR, "agent-card.json"), JSON.stringify(agentCardDoc(), null, 2) + "\n");
   await fs.mkdir(path.join(OUT_DIR, "mcp"), { recursive: true });
   await fs.writeFile(path.join(OUT_DIR, "mcp", "server-card.json"), JSON.stringify(mcpCardDoc(), null, 2) + "\n");
-  console.log(JSON.stringify({ base: BASE, files: ["auth.md", "api-catalog", "openapi.json", "api-doc.md", "oauth-protected-resource", "oauth-authorization-server", "agent-card.json", "mcp/server-card.json"], endpoints: Object.keys(PATHS).length }));
+  const skillsIndex = await writeAgentSkills();
+  console.log(JSON.stringify({ base: BASE, files: ["auth.md", "api-catalog", "openapi.json", "api-doc.md", "oauth-protected-resource", "oauth-authorization-server", "agent-card.json", "mcp/server-card.json", "agent-skills/index.json"], skills: skillsIndex.skills.length, endpoints: Object.keys(PATHS).length }));
 }
 
 main().catch((error) => { console.error("[build-api-catalog]", error); process.exit(1); });

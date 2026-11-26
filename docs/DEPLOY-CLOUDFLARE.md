@@ -195,3 +195,9 @@ This section supersedes older details above where they conflict.
 - `scripts/build-api-catalog.mjs` also writes `public/.well-known/mcp/server-card.json` with `serverInfo` name/version, `transport` `{ type: streamable-http, endpoint: https://prologue.dev/mcp }`, SEP-style `transports`/`remotes`, and `capabilities` for tools/resources/prompts.
 - The Worker exposes a stateless MCP Streamable HTTP JSON-RPC endpoint at `/mcp`: initialize, tools/list, tools/call, resources/list, resources/read and prompts/list; it advertises two read-only tools (`site_discovery`, `get_markdown`) and read-only discovery resources. No auth, streaming or session state.
 - `_headers`/`vercel.json` serve the card as JSON with CORS/revalidation; `verify-export.mjs` asserts serverInfo, transport endpoint and capabilities. The Cloudflare charset Transform Rule excludes `/mcp` (and `/a2a`, `/agent/`) so JSON responses keep their content type.
+
+## 2026-11-26 Agent Skills discovery index
+
+- `scripts/build-api-catalog.mjs` generates `/.well-known/agent-skills/index.json` (Agent Skills Discovery RFC v0.2.0, `$schema` fixed) and two `skill-md` artifacts: `content-discovery` and `markdown-retrieval`. Each index entry has name/type/description/absolute url and a `sha256:<hex>` digest computed over the exact artifact bytes.
+- Cloudflare `_headers`/`vercel.json` serve the index as JSON and each SKILL.md as `text/markdown` with CORS/revalidation; `verify-export.mjs` asserts the schema, name pattern, type, digest format and recomputes every artifact hash.
+- The index links the API catalog/OpenAPI/A2A/MCP/auth discovery documents and the feeds/search corpus; no auth is required.
