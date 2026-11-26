@@ -243,10 +243,127 @@ async function a2aEndpoint(request) {
   return new Response(JSON.stringify({ jsonrpc: "2.0", id, error: { code: -32601, message: "Method not found" } }), { status: 200, headers: cors });
 }
 
+/** Minimal stateless MCP Streamable HTTP JSON-RPC endpoint. */
+async function mcpEndpoint(request) {
+  const cors = {
+    "content-type": "application/json; charset=utf-8",
+    "cache-control": "no-store",
+    "access-control-allow-origin": "*",
+  };
+  if (request.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        ...cors,
+        "access-control-allow-methods": "GET, POST, OPTIONS",
+        "access-control-allow-headers": "content-type, mcp-protocol-version, mcp-session-id",
+      },
+    });
+  }
+  if (request.method === "GET") {
+    return new Response(JSON.stringify({
+      name: "Prologue MCP Content Server",
+      transport: "streamable-http",
+      endpoint: "https://prologue.dev/mcp",
+      serverCard: "https://prologue.dev/.well-known/mcp/server-card.json",
+    }), { status: 200, headers: cors });
+  }
+  if (request.method !== "POST") {
+    return new Response(JSON.stringify({ error: "method_not_allowed" }), { status: 405, headers: cors });
+  }
+
+  let payload;
+  try { payload = await request.json(); } catch {
+    return new Response(JSON.stringify({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } }), { status: 400, headers: cors });
+  }
+  if (!payload || payload.id === undefined) {
+    return new Response(null, { status: 202, headers: cors });
+  }
+  const id = payload.id;
+  const method = payload.method;
+  const result = (value) => new Response(JSON.stringify({ jsonrpc: "2.0", id, result: value }), { status: 200, headers: cors });
+  const error = (code, message) => new Response(JSON.stringify({ jsonrpc: "2.0", id, error: { code, message } }), { status: 200, headers: cors });
+
+  if (method === "initialize") {
+    return result({
+      protocolVersion: "2025-06-18",
+      capabilities: {
+        tools: { listChanged: false },
+        resources: { subscribe: false, listChanged: false },
+        prompts: { listChanged: false },
+      },
+      serverInfo: { name: "Prologue MCP Content Server", version: "1.0.0" },
+    });
+  }
+  if (method === "tools/list") {
+    return result({
+      tools: [
+        {
+          name: "site_discovery",
+          description: "List the public machine-readable discovery surfaces of prologue.dev.",
+          inputSchema: { type: "object", properties: {}, additionalProperties: false },
+        },
+        {
+          name: "get_markdown",
+          description: "Return a Markdown URL for a public HTML path such as /about or /blog/<slug>.",
+          inputSchema: {
+            type: "object",
+            properties: { path: { type: "string", description: "Root-relative public path" } },
+            required: ["path"],
+          },
+        },
+      ],
+    });
+  }
+  if (method === "tools/call") {
+    const name = payload.params?.name;
+    const args = payload.params?.arguments || {};
+    if (name === "site_discovery") {
+      return result({
+        content: [{
+          type: "text",
+          text: "API catalog: https://prologue.dev/.well-known/api-catalog\nOpenAPI: https://prologue.dev/.well-known/openapi.json\nAuth: https://prologue.dev/auth.md\nA2A card: https://prologue.dev/.well-known/agent-card.json\nFeeds: https://prologue.dev/rss, https://prologue.dev/atomfeed, https://prologue.dev/jsonfeed\nSearch corpus: https://prologue.dev/search-index.json",
+        }],
+        isError: false,
+      });
+    }
+    if (name === "get_markdown") {
+      const path = typeof args.path === "string" && args.path.startsWith("/") && !args.path.includes("..") ? args.path : "/";
+      return result({
+        content: [{ type: "text", text: "Fetch https://prologue.dev" + path + " with Accept: text/markdown." }],
+        isError: false,
+      });
+    }
+    return error(-32602, "Unknown tool");
+  }
+  if (method === "resources/list") {
+    return result({
+      resources: [
+        { uri: "https://prologue.dev/.well-known/api-catalog", name: "API catalog", mimeType: "application/linkset+json" },
+        { uri: "https://prologue.dev/.well-known/openapi.json", name: "OpenAPI description", mimeType: "application/vnd.oai.openapi+json;version=3.1" },
+        { uri: "https://prologue.dev/auth.md", name: "Auth.md", mimeType: "text/markdown" },
+        { uri: "https://prologue.dev/.well-known/agent-card.json", name: "A2A agent card", mimeType: "application/json" },
+      ],
+    });
+  }
+  if (method === "resources/read") {
+    const uri = payload.params?.uri;
+    if (typeof uri === "string" && uri.startsWith("https://prologue.dev/")) {
+      return result({ contents: [{ uri, mimeType: "text/plain", text: "Fetch " + uri + " over HTTPS." }] });
+    }
+    return error(-32602, "Unknown resource");
+  }
+  if (method === "prompts/list") return result({ prompts: [] });
+  return error(-32601, "Method not found");
+}
+
 const worker = {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    if (url.pathname === "/mcp") {
+      return mcpEndpoint(request);
+    }
     if (url.pathname === "/a2a") {
       return a2aEndpoint(request);
     }

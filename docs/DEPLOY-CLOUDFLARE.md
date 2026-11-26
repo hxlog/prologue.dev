@@ -189,3 +189,9 @@ This section supersedes older details above where they conflict.
 - `scripts/build-api-catalog.mjs` now also writes `public/.well-known/agent-card.json` (A2A v1 schema): name/version/description, provider, `supportedInterfaces` (`https://prologue.dev/a2a`, JSONRPC, protocolVersion 1.0), capabilities, default modes and two skills with id/name/description/tags/examples.
 - The Cloudflare Worker exposes a minimal `/a2a` JSON-RPC endpoint for `message/send`/`SendMessage` (stateless direct message; no streaming, push notifications or extended card) and returns the same read-only discovery guidance; `/a2a` GET returns service info.
 - `_headers`/`vercel.json` serve the card as `application/json` with CORS and revalidation; `verify-export.mjs` asserts the card fields and skills. A2A is intentionally read-only and anonymous, consistent with `auth.md`.
+
+## 2026-11-26 MCP Server Card
+
+- `scripts/build-api-catalog.mjs` also writes `public/.well-known/mcp/server-card.json` with `serverInfo` name/version, `transport` `{ type: streamable-http, endpoint: https://prologue.dev/mcp }`, SEP-style `transports`/`remotes`, and `capabilities` for tools/resources/prompts.
+- The Worker exposes a stateless MCP Streamable HTTP JSON-RPC endpoint at `/mcp`: initialize, tools/list, tools/call, resources/list, resources/read and prompts/list; it advertises two read-only tools (`site_discovery`, `get_markdown`) and read-only discovery resources. No auth, streaming or session state.
+- `_headers`/`vercel.json` serve the card as JSON with CORS/revalidation; `verify-export.mjs` asserts serverInfo, transport endpoint and capabilities. The Cloudflare charset Transform Rule excludes `/mcp` (and `/a2a`, `/agent/`) so JSON responses keep their content type.

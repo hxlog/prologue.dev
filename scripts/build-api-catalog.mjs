@@ -156,6 +156,45 @@ function authorizationServerDoc() {
   };
 }
 
+function mcpCardDoc() {
+  return {
+    "$schema": "https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json",
+    name: "dev.prologue/content-agent",
+    title: "Prologue MCP Content Server",
+    version: "1.0.0",
+    description: "Read-only MCP server for discovering and reading prologue.dev content and machine-readable surfaces.",
+    serverInfo: {
+      name: "Prologue MCP Content Server",
+      version: "1.0.0",
+    },
+    transport: {
+      type: "streamable-http",
+      endpoint: BASE + "/mcp",
+      url: BASE + "/mcp",
+    },
+    transports: [
+      {
+        type: "streamable-http",
+        endpoint: BASE + "/mcp",
+      },
+    ],
+    remotes: [
+      {
+        type: "streamable-http",
+        url: BASE + "/mcp",
+        supportedProtocolVersions: ["2025-06-18"],
+      },
+    ],
+    capabilities: {
+      tools: true,
+      resources: true,
+      prompts: false,
+    },
+    documentationUrl: BASE + "/auth.md",
+    iconUrl: BASE + "/static/favicons/avatar.png",
+  };
+}
+
 function agentCardDoc() {
   return {
     name: "Prologue Content Agent",
@@ -282,7 +321,9 @@ async function main() {
   await fs.writeFile(path.join(OUT_DIR, "oauth-protected-resource"), JSON.stringify(protectedResourceDoc(), null, 2) + "\n");
   await fs.writeFile(path.join(OUT_DIR, "oauth-authorization-server"), JSON.stringify(authorizationServerDoc(), null, 2) + "\n");
   await fs.writeFile(path.join(OUT_DIR, "agent-card.json"), JSON.stringify(agentCardDoc(), null, 2) + "\n");
-  console.log(JSON.stringify({ base: BASE, files: ["auth.md", "api-catalog", "openapi.json", "api-doc.md", "oauth-protected-resource", "oauth-authorization-server", "agent-card.json"], endpoints: Object.keys(PATHS).length }));
+  await fs.mkdir(path.join(OUT_DIR, "mcp"), { recursive: true });
+  await fs.writeFile(path.join(OUT_DIR, "mcp", "server-card.json"), JSON.stringify(mcpCardDoc(), null, 2) + "\n");
+  console.log(JSON.stringify({ base: BASE, files: ["auth.md", "api-catalog", "openapi.json", "api-doc.md", "oauth-protected-resource", "oauth-authorization-server", "agent-card.json", "mcp/server-card.json"], endpoints: Object.keys(PATHS).length }));
 }
 
 main().catch((error) => { console.error("[build-api-catalog]", error); process.exit(1); });
