@@ -218,3 +218,10 @@ OG cards are **build-time PNGs**, not a route: scripts/build-og-images.mjs rende
 - `loading.js`, Cache Components, PPR and Partial Prefetching remain intentionally unused: `output: "export"` throws `Invariant: PPR cannot be enabled in export mode`, and `cacheComponents`/`partialPrefetching` require a Node request-time runtime. The static export plus App Router layout persistence provides the partial-rendering effect.
 - Load-more remains client state and only appends cards; browser refresh remains a full document reload by design. URL-based pagination is a later separate route change, not part of this layout split.
 - Cloudflare follow-ups applied after the audit in `docs/CLOUDFLARE-AUDIT.md`: Hotlink Protection off (RSS PNG 403 fix), HSTS max-age 31536000 (preload-eligible), and a Compression Rule for `application/atom+xml` + `application/feed+json`.
+
+## 2026-11-26 Content Signals in robots.txt
+
+- `/robots.txt` is now a static route handler (`src/app/robots.txt/route.js`) instead of MetadataRoute.Robots, because Next's robots metadata API cannot emit a `Content-Signal` directive.
+- Every User-Agent group declares `Content-Signal: ai-train=no, search=yes, ai-input=no`. The chosen policy allows search indexing/short excerpts but disallows AI training and generative AI/RAG input; adjust the constant if the policy changes.
+- `e2e/content-signals.spec.js` and `scripts/verify-export.mjs` enforce the directive on every group; the published template inherits the same route through the normal source copy.
+- Optional: Cloudflare AI Crawl Control can manage Content Signals in the dashboard, but the static robots.txt is the source of truth here so it works on Cloudflare and Vercel.

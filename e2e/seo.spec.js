@@ -85,8 +85,12 @@ test.describe("SEO output", () => {
     const robotsText = await robots.text();
     expect(robotsText).toContain("Sitemap: https://prologue.dev/sitemap.xml");
     expect(robotsText).not.toContain("Disallow: /og");
-    expect(robotsText).toContain("User-Agent: GPTBot\nDisallow: /");
-    expect(robotsText).toContain("User-Agent: ChatGPT-User\nAllow: /");
+    expect(robotsText).toMatch(
+      /User-Agent: GPTBot\nContent-Signal: ai-train=no, search=yes, ai-input=no\nDisallow: \//,
+    );
+    expect(robotsText).toMatch(
+      /User-Agent: ChatGPT-User\nContent-Signal: ai-train=no, search=yes, ai-input=no\nAllow: \//,
+    );
 
     for (const [path, type] of [
       ["/rss", "application/rss+xml"],

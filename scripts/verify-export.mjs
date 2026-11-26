@@ -28,6 +28,13 @@ ok(existsSync(join(OUT, "atomfeed")), "out/atomfeed missing");
 ok(existsSync(join(OUT, "jsonfeed")), "out/jsonfeed missing");
 ok(existsSync(join(OUT, "sitemap.xml")), "out/sitemap.xml missing");
 ok(existsSync(join(OUT, "robots.txt")), "out/robots.txt missing");
+{
+  const robots = readFileSync(join(OUT, "robots.txt"), "utf8");
+  ok(robots.includes("Content-Signal: ai-train=no, search=yes, ai-input=no"), "out/robots.txt missing Content-Signal");
+  const groups = (robots.match(/^User-Agent:/gm) || []).length;
+  const signals = (robots.match(/^Content-Signal:/gm) || []).length;
+  ok(signals === groups, "Content-Signal must be present in every User-Agent group (" + signals + "/" + groups + ")");
+}
 ok(existsSync(join(OUT, "search-index.json")), "out/search-index.json missing");
 ok(existsSync(join(OUT, "search-index-lite.json")), "out/search-index-lite.json missing");
 ok(existsSync(join(OUT, "version.json")), "out/version.json missing");
