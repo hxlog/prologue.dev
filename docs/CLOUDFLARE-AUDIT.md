@@ -600,3 +600,5 @@ node -e 'const h=require("node:http2");const c=h.connect("https://prologue.dev")
 ---
 
 *报告完。本次审计未修改任何线上设置、未部署、未 purge；除本文件外未改动仓库文件。*
+
+> **Post-audit architecture note (2026-11-26):** the Worker is no longer assets-only. A thin `worker/index.js` with an `ASSETS` binding and `run_worker_first: true` was added for Free-plan Markdown for Agents content negotiation; see `docs/DEPLOY-CLOUDFLARE.md`. Cache headers and routing semantics in this audit remain valid.

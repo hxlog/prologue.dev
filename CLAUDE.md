@@ -225,3 +225,11 @@ OG cards are **build-time PNGs**, not a route: scripts/build-og-images.mjs rende
 - Every User-Agent group declares `Content-Signal: ai-train=no, search=yes, ai-input=no`. The chosen policy allows search indexing/short excerpts but disallows AI training and generative AI/RAG input; adjust the constant if the policy changes.
 - `e2e/content-signals.spec.js` and `scripts/verify-export.mjs` enforce the directive on every group; the published template inherits the same route through the normal source copy.
 - Optional: Cloudflare AI Crawl Control can manage Content Signals in the dashboard, but the static robots.txt is the source of truth here so it works on Cloudflare and Vercel.
+
+## 2026-11-26 Markdown for Agents content negotiation
+
+- Cloudflare's native Markdown for Agents (`content_converter`) is Pro/Business/Enterprise only; this zone is Free (`editable:false`), so the site implements the same contract with `worker/index.js` plus build-time variants: `Accept: text/markdown` returns `out/__markdown/<route>.md` as `text/markdown`, while HTML remains the default for browsers.
+- The Worker is bound to the static assets (`ASSETS`, `run_worker_first: true`) and passes every non-Markdown request through to the existing asset. `wrangler.jsonc` is no longer assets-only; this is the one intentional runtime layer, added because the native edge conversion cannot be enabled on Free.
+- `scripts/build-markdown.mjs` runs in `yarn export` after the Next export, converts all 88 HTML pages to Markdown (content-only, YAML frontmatter from metadata, JSON-LD preserved) under `out/__markdown/`; `_headers` gives them `text/markdown`, noindex and the standard cache policy.
+- Responses carry `Content-Type: text/markdown; charset=utf-8`, `Vary: Accept`, `Content-Signal: ai-train=no, search=yes, ai-input=no` and an approximate `x-markdown-tokens`; the Worker is also what adds the Content-Signal header to HTML responses. `scripts/verify-export.mjs` and the `isitagentready` scan guard the contract.
+- If the zone is upgraded to Pro or higher, the native `content_converter` can replace both the Worker and the generated variants with no URL/headers change; the external contract is identical. Vercel builds keep HTML only (the Worker is Cloudflare-specific).

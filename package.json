@@ -11,7 +11,7 @@
     "dev": "node scripts/build-search-index.mjs && node scripts/build-image-variants.mjs && next dev --turbopack",
     "build": "node scripts/build-search-index.mjs && node scripts/build-image-variants.mjs && node scripts/build-og-images.mjs && node scripts/build-version.mjs && next build --turbopack",
     "build:e2e": "node scripts/build-e2e.mjs",
-    "export": "node scripts/build-search-index.mjs && node scripts/build-image-variants.mjs && node scripts/build-og-images.mjs && node scripts/build-version.mjs && node scripts/next-export.mjs && node scripts/build-cf-assets.mjs && node scripts/build-service-worker.mjs",
+    "export": "node scripts/build-search-index.mjs && node scripts/build-image-variants.mjs && node scripts/build-og-images.mjs && node scripts/build-version.mjs && node scripts/next-export.mjs && node scripts/build-markdown.mjs && node scripts/build-cf-assets.mjs && node scripts/build-service-worker.mjs",
     "deploy:cf": "npx --yes wrangler deploy",
     "preview:cf": "npx --yes wrangler dev",
     "start": "next start",
@@ -64,7 +64,10 @@
     "eslint": "^9.39.5",
     "eslint-config-next": "^16.4.5",
     "eslint-config-prettier": "^10.1.8",
+    "linkedom": "^0.18.15",
     "prettier": "^3.9.10",
+    "turndown": "^7.2.5",
+    "turndown-plugin-gfm": "^1.0.2",
     "typescript": "~6.0.3"
   }
 }

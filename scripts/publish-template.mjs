@@ -14,12 +14,15 @@ const TEMPLATE_WRANGLER =
     {
       $schema: "node_modules/wrangler/config-schema.json",
       name: "prologue-blog",
-      compatibility_date: "2026-11-25",
+      main: "worker/index.js",
+      compatibility_date: "2026-11-26",
       workers_dev: true,
       assets: {
         directory: "./out",
+        binding: "ASSETS",
         html_handling: "auto-trailing-slash",
         not_found_handling: "404-page",
+        run_worker_first: true,
       },
     },
     null,
@@ -196,12 +199,17 @@ async function applyStarterTemplate(worktreeRoot) {
     path.join(ROOT, "scripts", "check-export-budget.mjs"),
     path.join(worktreeRoot, "scripts", "check-export-budget.mjs")
   );
-  // Cloudflare path: yarn export runs next-export with NEXT_EXPORT=1 and then
-  // build-cf-assets writes out/_headers, out/_redirects and the RSC payload
-  // copies; wrangler deploy uploads ./out as an assets-only Worker.
+  // Cloudflare path: yarn export runs next-export with NEXT_EXPORT=1, then
+  // build-markdown writes out/__markdown and build-cf-assets writes out/_headers,
+  // out/_redirects and the RSC payload copies; wrangler deploy uploads ./out
+  // behind the content-negotiation Worker in worker/index.js.
   copyFile(
     path.join(ROOT, "scripts", "next-export.mjs"),
     path.join(worktreeRoot, "scripts", "next-export.mjs")
+  );
+  copyFile(
+    path.join(ROOT, "scripts", "build-markdown.mjs"),
+    path.join(worktreeRoot, "scripts", "build-markdown.mjs")
   );
   copyFile(
     path.join(ROOT, "scripts", "build-cf-assets.mjs"),

@@ -1,11 +1,15 @@
 {
-  // Cloudflare Workers Static Assets deploy target for the full-static export.
-  // Assets-only Worker: no main, no script, no assets binding. yarn export writes
-  // ./out; scripts/build-cf-assets.mjs adds _headers, _redirects and the flattened
-  // RSC payload paths before wrangler uploads the directory.
+  // Cloudflare Workers deploy target for the static export.
+  //
+  // A thin Worker provides Markdown for Agents content negotiation on the
+  // Free plan (the native content_converter setting requires Pro+). Every
+  // request goes Worker-first so an Accept: text/markdown request can be
+  // answered from out/__markdown; all other requests are served unchanged by
+  // env.ASSETS. Static HTML/browser behaviour is untouched.
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "prologue-blog",
-  "compatibility_date": "2026-11-25",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-11-26",
   // No workers.dev hostname in production: both public hostnames are Custom
   // Domains. The preview hostname (cf.prologue.dev) was removed at cutover.
   "workers_dev": false,
@@ -16,7 +20,12 @@
   ],
   "assets": {
     "directory": "./out",
+    "binding": "ASSETS",
     "html_handling": "auto-trailing-slash",
-    "not_found_handling": "404-page"
+    "not_found_handling": "404-page",
+    "run_worker_first": true
+  },
+  "observability": {
+    "enabled": true
   }
 }

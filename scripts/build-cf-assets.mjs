@@ -155,6 +155,7 @@ function buildHeaders(sharedStylesheets) {
     "  Permissions-Policy: camera=(), microphone=(), geolocation=()",
     "  X-Frame-Options: SAMEORIGIN",
     "  Content-Security-Policy: frame-ancestors 'self'",
+    "  Content-Signal: ai-train=no, search=yes, ai-input=no",
     "  Cache-Control: public, max-age=0, s-maxage=31536000, must-revalidate",
   ];
   if (sharedStylesheets.length > 0) {
@@ -257,6 +258,14 @@ function buildHeaders(sharedStylesheets) {
     "/og/*",
     "  ! Cache-Control",
     "  Cache-Control: public, max-age=31536000, immutable",
+    "",
+    "# Prebuilt Markdown for Agents variants (scripts/build-markdown.mjs). The",
+    "# Worker serves these on Accept: text/markdown; direct requests stay noindex.",
+    "/__markdown/*",
+    "  Content-Type: text/markdown; charset=utf-8",
+    "  X-Robots-Tag: noindex",
+    "  ! Cache-Control",
+    "  Cache-Control: public, max-age=0, s-maxage=31536000, must-revalidate",
   );
   return lines.join("\n");
 }

@@ -156,3 +156,10 @@ This section supersedes older details above where they conflict.
 - Every User-Agent group declares `Content-Signal: ai-train=no, search=yes, ai-input=no`. The chosen policy allows search indexing/short excerpts but disallows AI training and generative AI/RAG input; adjust the constant if the policy changes.
 - `e2e/content-signals.spec.js` and `scripts/verify-export.mjs` enforce the directive on every group; the published template inherits the same route through the normal source copy.
 - Optional: Cloudflare AI Crawl Control can manage Content Signals in the dashboard, but the static robots.txt is the source of truth here so it works on Cloudflare and Vercel.
+
+## 2026-11-26 Markdown for Agents content negotiation
+
+- Cloudflare's native Markdown for Agents requires Pro+; this Free zone cannot set `content_converter` (API returns `1015 Not allowed to edit zone setting`). The Cloudflare target now deploys a thin `worker/index.js` with an `ASSETS` binding and `run_worker_first: true`: it serves `out/__markdown/**` when `Accept: text/markdown`, otherwise `env.ASSETS.fetch(request)` returns the unchanged static asset.
+- `yarn export` now runs `scripts/build-markdown.mjs` between `next-export` and `build-cf-assets`; the Markdown variants are content-only (nav/footer/asides stripped), carry YAML frontmatter and JSON-LD, and are disabled from indexing via `X-Robots-Tag`. Header rules are now 21 (one added `/__markdown/*` plus global `Content-Signal`).
+- This is the only non-static runtime layer. If the zone is upgraded to Pro+, enable native Markdown for Agents and remove `main`/`binding`/`run_worker_first` plus the Worker and build-markdown step; no public URL or content-type contract changes.
+- Vercel `yarn build` is unchanged and does not implement request-time Markdown negotiation; the generated Markdown files are only in the Cloudflare `export` path.

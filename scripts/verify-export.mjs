@@ -38,6 +38,40 @@ ok(existsSync(join(OUT, "robots.txt")), "out/robots.txt missing");
 ok(existsSync(join(OUT, "search-index.json")), "out/search-index.json missing");
 ok(existsSync(join(OUT, "search-index-lite.json")), "out/search-index-lite.json missing");
 ok(existsSync(join(OUT, "version.json")), "out/version.json missing");
+ok(existsSync(join(OUT, "__markdown", "index.md")), "out/__markdown/index.md missing");
+ok(
+  readFileSync(join(OUT, "__markdown", "index.md"), "utf8").startsWith("---\ntitle:"),
+  "out/__markdown/index.md must start with YAML frontmatter"
+);
+{
+  const countByExtension = (extension) => {
+    const files = [];
+    const walk = (dir) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const pathname = join(dir, entry.name);
+        if (entry.isDirectory()) walk(pathname);
+        else if (entry.name.endsWith(extension)) files.push(pathname);
+      }
+    };
+    walk(join(OUT, "__markdown"));
+    return files;
+  };
+  const mdFiles = countByExtension(".md");
+  const htmlFiles = [];
+  const walkHtml = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const pathname = join(dir, entry.name);
+      if (entry.isDirectory()) walkHtml(pathname);
+      else if (entry.name.endsWith(".html")) htmlFiles.push(pathname);
+    }
+  };
+  walkHtml(OUT);
+  ok(mdFiles.length === htmlFiles.length, "one Markdown variant per HTML page expected (" + mdFiles.length + "/" + htmlFiles.length + ")");
+  ok(existsSync(join(OUT, "__markdown", "blog", "first_job_first_exit_stop_the_bleeding.md")), "sample post Markdown variant missing");
+  const headers = readFileSync(join(OUT, "_headers"), "utf8");
+  ok(headers.includes("/__markdown/*"), "out/_headers missing /__markdown/* rule");
+  ok(headers.includes("Content-Signal: ai-train=no, search=yes, ai-input=no"), "out/_headers missing Content-Signal");
+}
 ok(existsSync(join(OUT, "sw.js")), "out/sw.js missing");
 ok(existsSync(join(OUT, "sw-manifest.json")), "out/sw-manifest.json missing");
 try {
