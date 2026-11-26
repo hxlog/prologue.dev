@@ -33,6 +33,19 @@ ok(existsSync(join(OUT, "robots.txt")), "out/robots.txt missing");
   ok(existsSync(catalogPath), "out/.well-known/api-catalog missing");
   ok(existsSync(join(OUT, ".well-known", "openapi.json")), "out/.well-known/openapi.json missing");
   ok(existsSync(join(OUT, ".well-known", "api-doc.md")), "out/.well-known/api-doc.md missing");
+  for (const name of ["oauth-protected-resource", "oauth-authorization-server"]) {
+    const pathname = join(OUT, ".well-known", name);
+    ok(existsSync(pathname), "out/.well-known/" + name + " missing");
+    const parsed = JSON.parse(readFileSync(pathname, "utf8"));
+    ok(typeof parsed.issuer === "string" || typeof parsed.resource === "string", "out/.well-known/" + name + " missing resource/issuer");
+  }
+  const prm = JSON.parse(readFileSync(join(OUT, ".well-known", "oauth-protected-resource"), "utf8"));
+  ok(Array.isArray(prm.authorization_servers) && prm.authorization_servers.length > 0, "PRM authorization_servers missing");
+  ok(Array.isArray(prm.scopes_supported), "PRM scopes_supported missing");
+  ok(prm.bearer_methods_supported?.includes("header"), "PRM bearer_methods_supported must include header");
+  const as = JSON.parse(readFileSync(join(OUT, ".well-known", "oauth-authorization-server"), "utf8"));
+  ok(prm.authorization_servers.includes(as.issuer), "AS issuer does not match PRM authorization_servers");
+  ok(as.agent_auth && as.agent_auth.register_uri && as.agent_auth.identity_types_supported?.includes("anonymous"), "AS agent_auth anonymous registration missing");
   ok(existsSync(join(OUT, "auth.md")), "out/auth.md missing");
   ok(/^# .*auth\.md/m.test(readFileSync(join(OUT, "auth.md"), "utf8")), "out/auth.md must have an H1 containing auth.md");
   ok(readFileSync(join(OUT, "_headers"), "utf8").includes("/auth.md"), "out/_headers missing /auth.md rule");

@@ -116,6 +116,46 @@ function apiDoc() {
   return lines.join("\n");
 }
 
+const AGENT_CREDENTIAL_TYPE = "urn:prologue:anonymous-agent-credential";
+const AGENT_SCOPES = ["content:read"];
+const AGENT_AUTH = {
+  skill: "auth.md",
+  register_uri: BASE + "/agent/auth",
+  identity_types_supported: ["anonymous"],
+  anonymous: {
+    credential_types_supported: [AGENT_CREDENTIAL_TYPE],
+    claim_uri: BASE + "/agent/claim",
+  },
+  claim_uri: BASE + "/agent/claim",
+  revocation_uri: BASE + "/agent/revoke",
+};
+
+function protectedResourceDoc() {
+  return {
+    resource: BASE,
+    authorization_servers: [BASE],
+    scopes_supported: AGENT_SCOPES,
+    bearer_methods_supported: ["header"],
+    resource_documentation: BASE + "/auth.md",
+  };
+}
+
+function authorizationServerDoc() {
+  return {
+    issuer: BASE,
+    authorization_endpoint: BASE + "/agent/authorize",
+    token_endpoint: BASE + "/agent/token",
+    registration_endpoint: BASE + "/agent/auth",
+    revocation_endpoint: BASE + "/agent/revoke",
+    scopes_supported: AGENT_SCOPES,
+    response_types_supported: ["token"],
+    grant_types_supported: ["client_credentials"],
+    token_endpoint_auth_methods_supported: ["none"],
+    service_documentation: BASE + "/auth.md",
+    agent_auth: AGENT_AUTH,
+  };
+}
+
 function authDoc() {
   const issues = siteMetadata.github
     ? "https://github.com/" + siteMetadata.github + "/" + (siteMetadata.siteRepo || "issues") + "/issues"
@@ -125,30 +165,37 @@ function authDoc() {
     "",
     "Agent registration and authentication discovery for " + BASE + ".",
     "",
+    "This service accepts AI agent registrations for anonymous, read-only access to its public content.",
+    "",
     "## Audience",
     "",
-    "AI agents, crawlers and automated clients that want to read the public content and machine-readable surfaces of this site. There is no end-user account system and no agent-specific account tier.",
+    "AI agents, crawlers and automated clients that want to read the public content and machine-readable surfaces of this site. There is no human account system and no agent-specific account tier.",
     "",
     "## Registration or provisioning",
     "",
-    "No registration, account creation, onboarding, invitation or credential provisioning is available or required. All public content is read-only and anonymous.",
+    "Anonymous agent registration is available at " + BASE + "/agent/auth. It creates no human account, sends no email and requires no payment or invitation.",
     "",
-    "- Registration endpoint: none. Do not POST to /agent/auth, /register, /token or any other endpoint expecting to create an account or receive credentials.",
-    "- Provisioning endpoint: none. No API keys, OAuth clients, mTLS certificates, ID-JAG assertions or verified-email credentials are issued.",
-    "- This document and the public discovery documents are the complete onboarding path.",
+    "- Registration endpoint: POST " + BASE + "/agent/auth (JSON body optional).",
+    "- Registration returns an ephemeral anonymous bearer credential; no account or persistent identity is created.",
+    "- OAuth Protected Resource Metadata: " + BASE + "/.well-known/oauth-protected-resource",
+    "- OAuth Authorization Server metadata: " + BASE + "/.well-known/oauth-authorization-server",
     "",
     "## Supported authentication methods",
     "",
-    "- Anonymous, unauthenticated public GET access is the only supported access method.",
-    "- No OAuth 2.1 protected resource, no OpenID Provider, no Authorization Server, no API key, no mTLS, no ID-JAG, no verified-email and no DCR registration is supported.",
-    "- No OAuth Protected Resource Metadata or Authorization Server metadata is published because there is no protected resource or authorization server to describe; publishing placeholder metadata would be misleading.",
-    "- No WWW-Authenticate challenge is expected. A 401 response is an error, not an invitation to authenticate.",
+    "- Anonymous registration (identity_types_supported: [\"anonymous\"]). No ID-JAG, verified-email, API key, mTLS or client-secret registration is offered.",
+    "- The public content endpoints do not require any credential; anonymous registration exists so an agent can obtain an explicit ephemeral bearer credential.",
+    "- Do not attempt browser/OIDC flows. The Authorization Server advertises the anonymous method only.",
+    "",
+    "## Claim and revocation",
+    "",
+    "- No human claim ceremony is required. GET " + BASE + "/agent/claim returns not_required.",
+    "- POST " + BASE + "/agent/revoke revokes an ephemeral credential; the server keeps no credential records.",
     "",
     "## Credential use",
     "",
-    "- Do not send Authorization headers, API keys, bearer tokens, cookies, client certificates or signed assertions. They are not accepted and are not needed.",
-    "- Do not attempt to create or store credentials for this site. There is no credential lifecycle, refresh, revocation or rotation to follow.",
-    "- Respect the content usage preferences in robots.txt and the Content-Signal response header; those are the applicable usage policy.",
+    "- If an agent registers, it may store the returned token and send it as `Authorization: Bearer <token>` when it wants an explicit anonymous identity. The public content endpoints do not require or validate it.",
+    "- Do not create human accounts, store passwords, send email or attempt credential escalation. There is no protected resource that requires the token.",
+    "- Respect robots.txt, the Content-Signal response header and Cloudflare edge protections; those are the applicable usage policy.",
     "",
     "## Machine-readable entry points",
     "",
@@ -158,6 +205,12 @@ function authDoc() {
     "- Site docs for agents: " + BASE + "/llms.txt",
     "- Feeds: " + BASE + "/rss, " + BASE + "/atomfeed, " + BASE + "/jsonfeed",
     "- Version / health: " + BASE + "/version.json",
+    "",
+    "## Agent auth metadata",
+    "",
+    "```json",
+    JSON.stringify({ agent_auth: AGENT_AUTH }, null, 2),
+    "```",
     "",
     "## Rate limits and policy",
     "",
@@ -176,7 +229,9 @@ async function main() {
   await fs.writeFile(path.join(OUT_DIR, "openapi.json"), JSON.stringify(openApi(), null, 2) + "\n");
   await fs.writeFile(path.join(OUT_DIR, "api-doc.md"), apiDoc());
   await fs.writeFile(path.join(PUBLIC_DIR, "auth.md"), authDoc());
-  console.log(JSON.stringify({ base: BASE, files: ["auth.md", "api-catalog", "openapi.json", "api-doc.md"], endpoints: Object.keys(PATHS).length }));
+  await fs.writeFile(path.join(OUT_DIR, "oauth-protected-resource"), JSON.stringify(protectedResourceDoc(), null, 2) + "\n");
+  await fs.writeFile(path.join(OUT_DIR, "oauth-authorization-server"), JSON.stringify(authorizationServerDoc(), null, 2) + "\n");
+  console.log(JSON.stringify({ base: BASE, files: ["auth.md", "api-catalog", "openapi.json", "api-doc.md", "oauth-protected-resource", "oauth-authorization-server"], endpoints: Object.keys(PATHS).length }));
 }
 
 main().catch((error) => { console.error("[build-api-catalog]", error); process.exit(1); });

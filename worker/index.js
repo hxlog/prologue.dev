@@ -114,9 +114,87 @@ async function markdownResponse(request, env, url) {
   });
 }
 
+/** JSON response for the anonymous agent-registration endpoints. */
+function agentJson(status, body) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
+      "access-control-allow-origin": "*",
+    },
+  });
+}
+
+function newAnonymousCredential() {
+  const id = typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
+  return {
+    agent_id: "agent_" + id,
+    access_token: "anon_" + id,
+    token_type: "Bearer",
+    credential_type: "urn:prologue:anonymous-agent-credential",
+    expires_in: 3600,
+    register_uri: "https://prologue.dev/agent/auth",
+  };
+}
+
+function agentEndpoint(request, url) {
+  if (request.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "GET, POST, OPTIONS",
+        "access-control-allow-headers": "content-type, authorization",
+        "access-control-max-age": "86400",
+      },
+    });
+  }
+
+  if (url.pathname === "/agent/auth" && request.method === "POST") {
+    return agentJson(201, newAnonymousCredential());
+  }
+  if (url.pathname === "/agent/token" && request.method === "POST") {
+    const credential = newAnonymousCredential();
+    return agentJson(200, {
+      access_token: credential.access_token,
+      token_type: "Bearer",
+      expires_in: credential.expires_in,
+      scope: "content:read",
+    });
+  }
+  if (url.pathname === "/agent/claim" && request.method === "GET") {
+    return agentJson(200, {
+      status: "not_required",
+      message: "Anonymous registration does not require a human claim ceremony.",
+      claim_uri: "https://prologue.dev/agent/claim",
+    });
+  }
+  if (url.pathname === "/agent/revoke" && request.method === "POST") {
+    return agentJson(200, {
+      revoked: true,
+      message: "Anonymous credentials are ephemeral and are not stored server-side.",
+    });
+  }
+  if (url.pathname === "/agent/authorize" && request.method === "GET") {
+    return agentJson(200, {
+      status: "anonymous_only",
+      message: "POST /agent/auth for anonymous registration; no browser authorization flow is supported.",
+      register_uri: "https://prologue.dev/agent/auth",
+    });
+  }
+  return agentJson(405, { error: "method_not_allowed" });
+}
+
 const worker = {
   async fetch(request, env) {
     const url = new URL(request.url);
+
+    if (url.pathname.startsWith("/agent/")) {
+      return agentEndpoint(request, url);
+    }
 
     if (
       (request.method === "GET" || request.method === "HEAD") &&
