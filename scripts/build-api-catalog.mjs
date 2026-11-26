@@ -119,7 +119,7 @@ function apiDoc() {
 const AGENT_CREDENTIAL_TYPE = "urn:prologue:anonymous-agent-credential";
 const AGENT_SCOPES = ["content:read"];
 const AGENT_AUTH = {
-  skill: "auth.md",
+  skill: BASE + "/auth.md",
   register_uri: BASE + "/agent/auth",
   identity_types_supported: ["anonymous"],
   anonymous: {
