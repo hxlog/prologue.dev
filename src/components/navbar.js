@@ -6,6 +6,7 @@ import RssModal from "./rss-modal";
 import AgentEntry from "./agent-entry";
 import SearchDialog from "./search-dialog";
 import NavLinks from "./nav-links";
+import { getAgentCodeHtml } from "../lib/agent-code-highlight";
 
 /**
  * Sticky glass header.
@@ -17,7 +18,9 @@ import NavLinks from "./nav-links";
  * The scroll-elevate shadow is CSS-only (`animation-timeline: scroll()`), not
  * a scroll listener — see `.glass-header` in globals.css.
  */
-export default function Navbar() {
+export default async function Navbar() {
+  const agentCode = await getAgentCodeHtml();
+
   return (
     <header
       className="glass-header sticky top-0 z-40 border-b"
@@ -42,7 +45,7 @@ export default function Navbar() {
             so heights and baselines line up on one horizontal axis. */}
         <div className="flex items-center gap-0 leading-5 sm:gap-0.5">
           <SearchDialog />
-          <AgentEntry />
+          <AgentEntry code={agentCode} />
           <RssModal />
           <MobileNav />
           <ThemeSwitch />

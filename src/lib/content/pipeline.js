@@ -33,6 +33,7 @@ import { visit } from "unist-util-visit";
 import rehypeFigure from "../../components/rehype-figure.js";
 import rehypeMermaidPre from "../../components/rehype-mermaid-pre.js";
 import rehypeTableWrap from "../../components/rehype-table-wrap.js";
+import { SHIKI_OPTIONS } from "../shiki-config.js";
 
 const YOUTUBE_ID = /^[\w-]{11}$/;
 const YOUTUBE_ALLOW =
@@ -126,13 +127,7 @@ async function getProcessor() {
         // keeps a wide table from scrolling the whole page on a phone. It is
         // part of the exported HTML, so the no-JS page gets it too.
         .use(rehypeTableWrap)
-        .use(rehypeShiki, {
-          themes: {
-            light: "material-theme-lighter",
-            dark: "material-theme-darker",
-          },
-          defaultColor: false,
-        })
+        .use(rehypeShiki, SHIKI_OPTIONS)
         .use(rehypeStringify); // NO options
     })();
   }

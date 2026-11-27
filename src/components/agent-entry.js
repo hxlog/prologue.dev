@@ -23,7 +23,7 @@ const Panel = dynamic(loadPanel, { ssr: false });
  * (Headless UI dialog plus copy/config code) is lazy-loaded on intent and
  * retired on close, so the navbar shell does not ship it on every route.
  */
-export default function AgentEntry() {
+export default function AgentEntry({ code }) {
   const [open, setOpen] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
@@ -56,7 +56,7 @@ export default function AgentEntry() {
         <AgentMark variant="node" />
       </button>
 
-      {loaded ? <Panel open={open} onClose={() => setOpen(false)} /> : null}
+      {loaded ? <Panel open={open} onClose={() => setOpen(false)} code={code} /> : null}
     </>
   );
 }

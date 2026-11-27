@@ -1745,6 +1745,32 @@ html.dark .shiki span {
   text-decoration: var(--shiki-dark-text-decoration) !important;
 }
 
+/* Shiki snippets in the Agent-entry modal: same theme variables and colors as
+   article code, but a compact surface that matches the RSS/copy rows. */
+.agent-code-block {
+  overflow-x: auto;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border);
+  background-color: var(--surface-2);
+  padding: 0.75rem;
+}
+
+.agent-code-block .shiki {
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  line-height: 1.25rem;
+}
+
+.agent-code-block .shiki code {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
 /* ---------------------------------------------------------------------------
  * Image lightbox.
  *

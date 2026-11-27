@@ -291,3 +291,9 @@ OG cards are **build-time PNGs**, not a route: scripts/build-og-images.mjs rende
 - `robots.txt` now declares `Content-Signal: search=yes, ai-input=yes, ai-train=no` in every group; the wildcard group is exactly `User-Agent: *` / `Content-Signal` / `Allow: /` (the obsolete `/api/` disallow was removed).
 - The same value is sent in the Worker's `Content-Signal` response header and in `out/_headers` for static assets, so HTML and non-HTML responses agree. AI search/RAG indexing (including Cloudflare AI Search) is allowed; model training remains disallowed.
 - `scripts/verify-export.mjs` and the `content-signals`/`seo` e2e specs assert the new policy.
+
+## 2026-11-28 Shiki highlighting in the Agent panel
+
+- Article code and the Agent-entry modal now share `src/lib/shiki-config.js` (`material-theme-lighter` / `material-theme-darker`, `defaultColor: false`); `src/lib/content/pipeline.js` consumes the same options instead of duplicating them.
+- `src/lib/agent-code.js` owns the MCP/A2A snippets and derives their URLs/client key from `data/sitemetadata.js`. `src/lib/agent-code-highlight.js` highlights them once per server/build with Shiki; `Navbar` (async server component) passes the resulting HTML into the lazy client panel as props.
+- `src/components/shiki-code.js` renders the pre-highlighted HTML under `.agent-code-block`; the block reuses the global `.shiki` light/dark CSS variables and only resets the inner `pre` chrome. The raw snippets stay available for copy buttons.
