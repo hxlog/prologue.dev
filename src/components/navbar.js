@@ -3,6 +3,7 @@ import siteMetadata from "../../data/sitemetadata";
 import ThemeSwitch from "./themeswitch";
 import MobileNav from "./mobilenav";
 import RssModal from "./rss-modal";
+import AgentEntry from "./agent-entry";
 import SearchDialog from "./search-dialog";
 import NavLinks from "./nav-links";
 
@@ -28,7 +29,7 @@ export default function Navbar() {
           aria-label={siteMetadata.publishName}
           className="select-none rounded-control px-1 py-1"
         >
-          <span className="text-gradient text-lg font-semibold tracking-tight">
+          <span className="text-gradient whitespace-nowrap text-base font-semibold tracking-tight sm:text-lg">
             {siteMetadata.publishName}
           </span>
         </Link>
@@ -39,8 +40,9 @@ export default function Navbar() {
 
         {/* Icon toolbar: every button shares the same 36px box and 20px icon
             so heights and baselines line up on one horizontal axis. */}
-        <div className="flex items-center gap-0.5 leading-5">
+        <div className="flex items-center gap-0 leading-5 sm:gap-0.5">
           <SearchDialog />
+          <AgentEntry />
           <RssModal />
           <MobileNav />
           <ThemeSwitch />

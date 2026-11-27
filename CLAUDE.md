@@ -270,3 +270,10 @@ OG cards are **build-time PNGs**, not a route: scripts/build-og-images.mjs rende
   - `_mcp._agents.prologue.dev` → `alpn="h2"` with `key65400="https://prologue.dev/.well-known/mcp/server-card.json"`
 - `key65400` is the numeric experimental SvcParamKey carrying the discovery metadata URL; DNSSEC is active on the zone and Cloudflare DoH returns `AD=true`.
 - Verified with Cloudflare DoH: all three records parse as valid ServiceMode, DNSSEC validated, and `checks.discoverability.dnsAid` passes. DNS records are external Cloudflare state, not repository files.
+
+## 2026-11-27 Agent entry in the navbar
+
+- `src/components/agent-entry.js` adds a Node-mark `btn-icon` between `SearchDialog` and `RssModal` in `navbar.js` (desktop and mobile toolbars). The Headless UI panel is lazy-loaded on intent/idle and mounted only after the first open, so the navbar shell stays small.
+- The panel uses the selected B-console layout: `MCP` / `A2A` tabs, copyable `prologue_blog` MCP client config and MCP endpoint, plus A2A curl, Agent Card and JSON-RPC endpoint. It deliberately omits the old read-only/streaming disclaimer and MCP intro copy.
+- To fit five toolbar icons at 320px the mobile logo uses `text-base` (desktop keeps `text-lg`) and the toolbar gap is zero below `sm`; the logo stays on one line and the page has no horizontal overflow.
+- `e2e/ui-overlays.spec.js` covers opening/switching/closing the panel and the mobile toolbar order (search → agent → RSS).

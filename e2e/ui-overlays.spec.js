@@ -32,6 +32,32 @@ test.describe("lazy navigation overlays", () => {
     await expect(page.getByText("订阅更新")).toBeHidden();
   });
 
+  test("Agent entry opens MCP/A2A panel from the toolbar", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: "Agent 接入（MCP / A2A）" }).click();
+    const panel = page.locator(".modal-panel");
+    await expect(panel).toBeVisible();
+    await expect(panel.getByText("prologue_blog")).toBeVisible();
+    await page.getByRole("tab", { name: "A2A" }).click();
+    await expect(panel.getByText("A2A Agent Card")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(panel).toBeHidden();
+  });
+
+  test("Agent entry sits between search and RSS on mobile", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    const order = await page.locator("header button.btn-icon").evaluateAll((buttons) =>
+      buttons.map((button) => button.getAttribute("aria-label"))
+    );
+    const search = order.indexOf("搜索全站（⌘K）");
+    const agent = order.indexOf("Agent 接入（MCP / A2A）");
+    const rss = order.indexOf("RSS 订阅");
+    expect(search).toBeGreaterThanOrEqual(0);
+    expect(agent).toBe(search + 1);
+    expect(rss).toBe(agent + 1);
+  });
+
   test("email modal opens from the footer", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "Email" }).click();
