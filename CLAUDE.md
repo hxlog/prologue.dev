@@ -280,7 +280,7 @@ OG cards are **build-time PNGs**, not a route: scripts/build-og-images.mjs rende
 
 ## 2026-11-27 Analytics removal and metadata consolidation
 
-- **Umami is gone.** The two local analytics components, the root-layout mount, both `siteMetadata.umami` blocks, current README/AGENTS/deployment references and the historical design-spec examples were removed. There was no Umami npm package, so `package.json`/`yarn.lock` are unchanged; Cloudflare handles monitoring.
+- **Self-hosted analytics is gone.** The two local analytics components, the root-layout mount, both site-metadata analytics blocks, current README/AGENTS/deployment references and the historical design-spec examples were removed. There was no analytics npm package, so `package.json`/`yarn.lock` are unchanged; Cloudflare handles monitoring.
 - `data/sitemetadata.js` now has one canonical `siteName`; the duplicate `title` and `publishName` fields were removed and every consumer was moved to `siteName`. `publisher` metadata, footer brand, navbar label, feed titles, OG cards, llms and sitemap all read the same field.
 - Agent/discovery metadata lives in `data/sitemetadata.js` as a derived `agent` object: `mcpClientName`, `mcpServerName`, `a2aName`, `apiTitle`, `mcpServerSlug`, `credentialType` and the public Web Bot Auth key. Names are derived from `siteName`/`siteUrl`; only the client-config key and public signing key are explicit. The private Web Bot Auth key is not committed.
 - `scripts/build-api-catalog.mjs` and `worker/index.js` import `data/sitemetadata.js`; all `prologue.dev`/`Prologue`/`urn:prologue` literals were removed from runtime and discovery code. Wrangler bundles the Worker data import successfully.
