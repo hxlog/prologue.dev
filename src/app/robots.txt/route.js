@@ -9,13 +9,13 @@ import siteMetadata from "../../../data/sitemetadata";
  * crawlers that match a specific User-Agent block still receive the preference.
  *
  * Content-Signal values (per contentsignals.org / isitagentready):
- *   ai-train=no  - do not train/fine-tune models on the content;
  *   search=yes   - search indexing and short search excerpts are allowed;
- *   ai-input=no  - do not feed the content into generative AI/RAG answers.
+ *   ai-input=yes - allow AI search/RAG indexing, including Cloudflare AI Search;
+ *   ai-train=no  - do not train/fine-tune models on the content.
  */
 export const dynamic = "force-static";
 
-const CONTENT_SIGNAL = "Content-Signal: ai-train=no, search=yes, ai-input=no";
+const CONTENT_SIGNAL = "Content-Signal: search=yes, ai-input=yes, ai-train=no";
 
 const RETRIEVAL_BOTS = [
   "ChatGPT-User",
@@ -40,7 +40,7 @@ function group(userAgent, rules) {
 
 export function GET() {
   const groups = [
-    group("*", ["Allow: /", "Disallow: /api/"]),
+    group("*", ["Allow: /"]),
     ...RETRIEVAL_BOTS.map((userAgent) => group(userAgent, ["Allow: /"])),
     ...TRAINING_BOTS.map((userAgent) => group(userAgent, ["Disallow: /"])),
   ];

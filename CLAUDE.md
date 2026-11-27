@@ -285,3 +285,9 @@ OG cards are **build-time PNGs**, not a route: scripts/build-og-images.mjs rende
 - Agent/discovery metadata lives in `data/sitemetadata.js` as a derived `agent` object: `mcpClientName`, `mcpServerName`, `a2aName`, `apiTitle`, `mcpServerSlug`, `credentialType` and the public Web Bot Auth key. Names are derived from `siteName`/`siteUrl`; only the client-config key and public signing key are explicit. The private Web Bot Auth key is not committed.
 - `scripts/build-api-catalog.mjs` and `worker/index.js` import `data/sitemetadata.js`; all `prologue.dev`/`Prologue`/`urn:prologue` literals were removed from runtime and discovery code. Wrangler bundles the Worker data import successfully.
 - Internal local-only namespaces were genericized (`site:error-reload`, `site.search.v1`, `site-sw`), and the stray `Prologue 序章` CSS comment was removed. `data/`, `public/`, README/docs and maintainer-only publish tooling remain the only places with site-specific values by design; `assets/og` is a generated build artifact derived from `public/`.
+
+## 2026-11-27 Content-Signal ai-input policy
+
+- `robots.txt` now declares `Content-Signal: search=yes, ai-input=yes, ai-train=no` in every group; the wildcard group is exactly `User-Agent: *` / `Content-Signal` / `Allow: /` (the obsolete `/api/` disallow was removed).
+- The same value is sent in the Worker's `Content-Signal` response header and in `out/_headers` for static assets, so HTML and non-HTML responses agree. AI search/RAG indexing (including Cloudflare AI Search) is allowed; model training remains disallowed.
+- `scripts/verify-export.mjs` and the `content-signals`/`seo` e2e specs assert the new policy.

@@ -155,7 +155,7 @@ function buildHeaders(sharedStylesheets) {
     "  Permissions-Policy: camera=(), microphone=(), geolocation=()",
     "  X-Frame-Options: SAMEORIGIN",
     "  Content-Security-Policy: frame-ancestors 'self'",
-    "  Content-Signal: ai-train=no, search=yes, ai-input=no",
+    "  Content-Signal: search=yes, ai-input=yes, ai-train=no",
     "  Cache-Control: public, max-age=0, s-maxage=31536000, must-revalidate",
   ];
   {

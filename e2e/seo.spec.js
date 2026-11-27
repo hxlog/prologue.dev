@@ -86,10 +86,10 @@ test.describe("SEO output", () => {
     expect(robotsText).toContain("Sitemap: https://prologue.dev/sitemap.xml");
     expect(robotsText).not.toContain("Disallow: /og");
     expect(robotsText).toMatch(
-      /User-Agent: GPTBot\nContent-Signal: ai-train=no, search=yes, ai-input=no\nDisallow: \//,
+      /User-Agent: GPTBot\nContent-Signal: search=yes, ai-input=yes, ai-train=no\nDisallow: \//,
     );
     expect(robotsText).toMatch(
-      /User-Agent: ChatGPT-User\nContent-Signal: ai-train=no, search=yes, ai-input=no\nAllow: \//,
+      /User-Agent: ChatGPT-User\nContent-Signal: search=yes, ai-input=yes, ai-train=no\nAllow: \//,
     );
 
     for (const [path, type] of [

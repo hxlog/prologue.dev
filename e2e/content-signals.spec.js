@@ -9,9 +9,10 @@ test("robots.txt declares Content-Signal for every group", async ({ request }) =
   const body = await response.text();
 
   expect(body).toContain(
-    "Content-Signal: ai-train=no, search=yes, ai-input=no",
+    "Content-Signal: search=yes, ai-input=yes, ai-train=no",
   );
   expect(body).toContain("User-Agent: *");
+  expect(body).toMatch(/User-Agent: \*\nContent-Signal: search=yes, ai-input=yes, ai-train=no\nAllow: \//);
   expect(body).toContain("User-Agent: GPTBot");
   expect(body).toContain("User-Agent: OAI-SearchBot");
   expect(body).toContain("Sitemap: https://prologue.dev/sitemap.xml");

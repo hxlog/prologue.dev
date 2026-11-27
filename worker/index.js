@@ -21,7 +21,7 @@ const SITE = String(siteMetadata.siteUrl || "").replace(/\/+$/, "");
 const SITE_NAME = siteMetadata.siteName;
 const AGENT = siteMetadata.agent;
 
-const CONTENT_SIGNAL = "ai-train=no, search=yes, ai-input=no";
+const CONTENT_SIGNAL = "search=yes, ai-input=yes, ai-train=no";
 const MARKDOWN_PREFIX = "/__markdown";
 
 /** The response should prefer Markdown over HTML for this Accept header. */

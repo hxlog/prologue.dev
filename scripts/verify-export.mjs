@@ -101,7 +101,7 @@ ok(existsSync(join(OUT, "robots.txt")), "out/robots.txt missing");
 }
 {
   const robots = readFileSync(join(OUT, "robots.txt"), "utf8");
-  ok(robots.includes("Content-Signal: ai-train=no, search=yes, ai-input=no"), "out/robots.txt missing Content-Signal");
+  ok(robots.includes("Content-Signal: search=yes, ai-input=yes, ai-train=no"), "out/robots.txt missing Content-Signal");
   const groups = (robots.match(/^User-Agent:/gm) || []).length;
   const signals = (robots.match(/^Content-Signal:/gm) || []).length;
   ok(signals === groups, "Content-Signal must be present in every User-Agent group (" + signals + "/" + groups + ")");
@@ -141,7 +141,7 @@ ok(
   ok(existsSync(join(OUT, "__markdown", "blog", "first_job_first_exit_stop_the_bleeding.md")), "sample post Markdown variant missing");
   const headers = readFileSync(join(OUT, "_headers"), "utf8");
   ok(headers.includes("/__markdown/*"), "out/_headers missing /__markdown/* rule");
-  ok(headers.includes("Content-Signal: ai-train=no, search=yes, ai-input=no"), "out/_headers missing Content-Signal");
+  ok(headers.includes("Content-Signal: search=yes, ai-input=yes, ai-train=no"), "out/_headers missing Content-Signal");
 }
 ok(existsSync(join(OUT, "sw.js")), "out/sw.js missing");
 ok(existsSync(join(OUT, "sw-manifest.json")), "out/sw-manifest.json missing");
