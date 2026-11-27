@@ -13,7 +13,7 @@ const A2A_ENDPOINT = SITE + "/a2a";
 const MCP_CONFIG = JSON.stringify(
   {
     mcpServers: {
-      prologue_blog: {
+      [siteMetadata.agent.mcpClientName]: {
         type: "streamable-http",
         url: MCP_ENDPOINT,
       },

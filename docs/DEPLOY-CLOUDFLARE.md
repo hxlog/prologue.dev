@@ -86,7 +86,7 @@ node .tmp/m1/audit.mjs   # 42 checks against BASE_URL (env)
 The suite covers routes, feeds (Content-Type/counts), llms/sitemap/robots, OG
 cards, the 7 hard-404 cases, AVIF→WebP→`img` picture order, lightbox loading,
 SPA navigation, ViewTransition activation, theme toggle, client-side search,
-SEO/JSON-LD/twitter meta and the Umami tag. Run it against the preview domain
+SEO/JSON-LD/twitter meta. Run it against the preview domain
 before cutover and against apex/www after.
 
 ## Migration status (2026-11-24)
@@ -205,7 +205,7 @@ This section supersedes older details above where they conflict.
 ## 2026-11-26 Web Bot Auth
 
 - `scripts/build-api-catalog.mjs` publishes an Ed25519 JWKS at `/.well-known/http-message-signatures-directory` with `kty`, `crv`, `x` and the RFC 7638 key thumbprint as `kid`; content type is `application/http-message-signatures-directory+json` with CORS and cache headers.
-- The public key is fixed in the build generator (private key deliberately not committed); it is the verification key for future signed outgoing agent requests. The site itself is read-only and currently has no outbound bot traffic to sign; the directory is the discovery contract Cloudflare Web Bot Auth verifies.
+- The public key lives in `data/sitemetadata.js` under `agent.webBotAuthKey`; the build generator computes its RFC 7638 `kid`. The private key is deliberately not committed; it is the verification key for future signed outgoing agent requests. The site itself is read-only and currently has no outbound bot traffic to sign; the directory is the discovery contract Cloudflare Web Bot Auth verifies.
 - `verify-export.mjs` asserts the JWKS shape; the directory is generated into `public/.well-known` and copied into the export. If the site later operates an outbound agent, sign requests with `Signature-Input` (`tag="web-bot-auth"`, `keyid` = thumbprint, `created`/`expires`/`nonce`) and `Signature`, plus `Signature-Agent: "https://prologue.dev"`.
 
 ## 2026-11-26 DNS for AI Discovery (DNS-AID)

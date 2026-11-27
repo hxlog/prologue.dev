@@ -8,7 +8,6 @@ import ServiceWorkerRegister from "../components/service-worker-register";
 import Spotlight from "../components/spotlight";
 import JsonLd from "../components/json-ld";
 import siteMetadata from "../../data/sitemetadata";
-import UmamiAnalytics from "../components/umami-analytics";
 import Lightbox from "../components/lightbox-controller";
 import {
   DEFAULT_ROBOTS,
@@ -50,11 +49,11 @@ export const metadata = {
   keywords: siteMetadata.keywords,
   authors: [{ name: siteMetadata.author, url: absoluteUrl("/about") }],
   creator: siteMetadata.author,
-  publisher: siteMetadata.publishName,
+  publisher: siteMetadata.siteName,
   /* The suffix lives here once. Every page passes its raw title to
      buildMetadata(); a page that sets an absolute title opts out. */
   title: {
-    default: siteMetadata.title,
+    default: siteMetadata.siteName,
     template: `%s - ${SITE_NAME}`,
   },
   description: siteMetadata.description,
@@ -68,7 +67,7 @@ export const metadata = {
     telephone: false,
   },
   openGraph: {
-    title: siteMetadata.title,
+    title: siteMetadata.siteName,
     description: siteMetadata.description,
     url: absoluteUrl("/"),
     siteName: SITE_NAME,
@@ -78,7 +77,7 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: siteMetadata.title,
+    title: siteMetadata.siteName,
     description: siteMetadata.description,
     images: { url: COVER.url, alt: COVER.alt },
   },
@@ -113,7 +112,6 @@ export default function RootLayout({ children }) {
           <VersionGuard />
           <ServiceWorkerRegister />
         </Providers>
-        <UmamiAnalytics />
       </body>
     </html>
   );

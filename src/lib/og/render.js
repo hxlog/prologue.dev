@@ -84,7 +84,7 @@ function normalizeInput(input = {}) {
         ? "post"
         : "page";
   return {
-    title: clip(input.title, 90) || siteMetadata.publishName,
+    title: clip(input.title, 90) || siteMetadata.siteName,
     date,
     read,
     tags,
@@ -119,7 +119,7 @@ function domain() {
 }
 
 function blogName() {
-  return siteMetadata.publishName;
+  return siteMetadata.siteName;
 }
 
 /** Title size: 62px base, stepping down so a long headline still fits 3 lines. */

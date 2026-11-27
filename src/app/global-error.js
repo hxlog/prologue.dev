@@ -5,7 +5,7 @@ import { useEffect } from "react";
 /** Root error boundary: same recovery contract as app/error.js. */
 export default function GlobalError({ error, reset }) {
   useEffect(() => {
-    const key = "prologue:global-error-reload";
+    const key = "site:global-error-reload";
     try {
       if (sessionStorage.getItem(key)) return;
       sessionStorage.setItem(key, "1");

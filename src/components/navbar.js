@@ -26,11 +26,11 @@ export default function Navbar() {
       <div className="shell flex h-full items-center justify-between gap-4">
         <Link
           href="/"
-          aria-label={siteMetadata.publishName}
+          aria-label={siteMetadata.siteName}
           className="select-none rounded-control px-1 py-1"
         >
           <span className="text-gradient whitespace-nowrap text-base font-semibold tracking-tight sm:text-lg">
-            {siteMetadata.publishName}
+            {siteMetadata.siteName}
           </span>
         </Link>
 

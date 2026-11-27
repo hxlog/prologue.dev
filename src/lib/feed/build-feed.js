@@ -143,7 +143,7 @@ export async function buildFeedItems() {
 export function assembleFeed(items, updated) {
   const site = siteUrl();
   const feed = new Feed({
-    title: siteMetadata.title,
+    title: siteMetadata.siteName,
     description: siteMetadata.description,
     id: `${site}/`,
     link: `${site}/`,

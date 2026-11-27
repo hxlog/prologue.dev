@@ -186,7 +186,7 @@ function collectCards() {
     add({ key: ogKeyForPage(name), kind: "page", title });
   }
 
-  add({ key: OG_DEFAULT_KEY, kind: "page", title: siteMetadata.title });
+  add({ key: OG_DEFAULT_KEY, kind: "page", title: siteMetadata.siteName });
 
   return cards.sort((a, b) => a.key.localeCompare(b.key));
 }

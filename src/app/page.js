@@ -43,7 +43,7 @@ export default function Home() {
       <RouteTransition>
         <PageTransition>
           <section className="mx-auto max-w-3xl pt-16 pb-10">
-            <p className="eyebrow">{siteMetadata.title}</p>
+            <p className="eyebrow">{siteMetadata.siteName}</p>
             <h1 className="mt-4 text-display font-semibold leading-tight tracking-tight text-foreground">
               {siteMetadata.headerTitle}
             </h1>
@@ -71,7 +71,7 @@ export default function Home() {
 }
 
 export const metadata = buildMetadata({
-  title: siteMetadata.title,
+  title: siteMetadata.siteName,
   absoluteTitle: true,
   description: siteMetadata.description,
   path: "/",

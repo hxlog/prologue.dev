@@ -143,7 +143,7 @@ Not supported, per Obsidian's own docs ("Nested properties"):
 | `text` / `number` / `checkbox` / `date` | editable |
 | list of scalars — `tags: [a, b]` | editable |
 | **list of objects** — `- name: x` / `  url: y` | **not editable**, shown as "unknown" |
-| **nested object** — `umami: { scriptUrl: … }` | **not editable**, shown as an opaque JSON string |
+| **nested object** — `pages: { archive: {…} }` | **not editable**, shown as an opaque JSON string |
 
 The destructive half: **any** edit through the Properties panel re-serializes
 the *entire* frontmatter block through Obsidian's own library. Comments are
@@ -164,7 +164,7 @@ record, flat frontmatter** — that is what Bases consumes as rows, what Astro's
 | `data/microblog.yaml` | 26 × `{date, content, images[{src,desc}]}` | no — list of objects + nested |
 | `data/headerNavLinks.js` | 4 × `{href, title}` | no — list of objects |
 | `data/tagLabels.js` | 15-key map | no — nested map |
-| `data/sitemetadata.js` | flat, **except** `umami: {…}` | no — nested map |
+| `data/sitemetadata.js` | flat, **except** nested page copy | no — nested map |
 
 None is directly representable. Each needs a shape change — but there is a
 sharper constraint that decides which ones are even worth converting.
@@ -284,10 +284,9 @@ and regenerated, exactly like `public/search-index.json`.
 
 - **Pro:** everything under `data/` becomes editable in Obsidian, which is the
   literal ask.
-- **Con:** `umami` is a nested object and frontmatter cannot hold it — it has to
-  be **flattened** to `umamiScriptUrl` / `umamiWebsiteId` / `umamiDomains` /
-  `umamiRecorderUrl`. Same for `tagLabels` (a 15-key map → 15 flat text keys in
-  one note, or 15 notes).
+- **Con:** nested page copy cannot be held in frontmatter — it has to be
+  **flattened** into text keys. Same for `tagLabels` (a 15-key map → 15 flat
+  text keys in one note, or 15 notes).
 - **Con:** it reintroduces generated files. `next dev` would need the generator
   to have run before the first import resolves, and a hand-edit of a generated
   file is silently lost on the next build.

@@ -75,7 +75,7 @@ export default function SearchDialog() {
             if (!Array.isArray(items)) return;
             try {
               window.sessionStorage.setItem(
-                "prologue.search.v1:/search-index-lite.json",
+                "site.search.v1:/search-index-lite.json",
                 JSON.stringify(items)
               );
             } catch {

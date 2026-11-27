@@ -1,5 +1,5 @@
 /**
- * One-off image recompression for prologue.dev (maintainer script, not shipped).
+ * One-off image recompression (maintainer script, not shipped).
  *
  * `node scripts/optimize-images.mjs`          -> dry run, prints the plan
  * `node scripts/optimize-images.mjs --apply`  -> writes public/static/opt/**,

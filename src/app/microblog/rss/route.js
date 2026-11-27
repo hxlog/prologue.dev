@@ -42,7 +42,7 @@ export async function GET() {
   const entries = getMicroblog();
 
   const feed = new Feed({
-    title: `${siteMetadata.title} · ${siteMetadata.pages.microblog.heading}`,
+    title: `${siteMetadata.siteName} · ${siteMetadata.pages.microblog.heading}`,
     description: siteMetadata.pages.microblog.description,
     id: `${SITE}/microblog`,
     link: `${SITE}/microblog`,

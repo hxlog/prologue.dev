@@ -20,8 +20,7 @@ import {
 const SITE = String(siteMetadata.siteUrl || "").replace(/\/+$/, "");
 
 export const SITE_URL = SITE;
-export const SITE_NAME =
-  siteMetadata.siteName || siteMetadata.publishName || siteMetadata.title;
+export const SITE_NAME = siteMetadata.siteName;
 export const OG_LOCALE = String(siteMetadata.language || "zh-CN").replace(
   "-",
   "_",
@@ -82,7 +81,7 @@ const OG_CARD_IMAGES = new WeakMap();
  * the card key derived from the route path (one pre-rendered PNG per page). When
  * used outside buildMetadata() the url is the site-wide default card.
  */
-export function defaultOgImage(title = siteMetadata.title, params = {}) {
+export function defaultOgImage(title = siteMetadata.siteName, params = {}) {
   const descriptor = {
     url: ogImageUrlForKey(params.key || OG_DEFAULT_KEY),
     width: OG_IMAGE_WIDTH,

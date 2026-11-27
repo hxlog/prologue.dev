@@ -15,7 +15,7 @@ import { useEffect } from "react";
  */
 export default function AppError({ error, reset }) {
   useEffect(() => {
-    const key = "prologue:error-reload:" + window.location.pathname;
+    const key = "site:error-reload:" + window.location.pathname;
     try {
       if (sessionStorage.getItem(key)) return;
       sessionStorage.setItem(key, "1");

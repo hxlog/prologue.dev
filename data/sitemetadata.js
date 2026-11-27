@@ -1,14 +1,39 @@
+const siteName = "槐序的序章";
+const siteUrl = "https://prologue.dev";
+const siteHost = new URL(siteUrl).hostname;
+
+/**
+ * Agent discovery metadata. The shared identity fields above are reused rather
+ * than duplicated: names are derived from siteName, and only the values that
+ * cannot be inferred (the client-config key and the public signing key) live
+ * here. The private Web Bot Auth key is never committed.
+ */
+const agent = {
+  mcpClientName: "prologue_blog",
+  mcpServerName: siteName + " MCP Content Server",
+  a2aName: siteName + " Content Agent",
+  apiTitle: siteName + " content API",
+  mcpServerSlug: siteHost.split(".").reverse().join(".") + "/content-agent",
+  credentialType:
+    "urn:" +
+    siteHost.replace(/[^a-z0-9]+/gi, "-").toLowerCase() +
+    ":anonymous-agent-credential",
+  webBotAuthKey: {
+    kty: "OKP",
+    crv: "Ed25519",
+    x: "Kl1jYRrmzreg3FqwngTEqUMJfbIwV058ua1wWVRhAFw",
+  },
+};
+
 const siteMetadata = {
-  title: "槐序的序章",
-  siteName: "槐序的序章",
+  siteName,
   author: "槐序",
   authorDesc: "00后/INFJ/少数派/梦想成为自由职业者",
-  publishName: "槐序的序章",
   headerTitle: "What's past is prologue",
   description: "对当下的反思和批判",
   language: "zh-CN",
   keywords: ["prologue", "序章", "槐序", "槐序的序章"],
-  siteUrl: "https://prologue.dev",
+  siteUrl,
   siteRepo: "prologue.dev",
   repoid: "R_kgDOHl4HGg",
   categoryid: "DIC_kwDOHl4HGs4CP_Jc",
@@ -28,12 +53,6 @@ const siteMetadata = {
   microblogFeedGenerator: "prologue.dev microblog feed",
 
   // optional
-  umami: {
-    scriptUrl: "https://umami.morean.cn/script.js",
-    recorderUrl: "https://umami.morean.cn/recorder.js",
-    websiteId: "dddadd5a-f772-41c9-8942-9b54bad93e18",
-    domains: "prologue.dev",
-  },
   wechatofficialaccount: "槐序的序章",
   tenYears: {
     url: "https://www.foreverblog.cn/go.html",
@@ -43,6 +62,7 @@ const siteMetadata = {
     cta: "开始漫游",
     title: "随机访问一位十年之约成员博客",
   },
+  agent,
 
   // Page-level copy and labels. Runtime routes read these instead of carrying
   // owner-specific strings in code; template data supplies its own values.
@@ -65,7 +85,7 @@ const siteMetadata = {
       title: "UI 标准 / UI Standard",
       heading: "设计系统与 UI 标准",
       description:
-        "prologue.dev 的颜色、字体、形状、动效与组件标准：本页直接读取生产 CSS，与实际站点同源。",
+        "本站的颜色、字体、形状、动效与组件标准：本页直接读取生产 CSS，与实际站点同源。",
       projects: [
         {
           name: "Balanced Portfolio",

@@ -102,8 +102,6 @@ for (const page of Object.values(siteMetadata.pages || {})) {
 }
 
 // The card's fixed strings.
-add(siteMetadata.publishName);
-add(siteMetadata.title);
 add(siteMetadata.siteName);
 add(siteMetadata.author);
 add(domain(siteMetadata.siteUrl));

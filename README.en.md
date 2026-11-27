@@ -99,7 +99,7 @@ flowchart LR
 | Write posts / pages | `data/content/blog`, `data/content/pages` → [docs/CONTENT.md](./docs/CONTENT.md) |
 | Change theme / tokens | `src/app/globals.css` → see [/ui](https://prologue.dev/ui) |
 | Manage nav / links / microblog | `data/headerNavLinks.js`, `data/links.yaml`, `data/microblog.yaml` |
-| Configure comments / analytics | Giscus + Umami (see `src/components` and `data/sitemetadata.js`) |
+| Configure comments | Giscus (see `src/components` and `data/sitemetadata.js`) |
 | Switch hosting | [Cloudflare](./docs/DEPLOY-CLOUDFLARE.md) / [Vercel](./docs/DEPLOY-VERCEL.md) |
 
 ## 🗂 Project Structure

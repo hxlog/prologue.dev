@@ -43,7 +43,7 @@ function atomFeedImage() {
   return [
     `  <image xmlns="${ATOM_IMAGE_NS}">`,
     `    <url>${escapeXml(`${SITE}${siteMetadata.avatar}`)}</url>`,
-    `    <title>${escapeXml(siteMetadata.title)}</title>`,
+    `    <title>${escapeXml(siteMetadata.siteName)}</title>`,
     `    <link>${escapeXml(`${SITE}/`)}</link>`,
     "  </image>",
   ].join("\n");

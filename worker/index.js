@@ -15,6 +15,12 @@
  * wrangler.jsonc routes every request through this Worker:
  *   assets.binding = "ASSETS", assets.run_worker_first = true.
  */
+import siteMetadata from "../data/sitemetadata.js";
+
+const SITE = String(siteMetadata.siteUrl || "").replace(/\/+$/, "");
+const SITE_NAME = siteMetadata.siteName;
+const AGENT = siteMetadata.agent;
+
 const CONTENT_SIGNAL = "ai-train=no, search=yes, ai-input=no";
 const MARKDOWN_PREFIX = "/__markdown";
 
@@ -134,9 +140,9 @@ function newAnonymousCredential() {
     agent_id: "agent_" + id,
     access_token: "anon_" + id,
     token_type: "Bearer",
-    credential_type: "urn:prologue:anonymous-agent-credential",
+    credential_type: AGENT.credentialType,
     expires_in: 3600,
-    register_uri: "https://prologue.dev/agent/auth",
+    register_uri: SITE + "/agent/auth",
   };
 }
 
@@ -169,7 +175,7 @@ function agentEndpoint(request, url) {
     return agentJson(200, {
       status: "not_required",
       message: "Anonymous registration does not require a human claim ceremony.",
-      claim_uri: "https://prologue.dev/agent/claim",
+      claim_uri: SITE + "/agent/claim",
     });
   }
   if (url.pathname === "/agent/revoke" && request.method === "POST") {
@@ -182,7 +188,7 @@ function agentEndpoint(request, url) {
     return agentJson(200, {
       status: "anonymous_only",
       message: "POST /agent/auth for anonymous registration; no browser authorization flow is supported.",
-      register_uri: "https://prologue.dev/agent/auth",
+      register_uri: SITE + "/agent/auth",
     });
   }
   return agentJson(405, { error: "method_not_allowed" });
@@ -207,10 +213,10 @@ async function a2aEndpoint(request) {
   }
   if (request.method === "GET") {
     return new Response(JSON.stringify({
-      name: "Prologue Content Agent",
+      name: AGENT.a2aName,
       protocolBinding: "JSONRPC",
       protocolVersion: "1.0",
-      agentCard: "https://prologue.dev/.well-known/agent-card.json",
+      agentCard: SITE + "/.well-known/agent-card.json",
     }), { status: 200, headers: cors });
   }
   if (request.method !== "POST") {
@@ -233,7 +239,7 @@ async function a2aEndpoint(request) {
       role: "agent",
       contextId,
       parts: [{
-        text: "Prologue content agent: public discovery is at https://prologue.dev/.well-known/api-catalog, OpenAPI at https://prologue.dev/.well-known/openapi.json, and any HTML route can be fetched as Markdown with Accept: text/markdown.",
+        text: AGENT.a2aName + ": public discovery is at " + SITE + "/.well-known/api-catalog, OpenAPI at " + SITE + "/.well-known/openapi.json, and any HTML route can be fetched as Markdown with Accept: text/markdown.",
       }],
     });
   }
@@ -262,10 +268,10 @@ async function mcpEndpoint(request) {
   }
   if (request.method === "GET") {
     return new Response(JSON.stringify({
-      name: "Prologue MCP Content Server",
+      name: AGENT.mcpServerName,
       transport: "streamable-http",
-      endpoint: "https://prologue.dev/mcp",
-      serverCard: "https://prologue.dev/.well-known/mcp/server-card.json",
+      endpoint: SITE + "/mcp",
+      serverCard: SITE + "/.well-known/mcp/server-card.json",
     }), { status: 200, headers: cors });
   }
   if (request.method !== "POST") {
@@ -292,7 +298,7 @@ async function mcpEndpoint(request) {
         resources: { subscribe: false, listChanged: false },
         prompts: { listChanged: false },
       },
-      serverInfo: { name: "Prologue MCP Content Server", version: "1.0.0" },
+      serverInfo: { name: AGENT.mcpServerName, version: "1.0.0" },
     });
   }
   if (method === "tools/list") {
@@ -300,7 +306,7 @@ async function mcpEndpoint(request) {
       tools: [
         {
           name: "site_discovery",
-          description: "List the public machine-readable discovery surfaces of prologue.dev.",
+          description: "List the public machine-readable discovery surfaces of " + SITE + ".",
           inputSchema: { type: "object", properties: {}, additionalProperties: false },
         },
         {
@@ -322,7 +328,7 @@ async function mcpEndpoint(request) {
       return result({
         content: [{
           type: "text",
-          text: "API catalog: https://prologue.dev/.well-known/api-catalog\nOpenAPI: https://prologue.dev/.well-known/openapi.json\nAuth: https://prologue.dev/auth.md\nA2A card: https://prologue.dev/.well-known/agent-card.json\nFeeds: https://prologue.dev/rss, https://prologue.dev/atomfeed, https://prologue.dev/jsonfeed\nSearch corpus: https://prologue.dev/search-index.json",
+          text: "API catalog: " + SITE + "/.well-known/api-catalog\nOpenAPI: " + SITE + "/.well-known/openapi.json\nAuth: " + SITE + "/auth.md\nA2A card: " + SITE + "/.well-known/agent-card.json\nFeeds: " + SITE + "/rss, " + SITE + "/atomfeed, " + SITE + "/jsonfeed\nSearch corpus: " + SITE + "/search-index.json",
         }],
         isError: false,
       });
@@ -330,7 +336,7 @@ async function mcpEndpoint(request) {
     if (name === "get_markdown") {
       const path = typeof args.path === "string" && args.path.startsWith("/") && !args.path.includes("..") ? args.path : "/";
       return result({
-        content: [{ type: "text", text: "Fetch https://prologue.dev" + path + " with Accept: text/markdown." }],
+        content: [{ type: "text", text: "Fetch " + SITE + path + " with Accept: text/markdown." }],
         isError: false,
       });
     }
@@ -339,16 +345,16 @@ async function mcpEndpoint(request) {
   if (method === "resources/list") {
     return result({
       resources: [
-        { uri: "https://prologue.dev/.well-known/api-catalog", name: "API catalog", mimeType: "application/linkset+json" },
-        { uri: "https://prologue.dev/.well-known/openapi.json", name: "OpenAPI description", mimeType: "application/vnd.oai.openapi+json;version=3.1" },
-        { uri: "https://prologue.dev/auth.md", name: "Auth.md", mimeType: "text/markdown" },
-        { uri: "https://prologue.dev/.well-known/agent-card.json", name: "A2A agent card", mimeType: "application/json" },
+        { uri: SITE + "/.well-known/api-catalog", name: "API catalog", mimeType: "application/linkset+json" },
+        { uri: SITE + "/.well-known/openapi.json", name: "OpenAPI description", mimeType: "application/vnd.oai.openapi+json;version=3.1" },
+        { uri: SITE + "/auth.md", name: "Auth.md", mimeType: "text/markdown" },
+        { uri: SITE + "/.well-known/agent-card.json", name: "A2A agent card", mimeType: "application/json" },
       ],
     });
   }
   if (method === "resources/read") {
     const uri = payload.params?.uri;
-    if (typeof uri === "string" && uri.startsWith("https://prologue.dev/")) {
+    if (typeof uri === "string" && uri.startsWith(SITE + "/")) {
       return result({ contents: [{ uri, mimeType: "text/plain", text: "Fetch " + uri + " over HTTPS." }] });
     }
     return error(-32602, "Unknown resource");

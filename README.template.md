@@ -72,7 +72,7 @@ flowchart LR
 | Change site identity | `data/sitemetadata.js` |
 | Change design tokens | `src/app/globals.css`, preview at `/ui` |
 | Nav / links / microblog | `data/headerNavLinks.js`, `data/links.yaml`, `data/microblog.yaml` |
-| Comments / analytics | Giscus + Umami (see `src/components`) |
+| Comments | Giscus (see `src/components`) |
 
 ## 📚 Docs
 

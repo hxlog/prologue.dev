@@ -26,6 +26,9 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..
 const PUBLIC_DIR = path.join(REPO_ROOT, "public");
 const OUT_DIR = path.join(PUBLIC_DIR, ".well-known");
 const BASE = String(siteMetadata.siteUrl || "").replace(/\/+$/, "");
+const SITE_NAME = siteMetadata.siteName;
+const AGENT = siteMetadata.agent;
+const SITE_AVATAR = BASE + siteMetadata.avatar;
 
 const PATHS = {
   "/rss": { summary: "RSS 2.0 feed", description: "Full-text RSS 2.0 feed for all published posts.", mediaType: "application/rss+xml" },
@@ -61,9 +64,9 @@ function openApi() {
   return {
     openapi: "3.1.0",
     info: {
-      title: "Prologue content API",
+      title: AGENT.apiTitle,
       version: "1.0.0",
-      description: "Read-only, unauthenticated machine surfaces of prologue.dev: feeds, search corpora, sitemap, llms files and deployment version. HTML pages remain the default browser representation; send Accept: text/markdown for the Markdown variant of HTML routes.",
+      description: "Read-only, unauthenticated machine surfaces of " + BASE + ": feeds, search corpora, sitemap, llms files and deployment version. HTML pages remain the default browser representation; send Accept: text/markdown for the Markdown variant of HTML routes.",
       license: { name: siteMetadata.copyright || "All rights reserved", url: siteMetadata.copyrightUrl || BASE },
     },
     servers: [{ url: BASE }],
@@ -85,7 +88,7 @@ const catalog = {
 
 function apiDoc() {
   const lines = [
-    "# Prologue content API",
+    "# " + AGENT.apiTitle,
     "",
     "Read-only, unauthenticated machine surfaces of " + BASE + ".",
     "",
@@ -117,7 +120,7 @@ function apiDoc() {
   return lines.join("\n");
 }
 
-const AGENT_CREDENTIAL_TYPE = "urn:prologue:anonymous-agent-credential";
+const AGENT_CREDENTIAL_TYPE = AGENT.credentialType;
 const AGENT_SCOPES = ["content:read"];
 const AGENT_AUTH = {
   skill: BASE + "/auth.md",
@@ -157,14 +160,13 @@ function authorizationServerDoc() {
   };
 }
 
-const WEBBOT_JWK = {
-  kty: "OKP",
-  crv: "Ed25519",
-  x: "Kl1jYRrmzreg3FqwngTEqUMJfbIwV058ua1wWVRhAFw",
-  kid: "vyK6J_DVVaRScR0feW1ITPni_THWs9sG1qzHWjZICrk",
-  use: "sig",
-  alg: "Ed25519",
-};
+const WEBBOT_JWK = (() => {
+  const key = AGENT.webBotAuthKey;
+  const kid = createHash("sha256")
+    .update(JSON.stringify({ crv: key.crv, kty: key.kty, x: key.x }))
+    .digest("base64url");
+  return { ...key, kid, use: "sig", alg: "Ed25519" };
+})();
 
 function webBotAuthDirectory() {
   return { keys: [WEBBOT_JWK] };
@@ -173,12 +175,12 @@ function webBotAuthDirectory() {
 function mcpCardDoc() {
   return {
     "$schema": "https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json",
-    name: "dev.prologue/content-agent",
-    title: "Prologue MCP Content Server",
+    name: AGENT.mcpServerSlug,
+    title: AGENT.mcpServerName,
     version: "1.0.0",
-    description: "Read-only MCP server for discovering and reading prologue.dev content and machine-readable surfaces.",
+    description: "Read-only MCP server for discovering and reading " + SITE_NAME + " content and machine-readable surfaces.",
     serverInfo: {
-      name: "Prologue MCP Content Server",
+      name: AGENT.mcpServerName,
       version: "1.0.0",
     },
     transport: {
@@ -205,21 +207,21 @@ function mcpCardDoc() {
       prompts: false,
     },
     documentationUrl: BASE + "/auth.md",
-    iconUrl: BASE + "/static/favicons/avatar.png",
+    iconUrl: SITE_AVATAR,
   };
 }
 
 function agentCardDoc() {
   return {
-    name: "Prologue Content Agent",
+    name: AGENT.a2aName,
     version: "1.0.0",
-    description: "Read-only A2A agent for discovering and reading the public content of prologue.dev. It returns links to posts, feeds, search corpora and Markdown representations; it does not write data or expose private content.",
+    description: "Read-only A2A agent for discovering and reading the public content of " + SITE_NAME + ". It returns links to posts, feeds, search corpora and Markdown representations; it does not write data or expose private content.",
     provider: {
-      organization: siteMetadata.siteName || "Prologue",
+      organization: SITE_NAME,
       url: BASE,
     },
     documentationUrl: BASE + "/.well-known/api-doc.md",
-    iconUrl: BASE + "/static/favicons/avatar.png",
+    iconUrl: SITE_AVATAR,
     supportedInterfaces: [
       {
         url: BASE + "/a2a",
@@ -237,18 +239,18 @@ function agentCardDoc() {
     skills: [
       {
         id: "content-discovery",
-        name: "Prologue content discovery",
+        name: SITE_NAME + " content discovery",
         description: "Find the site's public articles, feeds, search corpora and machine-readable discovery documents.",
         tags: ["content", "search", "rss", "openapi", "markdown"],
         examples: [
-          "What machine-readable surfaces does prologue.dev expose?",
+          "What machine-readable surfaces does " + SITE_NAME + " expose?",
           "Where is the search corpus or RSS feed?",
         ],
       },
       {
         id: "markdown-retrieval",
         name: "Markdown page retrieval",
-        description: "Return a link to the Markdown representation of any public HTML route on prologue.dev.",
+        description: "Return a link to the Markdown representation of any public HTML route on " + SITE_NAME + ".",
         tags: ["markdown", "content-negotiation"],
         examples: [
           "Give me the Markdown version of the about page.",
@@ -264,7 +266,7 @@ function authDoc() {
     ? "https://github.com/" + siteMetadata.github + "/" + (siteMetadata.siteRepo || "issues") + "/issues"
     : BASE;
   return [
-    "# Prologue.dev auth.md",
+    "# " + SITE_NAME + " auth.md",
     "",
     "Agent registration and authentication discovery for " + BASE + ".",
     "",
@@ -329,20 +331,20 @@ function authDoc() {
 const AGENT_SKILLS = [
   {
     name: "content-discovery",
-    description: "Discover prologue.dev's API catalog, OpenAPI, A2A card, MCP server card and machine-readable feeds.",
+    description: "Discover " + SITE_NAME + "'s API catalog, OpenAPI, A2A card, MCP server card and machine-readable feeds.",
   },
   {
     name: "markdown-retrieval",
-    description: "Fetch any prologue.dev HTML page as Markdown using Accept: text/markdown.",
+    description: "Fetch any " + SITE_NAME + " HTML page as Markdown using Accept: text/markdown.",
   },
 ];
 
 function skillContent(skill) {
   if (skill.name === "content-discovery") {
     return [
-      "# Prologue.dev content discovery",
+      "# " + SITE_NAME + " content discovery",
       "",
-      "Use this skill to find the public, machine-readable surfaces of prologue.dev before fetching content.",
+      "Use this skill to find the public, machine-readable surfaces of " + SITE_NAME + " before fetching content.",
       "",
       "## Discovery endpoints",
       "",
@@ -371,9 +373,9 @@ function skillContent(skill) {
     ].join("\n");
   }
   return [
-    "# Prologue.dev Markdown retrieval",
+    "# " + SITE_NAME + " Markdown retrieval",
     "",
-    "Every public HTML route on prologue.dev can be requested as Markdown.",
+    "Every public HTML route on " + SITE_NAME + " can be requested as Markdown.",
     "",
     "## Request",
     "",
@@ -386,8 +388,8 @@ function skillContent(skill) {
     "## Examples",
     "",
     "- " + BASE + "/about",
-    "- " + BASE + "/blog/first_job_first_exit_stop_the_bleeding",
-    "- " + BASE + "/tags/Inequality",
+    "- " + BASE + "/blog",
+    "- " + BASE + "/tags",
     "",
     "## Rules",
     "",

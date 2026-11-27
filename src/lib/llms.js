@@ -21,7 +21,7 @@ export function buildLlmsIndex() {
     .sort((a, b) => new Date(b.publishDate) - new Date(a.publishDate));
 
   const lines = [
-    "# " + siteMetadata.title,
+    "# " + siteMetadata.siteName,
     "",
     "> " + siteMetadata.description,
     "",
@@ -68,7 +68,7 @@ export function buildLlmsFull() {
     .sort((a, b) => new Date(b.publishDate) - new Date(a.publishDate));
 
   const lines = [
-    "# " + siteMetadata.title + " — full text",
+    "# " + siteMetadata.siteName + " — full text",
     "",
     "> " + siteMetadata.description,
     "",

@@ -136,7 +136,7 @@ export function searchItems(items, query) {
 
 const INDEX_URL = SEARCH_INDEX_URL;
 const LITE_INDEX_URL = "/search-index-lite.json";
-const CACHE_PREFIX = "prologue.search.v1:";
+const CACHE_PREFIX = "site.search.v1:";
 
 function readSession(key) {
   try {

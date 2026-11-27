@@ -99,7 +99,7 @@ flowchart LR
 | 写文章 / 改页面 | `data/content/blog`、`data/content/pages` → [docs/CONTENT.md](./docs/CONTENT.md) |
 | 改主题 / 设计变量 | `src/app/globals.css` → 打开 [/ui](https://prologue.dev/ui) 查看实时规范 |
 | 管理导航 / 友链 / 微博 | `data/headerNavLinks.js`、`data/links.yaml`、`data/microblog.yaml` |
-| 配置评论 / 统计 | Giscus + Umami（见 `src/components` 与 `data/sitemetadata.js`） |
+| 配置评论 | Giscus（见 `src/components` 与 `data/sitemetadata.js`） |
 | 换部署平台 | [Cloudflare](./docs/DEPLOY-CLOUDFLARE.md) / [Vercel](./docs/DEPLOY-VERCEL.md) |
 
 ## 🗂 项目结构

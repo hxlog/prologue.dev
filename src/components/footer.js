@@ -19,7 +19,7 @@ export default async function Footer() {
     <footer className="mt-16 border-t border-border">
       <div className="flex select-none flex-col items-center gap-4 py-8 text-sm text-muted sm:flex-row sm:gap-0">
         <p>
-          © {year} {sitemetadata.publishName}
+          © {year} {sitemetadata.siteName}
         </p>
         <p className="sm:ml-4 sm:border-l sm:border-border sm:pl-4">
           Powered by{" "}

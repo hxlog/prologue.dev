@@ -65,7 +65,7 @@ Frontmatter is validated **loudly**: a mistyped `draft: "false"` (which is what 
 
 `data/headerNavLinks.js` is a `.js` file for the same client-component reason.
 
-`data/sitemetadata.js` is the single source for owner/site identity: title, author, description, avatar/cover, email/feed email, GitHub, optional Zhihu, license, feed generator, and the page-level copy under `pages` (archive, microblog, links, ui, llms). Runtime code reads these fields; optional social values such as `zhihu` are rendered only when defined. The public template uses generic values and an empty `zhihu`. Do not reintroduce owner-specific strings into `src/`; add a field to `data/sitemetadata.js` (and the matching `template/data/sitemetadata.js` when it is a starter setting) instead.
+`data/sitemetadata.js` is the single source for owner/site identity: canonical `siteName`, author, description, avatar/cover, email/feed email, GitHub, optional Zhihu, license, feed generator, and the page-level copy under `pages` (archive, microblog, links, ui, llms). Runtime code reads these fields; optional social values such as `zhihu` are rendered only when defined. The public template uses generic values and an empty `zhihu`. Do not reintroduce owner-specific strings into `src/`; add a field to `data/sitemetadata.js` (and the matching `template/data/sitemetadata.js` when it is a starter setting) instead.
 
 ## Markdown pipeline & Mermaid
 
@@ -259,7 +259,7 @@ OG cards are **build-time PNGs**, not a route: scripts/build-og-images.mjs rende
 ## 2026-11-26 Web Bot Auth
 
 - `scripts/build-api-catalog.mjs` publishes an Ed25519 JWKS at `/.well-known/http-message-signatures-directory` with `kty`, `crv`, `x` and the RFC 7638 key thumbprint as `kid`; content type is `application/http-message-signatures-directory+json` with CORS and cache headers.
-- The public key is fixed in the build generator (private key deliberately not committed); it is the verification key for future signed outgoing agent requests. The site itself is read-only and currently has no outbound bot traffic to sign; the directory is the discovery contract Cloudflare Web Bot Auth verifies.
+- The public key lives in `data/sitemetadata.js` under `agent.webBotAuthKey`; the build generator computes its RFC 7638 `kid`. The private key is deliberately not committed; it is the verification key for future signed outgoing agent requests. The site itself is read-only and currently has no outbound bot traffic to sign; the directory is the discovery contract Cloudflare Web Bot Auth verifies.
 - `verify-export.mjs` asserts the JWKS shape; the directory is generated into `public/.well-known` and copied into the export. If the site later operates an outbound agent, sign requests with `Signature-Input` (`tag="web-bot-auth"`, `keyid` = thumbprint, `created`/`expires`/`nonce`) and `Signature`, plus `Signature-Agent: "https://prologue.dev"`.
 
 ## 2026-11-26 DNS for AI Discovery (DNS-AID)
@@ -277,3 +277,11 @@ OG cards are **build-time PNGs**, not a route: scripts/build-og-images.mjs rende
 - The panel uses the selected B-console layout: `MCP` / `A2A` tabs, copyable `prologue_blog` MCP client config and MCP endpoint, plus A2A curl, Agent Card and JSON-RPC endpoint. It deliberately omits the old read-only/streaming disclaimer and MCP intro copy.
 - To fit five toolbar icons at 320px the mobile logo uses `text-base` (desktop keeps `text-lg`) and the toolbar gap is zero below `sm`; the logo stays on one line and the page has no horizontal overflow.
 - `e2e/ui-overlays.spec.js` covers opening/switching/closing the panel and the mobile toolbar order (search → agent → RSS).
+
+## 2026-11-27 Analytics removal and metadata consolidation
+
+- **Umami is gone.** The two local analytics components, the root-layout mount, both `siteMetadata.umami` blocks, current README/AGENTS/deployment references and the historical design-spec examples were removed. There was no Umami npm package, so `package.json`/`yarn.lock` are unchanged; Cloudflare handles monitoring.
+- `data/sitemetadata.js` now has one canonical `siteName`; the duplicate `title` and `publishName` fields were removed and every consumer was moved to `siteName`. `publisher` metadata, footer brand, navbar label, feed titles, OG cards, llms and sitemap all read the same field.
+- Agent/discovery metadata lives in `data/sitemetadata.js` as a derived `agent` object: `mcpClientName`, `mcpServerName`, `a2aName`, `apiTitle`, `mcpServerSlug`, `credentialType` and the public Web Bot Auth key. Names are derived from `siteName`/`siteUrl`; only the client-config key and public signing key are explicit. The private Web Bot Auth key is not committed.
+- `scripts/build-api-catalog.mjs` and `worker/index.js` import `data/sitemetadata.js`; all `prologue.dev`/`Prologue`/`urn:prologue` literals were removed from runtime and discovery code. Wrangler bundles the Worker data import successfully.
+- Internal local-only namespaces were genericized (`site:error-reload`, `site.search.v1`, `site-sw`), and the stray `Prologue 序章` CSS comment was removed. `data/`, `public/`, README/docs and maintainer-only publish tooling remain the only places with site-specific values by design; `assets/og` is a generated build artifact derived from `public/`.
